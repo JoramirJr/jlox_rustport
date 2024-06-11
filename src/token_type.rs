@@ -1,4 +1,7 @@
-enum TokenType {
+use std::fmt::Debug;
+
+#[derive(Debug)]
+pub enum TokenType {
     //single-character tokens
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -44,10 +47,15 @@ enum TokenType {
     EOF,
 }
 
-struct Literal;
+pub struct Token<T: Debug> {
+    pub ttype: TokenType,
+    pub lexeme: String,
+    pub literal: Option<T>,
+    pub line: u32,
+}
 
-struct Token  {
-    ttype: TokenType,
-    lexeme: String,
-    literal: Literal
+impl<T: Debug> Token<T> {
+    pub fn to_string(&self) -> String {
+        format!("{:?} {} {:?}", &self.ttype, &self.lexeme, &self.literal)
+    }
 }

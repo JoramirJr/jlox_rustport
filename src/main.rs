@@ -5,6 +5,7 @@ use std::io::Write;
 use std::process;
 
 mod token_type;
+mod scanner;
 struct Main {
     args: Vec<String>,
     had_error: bool,
@@ -52,11 +53,11 @@ impl Main {
         });
     }
 
-    fn error(line: usize, message: String) {
+    fn error(line: u32, message: String) {
         Self::report(line, String::new(), message);
     }
 
-    fn report(line: usize, location: String, message: String) {
+    fn report(line: u32, location: String, message: String) {
         let err_msg = format!("[line {}] Error {}: {}", line, location, message);
         let mut err_out_handler = io::stderr();
         let _ = err_out_handler.write_all(err_msg.as_bytes());

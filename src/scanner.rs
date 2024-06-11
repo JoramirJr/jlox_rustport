@@ -1,4 +1,3 @@
-use std::arch::x86_64::_addcarryx_u32;
 use std::fmt::Debug;
 
 use crate::token_type::Token;
@@ -16,7 +15,7 @@ impl<T: Debug> Scanner<T> {
     fn scan_tokens(mut self) -> Vec<Token<T>> {
         while !Self::is_at_end(&self) {
             self.start = self.current;
-            Self::scan_token();
+            Self::scan_token(&mut self);
         }
 
         self.tokens.push(Token {
@@ -27,23 +26,45 @@ impl<T: Debug> Scanner<T> {
         });
         self.tokens
     }
-    fn scan_token(mut self) {
-        let c: Option<char> = Self::advance(self);
-        match c.is_some() {
-            '(' => _add_token(),
-            ')' => _add_token(),
-            '{' => _add_token(),
-            '}' => _add_token(),
-            ',' => _add_token(),
-            '.' => _add_token(),
-            '-' => _add_token(),
-            '+' => _add_token(),
-            ';' => _add_token(),
-            '*' => _add_token(),
+    fn scan_token(&mut self) {
+        let c: Option<char> = Self::advance(&mut self);
+
+        
+
+        if c != None {
+            match c.unwrap() {
+                '(' => add_token(),
+                ')' => add_token(),
+                '{' => add_token(),
+                '}' => add_token(),
+                ',' => add_token(),
+                '.' => add_token(),
+                '-' => add_token(),
+                '+' => add_token(),
+                ';' => add_token(),
+                '*' => add_token(),
+            }
         }
     }
-    fn advance(mut self) -> Option<char> {
+    fn advance(&mut self) -> Option<char> {
         self.source.chars().nth(self.current)
+    }
+    fn call_add_token(mut self, ttype: TokenType) {
+        Self::add_token(&mut self, ttype, None);
+    }
+    fn add_token(&mut self, ttype: TokenType, literal: Option<T>) -> fn() {
+        //not sure if 'get' will bring me the intended substring
+        let text = self
+            .source
+            .get(self.start..self.current)
+            .unwrap()
+            .to_string();
+        self.tokens.push(Token {
+            ttype,
+            lexeme: text,
+            literal,
+            line: self.line,
+        });
     }
     fn is_at_end(&self) -> bool {
         &self.current >= &self.source.len()

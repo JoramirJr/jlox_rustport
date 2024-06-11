@@ -54,7 +54,7 @@ pub struct Token<T: Debug> {
     pub line: u32,
 }
 
-impl<T: Debug> Token<T> {
+impl<'a, T: Debug> Token<T> {
     pub fn to_string(&self) -> String {
         format!("{:?} {} {:?}", &self.ttype, &self.lexeme, &self.literal)
     }

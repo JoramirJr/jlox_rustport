@@ -29,30 +29,34 @@ impl<T: Debug> Scanner<T> {
     fn scan_token(&mut self) {
         let c: Option<char> = Self::advance(&mut self);
 
-        
+        let call_add_token = Self::set_self_for_add_token(self);
 
         if c != None {
             match c.unwrap() {
-                '(' => add_token(),
-                ')' => add_token(),
-                '{' => add_token(),
-                '}' => add_token(),
-                ',' => add_token(),
-                '.' => add_token(),
-                '-' => add_token(),
-                '+' => add_token(),
-                ';' => add_token(),
-                '*' => add_token(),
+                '(' => call_add_token(TokenType::LEFT_PAREN),
+                ')' => call_add_token(TokenType::RIGHT_PAREN),
+                '{' => call_add_token(TokenType::LEFT_BRACE),
+                '}' => call_add_token(TokenType::RIGHT_BRACE),
+                ',' => call_add_token(TokenType::COMMA),
+                '.' => call_add_token(TokenType::DOT),
+                '-' => call_add_token(TokenType::MINUS),
+                '+' => call_add_token(TokenType::PLUS),
+                ';' => call_add_token(TokenType::SEMICOLON),
+                '*' => call_add_token(TokenType::STAR),
             }
         }
     }
     fn advance(&mut self) -> Option<char> {
         self.source.chars().nth(self.current)
     }
-    fn call_add_token(mut self, ttype: TokenType) {
-        Self::add_token(&mut self, ttype, None);
+    fn set_self_for_add_token(self) -> fn(TokenType) {
+        let self_value: Scanner<T> = self;
+        Self::call_add_token
     }
-    fn add_token(&mut self, ttype: TokenType, literal: Option<T>) -> fn() {
+    fn call_add_token(ttype: TokenType) {
+        Self::add_token(self_value, ttype, None);
+    }
+    fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
         //not sure if 'get' will bring me the intended substring
         let text = self
             .source

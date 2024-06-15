@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use crate::token_type::Token;
 use crate::token_type::TokenType;
+use crate::Main;
 
 struct Scanner<T: Debug> {
     source: String,
@@ -27,9 +28,21 @@ impl<T: Debug> Scanner<T> {
         self.tokens
     }
     fn scan_token(&mut self) {
-        let c: Option<char> = Self::advance(&mut self);
+        let c: Option<char> = Self::advance(self);
 
-        let call_add_token = Self::set_self_for_add_token(self);
+        let mut call_add_token = |ttype: TokenType| {
+            Self::add_token(self, ttype, None);
+        };
+
+        let match_token = |expected: &char| -> bool {
+            if Self::is_at_end(&self) {
+                return false;
+            } else if &self.source.chars().nth(self.current).unwrap() != expected {
+                return false;
+            } else {
+                return true;
+            }
+        }
 
         if c != None {
             match c.unwrap() {
@@ -43,18 +56,15 @@ impl<T: Debug> Scanner<T> {
                 '+' => call_add_token(TokenType::PLUS),
                 ';' => call_add_token(TokenType::SEMICOLON),
                 '*' => call_add_token(TokenType::STAR),
+                '!' => {},
+                _ => {
+                    Main::error(&self.line, "Unexpected character.")
+                }
             }
         }
     }
     fn advance(&mut self) -> Option<char> {
         self.source.chars().nth(self.current)
-    }
-    fn set_self_for_add_token(self) -> fn(TokenType) {
-        let self_value: Scanner<T> = self;
-        Self::call_add_token
-    }
-    fn call_add_token(ttype: TokenType) {
-        Self::add_token(self_value, ttype, None);
     }
     fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
         //not sure if 'get' will bring me the intended substring

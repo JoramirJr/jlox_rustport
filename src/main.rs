@@ -53,11 +53,11 @@ impl Main {
         });
     }
 
-    fn error(line: u32, message: String) {
+    fn error(line: &u32, message: &str) {
         Self::report(line, String::new(), message);
     }
 
-    fn report(line: u32, location: String, message: String) {
+    fn report(line: &u32, location: String, message: &str) {
         let err_msg = format!("[line {}] Error {}: {}", line, location, message);
         let mut err_out_handler = io::stderr();
         let _ = err_out_handler.write_all(err_msg.as_bytes());

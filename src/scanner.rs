@@ -34,16 +34,6 @@ impl<T: Debug> Scanner<T> {
             Self::add_token(self, ttype, None);
         };
 
-        let match_token = |expected: &char| -> bool {
-            if Self::is_at_end(&self) {
-                return false;
-            } else if &self.source.chars().nth(self.current).unwrap() != expected {
-                return false;
-            } else {
-                return true;
-            }
-        }
-
         if c != None {
             match c.unwrap() {
                 '(' => call_add_token(TokenType::LEFT_PAREN),
@@ -56,11 +46,23 @@ impl<T: Debug> Scanner<T> {
                 '+' => call_add_token(TokenType::PLUS),
                 ';' => call_add_token(TokenType::SEMICOLON),
                 '*' => call_add_token(TokenType::STAR),
-                '!' => {},
-                _ => {
-                    Main::error(&self.line, "Unexpected character.")
+                '!' => {
+                    let match_sequence = Self::match_token(self, '=');
+                    
+                    // Self::add_token(&mut self, ttype, literal)
                 }
+                _ => Main::error(&self.line, "Unexpected character."),
             }
+        }
+    }
+    fn match_token(&mut self, expected: char) -> bool {
+        if Self::is_at_end(&self) {
+            return false;
+        } else if self.source.chars().nth(self.current).unwrap() != expected {
+            return false;
+        } else {
+            self.current += 1;
+            return true;
         }
     }
     fn advance(&mut self) -> Option<char> {

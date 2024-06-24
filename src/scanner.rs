@@ -46,11 +46,12 @@ impl<T: Debug> Scanner<T> {
                 '+' => call_add_token(TokenType::PLUS),
                 ';' => call_add_token(TokenType::SEMICOLON),
                 '*' => call_add_token(TokenType::STAR),
-                '!' => {
-                    let match_sequence = Self::match_token(self, '=');
-                    
-                    // Self::add_token(&mut self, ttype, literal)
-                }
+                '!' => Self::match_token_sequence(self, '!', '='),
+                '=' => Self::match_token_sequence(self, '=', '='),
+                '<' => Self::match_token_sequence(self, '<', '='),
+                '>' => Self::match_token_sequence(self, '>', '='),
+                '/' => Self::match_token_sequence(self, '>', '='),
+
                 _ => Main::error(&self.line, "Unexpected character."),
             }
         }
@@ -64,6 +65,38 @@ impl<T: Debug> Scanner<T> {
             self.current += 1;
             return true;
         }
+    }
+    fn match_token_sequence(&mut self, case: char, expected: char) {
+        let match_sequence = Self::match_token(self, expected);
+        let mut ttype: Option<TokenType> = None;
+
+        if case == '!' {
+            let ttype = if match_sequence {
+                TokenType::BANG_EQUAL
+            } else {
+                TokenType::BANG
+            };
+        } else if case == '=' {
+            let ttype = if match_sequence {
+                TokenType::EQUAL_EQUAL
+            } else {
+                TokenType::EQUAL
+            };
+        } else if case == '<' {
+            let ttype = if match_sequence {
+                TokenType::LESS_EQUAL
+            } else {
+                TokenType::LESS
+            };
+        } else if case == '>' {
+            let ttype = if match_sequence {
+                TokenType::GREATER_EQUAL
+            } else {
+                TokenType::GREATER
+            };
+        }
+
+        Self::add_token(self, ttype, None)
     }
     fn advance(&mut self) -> Option<char> {
         self.source.chars().nth(self.current)

@@ -50,8 +50,12 @@ impl<T: Debug> Scanner<T> {
                 '=' => Self::match_token_sequence(self, '=', '='),
                 '<' => Self::match_token_sequence(self, '<', '='),
                 '>' => Self::match_token_sequence(self, '>', '='),
-                '/' => Self::match_token_sequence(self, '>', '='),
-
+                '/' => Self::match_token_sequence(self, '/', '/'),
+                ' ' => {}
+                '\r' => {}
+                '\t' => {}
+                '\n' => self.line += 1,
+                '"' => Self::string(self),
                 _ => Main::error(&self.line, "Unexpected character."),
             }
         }
@@ -68,7 +72,6 @@ impl<T: Debug> Scanner<T> {
     }
     fn match_token_sequence(&mut self, case: char, expected: char) {
         let match_sequence = Self::match_token(self, expected);
-        let mut ttype: Option<TokenType> = None;
 
         if case == '!' {
             let ttype = if match_sequence {
@@ -76,30 +79,67 @@ impl<T: Debug> Scanner<T> {
             } else {
                 TokenType::BANG
             };
+            Self::add_token(self, ttype, None)
         } else if case == '=' {
             let ttype = if match_sequence {
                 TokenType::EQUAL_EQUAL
             } else {
                 TokenType::EQUAL
             };
+            Self::add_token(self, ttype, None)
         } else if case == '<' {
             let ttype = if match_sequence {
                 TokenType::LESS_EQUAL
             } else {
                 TokenType::LESS
             };
+            Self::add_token(self, ttype, None)
         } else if case == '>' {
             let ttype = if match_sequence {
                 TokenType::GREATER_EQUAL
             } else {
                 TokenType::GREATER
             };
+            Self::add_token(self, ttype, None)
+        } else if case == '/' {
+            if match_sequence {
+                while Self::peek(&self) != '\n' && Self::is_at_end(&self) {
+                    let _ = Self::advance(self);
+                }
+            } else {
+                Self::add_token(self, TokenType::SLASH, None);
+            };
         }
-
-        Self::add_token(self, ttype, None)
     }
     fn advance(&mut self) -> Option<char> {
         self.source.chars().nth(self.current)
+    }
+    fn peek(&self) -> char {
+        if Self::is_at_end(&self) {
+            '\0'
+        } else {
+            self.source.chars().nth(self.current).unwrap()
+        }
+    }
+    fn string(&mut self) {
+        while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
+            if Self::peek(&self) != '\n' {
+                self.line += 1;
+                Self::advance(self);
+            }
+        }
+        if Self::is_at_end(&self) {
+            Main::error(&self.line, "Unterminated string");
+            return;
+        }
+
+        Self::advance(self);
+
+        let value: String = self
+            .source
+            .get((self.start + 1)..(self.current - 1)).unwrap().to_string()
+            ;
+        Self::add_token(self, TokenType::STRING, Some(value))
     }
     fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
         //not sure if 'get' will bring me the intended substring

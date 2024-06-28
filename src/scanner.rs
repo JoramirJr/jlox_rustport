@@ -1,9 +1,9 @@
 use std::fmt::Debug;
+use std::str::FromStr;
 
 use crate::token_type::Token;
 use crate::token_type::TokenType;
 use crate::Main;
-
 struct Scanner<T: Debug> {
     source: String,
     tokens: Vec<Token<T>>,
@@ -56,7 +56,12 @@ impl<T: Debug> Scanner<T> {
                 '\t' => {}
                 '\n' => self.line += 1,
                 '"' => Self::string(self),
-                _ => Main::error(&self.line, "Unexpected character."),
+                _ => {
+                    if Self::is_digit('c') {
+                    } else {
+                        Main::error(&self.line, "Unexpected character.")
+                    }
+                }
             }
         }
     }
@@ -121,6 +126,24 @@ impl<T: Debug> Scanner<T> {
             self.source.chars().nth(self.current).unwrap()
         }
     }
+    fn number(&mut self) {
+        while Self::is_digit(Self::peek(&self)) {
+            Self::advance(self);
+        }
+
+        if Self::peek(&self) == '.' && Self::is_digit(Self::peek_next()) {
+            Self::advance(self);
+
+            while Self::is_digit(Self::peek(&self)) {
+                Self::advance(self);
+            }
+        }
+
+        let float_number: f32 =
+            f32::from_str(self.source.get(self.start..self.current).unwrap()).ok().unwrap();
+
+        Self::add_token(self, TokenType::NUMBER, Some(float_number));
+    }
     fn string(&mut self) {
         while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
             if Self::peek(&self) != '\n' {
@@ -130,17 +153,21 @@ impl<T: Debug> Scanner<T> {
         }
         if Self::is_at_end(&self) {
             Main::error(&self.line, "Unterminated string");
-            return;
         }
 
         Self::advance(self);
 
         let value: String = self
             .source
-            .get((self.start + 1)..(self.current - 1)).unwrap().to_string()
-            ;
+            .get((self.start + 1)..(self.current - 1))
+            .unwrap()
+            .to_string();
         Self::add_token(self, TokenType::STRING, Some(value))
     }
+    fn is_digit(c: char) -> bool {
+        c >= '0' && c <= '9'
+    }
+    fn peek_next() {}
     fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
         //not sure if 'get' will bring me the intended substring
         let text = self

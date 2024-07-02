@@ -47,7 +47,7 @@ pub enum TokenType {
     EOF,
 }
 
-pub struct Token<T: Debug> {
+pub struct Token<T> {
     pub ttype: TokenType,
     pub lexeme: String,
     pub literal: Option<T>,

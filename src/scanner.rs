@@ -1,10 +1,9 @@
-use std::fmt::Debug;
 use std::str::FromStr;
 
 use crate::token_type::Token;
 use crate::token_type::TokenType;
 use crate::Main;
-struct Scanner<T: Debug> {
+struct Scanner<T> {
     source: String,
     tokens: Vec<Token<T>>,
     start: usize,
@@ -12,7 +11,7 @@ struct Scanner<T: Debug> {
     line: u32,
 }
 
-impl<T: Debug> Scanner<T> {
+impl<T> Scanner<T> {
     fn scan_tokens(mut self) -> Vec<Token<T>> {
         while !Self::is_at_end(&self) {
             self.start = self.current;
@@ -131,7 +130,7 @@ impl<T: Debug> Scanner<T> {
             Self::advance(self);
         }
 
-        if Self::peek(&self) == '.' && Self::is_digit(Self::peek_next()) {
+        if Self::peek(&self) == '.' && Self::is_digit(Self::peek_next(&self)) {
             Self::advance(self);
 
             while Self::is_digit(Self::peek(&self)) {
@@ -139,10 +138,10 @@ impl<T: Debug> Scanner<T> {
             }
         }
 
-        let float_number: f32 =
-            f32::from_str(self.source.get(self.start..self.current).unwrap()).ok().unwrap();
+        let float_number: Option<f32> = f32::from_str(self.source.get(self.start..self.current).unwrap())
+            .ok()
 
-        Self::add_token(self, TokenType::NUMBER, Some(float_number));
+        Self::add_token(self, TokenType::NUMBER, float_number);
     }
     fn string(&mut self) {
         while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
@@ -167,7 +166,13 @@ impl<T: Debug> Scanner<T> {
     fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'
     }
-    fn peek_next() {}
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            '\0'
+        } else {
+            self.source.chars().nth(self.current + 1).unwrap()
+        }
+    }
     fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
         //not sure if 'get' will bring me the intended substring
         let text = self

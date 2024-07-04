@@ -1,6 +1,6 @@
-use std::fmt::Debug;
+// use std::fmt::Debug;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub enum TokenType {
     //single-character tokens
     LEFT_PAREN,
@@ -54,8 +54,8 @@ pub struct Token<T> {
     pub line: u32,
 }
 
-impl<'a, T: Debug> Token<T> {
-    pub fn to_string(&self) -> String {
-        format!("{:?} {} {:?}", &self.ttype, &self.lexeme, &self.literal)
-    }
-}
+// impl<'a, T: Debug> Token<T> {
+//     pub fn to_string(&self) -> String {
+//         format!("{:?} {} {:?}", &self.ttype, &self.lexeme, &self.literal)
+//     }
+// }

@@ -115,6 +115,20 @@ impl<T> Scanner<T> {
             };
         }
     }
+    fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
+        //not sure if 'get' will bring me the intended substring
+        let text = self
+            .source
+            .get(self.start..self.current)
+            .unwrap()
+            .to_string();
+        self.tokens.push(Token {
+            ttype,
+            lexeme: text,
+            literal,
+            line: self.line,
+        });
+    }
     fn advance(&mut self) -> Option<char> {
         self.source.chars().nth(self.current)
     }
@@ -138,10 +152,10 @@ impl<T> Scanner<T> {
             }
         }
 
-        let float_number: Option<f32> = f32::from_str(self.source.get(self.start..self.current).unwrap())
-            .ok()
+        let float_number: f32 =
+            f32::from_str(self.source.get(self.start..self.current).unwrap()).ok().unwrap();
 
-        Self::add_token(self, TokenType::NUMBER, float_number);
+        Self::add_token(self, TokenType::NUMBER, Some(float_number));
     }
     fn string(&mut self) {
         while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
@@ -173,20 +187,7 @@ impl<T> Scanner<T> {
             self.source.chars().nth(self.current + 1).unwrap()
         }
     }
-    fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
-        //not sure if 'get' will bring me the intended substring
-        let text = self
-            .source
-            .get(self.start..self.current)
-            .unwrap()
-            .to_string();
-        self.tokens.push(Token {
-            ttype,
-            lexeme: text,
-            literal,
-            line: self.line,
-        });
-    }
+
     fn is_at_end(&self) -> bool {
         &self.current >= &self.source.len()
     }

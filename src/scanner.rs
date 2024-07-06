@@ -19,7 +19,7 @@ impl<T> Scanner<T> {
         }
 
         self.tokens.push(Token {
-            ttype: TokenType::EOF,
+            ttype: TokenType::Eof,
             lexeme: String::new(),
             literal: None,
             line: self.line,
@@ -35,16 +35,16 @@ impl<T> Scanner<T> {
 
         if c != None {
             match c.unwrap() {
-                '(' => call_add_token(TokenType::LEFT_PAREN),
-                ')' => call_add_token(TokenType::RIGHT_PAREN),
-                '{' => call_add_token(TokenType::LEFT_BRACE),
-                '}' => call_add_token(TokenType::RIGHT_BRACE),
-                ',' => call_add_token(TokenType::COMMA),
-                '.' => call_add_token(TokenType::DOT),
-                '-' => call_add_token(TokenType::MINUS),
-                '+' => call_add_token(TokenType::PLUS),
-                ';' => call_add_token(TokenType::SEMICOLON),
-                '*' => call_add_token(TokenType::STAR),
+                '(' => call_add_token(TokenType::LeftParen),
+                ')' => call_add_token(TokenType::RightParen),
+                '{' => call_add_token(TokenType::LeftBrace),
+                '}' => call_add_token(TokenType::RightBrace),
+                ',' => call_add_token(TokenType::Comma),
+                '.' => call_add_token(TokenType::Dot),
+                '-' => call_add_token(TokenType::Minus),
+                '+' => call_add_token(TokenType::Plus),
+                ';' => call_add_token(TokenType::Semicolon),
+                '*' => call_add_token(TokenType::Star),
                 '!' => Self::match_token_sequence(self, '!', '='),
                 '=' => Self::match_token_sequence(self, '=', '='),
                 '<' => Self::match_token_sequence(self, '<', '='),
@@ -57,12 +57,29 @@ impl<T> Scanner<T> {
                 '"' => Self::string(self),
                 _ => {
                     if Self::is_digit('c') {
-                    } else {
+                    } else if Self::is_alpha('c') {
+                        Self::identifier(self);
+                    } else {    
                         Main::error(&self.line, "Unexpected character.")
                     }
                 }
             }
         }
+    }
+    fn is_alpha(c: char) -> bool {
+        (c >= 'a' && c >= 'z') || (c >= 'A' && c >= 'Z') || c == '_'
+    }
+    fn identifier(&mut self) {
+        while Self::is_alphanumeric(Self::peek(&self)) {
+            Self::advance(self);
+        }
+        Self::add_token(self, TokenType::Identifier, None)
+    }
+    fn is_digit(c: char) -> bool {
+        c >= '0' && c <= '9'
+    }
+    fn is_alphanumeric(peeked_c: char) -> bool {
+        Self::is_alpha(peeked_c) || Self::is_digit(peeked_c)
     }
     fn match_token(&mut self, expected: char) -> bool {
         if Self::is_at_end(&self) {
@@ -79,30 +96,30 @@ impl<T> Scanner<T> {
 
         if case == '!' {
             let ttype = if match_sequence {
-                TokenType::BANG_EQUAL
+                TokenType::BangEqual
             } else {
-                TokenType::BANG
+                TokenType::Bang
             };
             Self::add_token(self, ttype, None)
         } else if case == '=' {
             let ttype = if match_sequence {
-                TokenType::EQUAL_EQUAL
+                TokenType::EqualEqual
             } else {
-                TokenType::EQUAL
+                TokenType::Equal
             };
             Self::add_token(self, ttype, None)
         } else if case == '<' {
             let ttype = if match_sequence {
-                TokenType::LESS_EQUAL
+                TokenType::LessEqual
             } else {
-                TokenType::LESS
+                TokenType::Less
             };
             Self::add_token(self, ttype, None)
         } else if case == '>' {
             let ttype = if match_sequence {
-                TokenType::GREATER_EQUAL
+                TokenType::GreaterEqual
             } else {
-                TokenType::GREATER
+                TokenType::Greater
             };
             Self::add_token(self, ttype, None)
         } else if case == '/' {
@@ -111,7 +128,7 @@ impl<T> Scanner<T> {
                     let _ = Self::advance(self);
                 }
             } else {
-                Self::add_token(self, TokenType::SLASH, None);
+                Self::add_token(self, TokenType::Slash, None);
             };
         }
     }
@@ -155,7 +172,7 @@ impl<T> Scanner<T> {
         let float_number: f32 =
             f32::from_str(self.source.get(self.start..self.current).unwrap()).ok().unwrap();
 
-        Self::add_token(self, TokenType::NUMBER, Some(float_number));
+        Self::add_token(self, TokenType::Number, Some(float_number));
     }
     fn string(&mut self) {
         while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
@@ -175,10 +192,7 @@ impl<T> Scanner<T> {
             .get((self.start + 1)..(self.current - 1))
             .unwrap()
             .to_string();
-        Self::add_token(self, TokenType::STRING, Some(value))
-    }
-    fn is_digit(c: char) -> bool {
-        c >= '0' && c <= '9'
+        Self::add_token(self, TokenType::String, Some(value))
     }
     fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {

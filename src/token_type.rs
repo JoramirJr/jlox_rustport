@@ -1,6 +1,6 @@
 // use std::fmt::Debug;
 
-// #[derive(Debug)]
+#[derive(Clone)]
 pub enum TokenType {
     //single-character tokens
     LeftParen,
@@ -47,10 +47,17 @@ pub enum TokenType {
     Eof,
 }
 
-pub struct Token<T> {
+#[derive(Clone)]
+pub enum LiteralType {
+    String(String),
+    F32(f32),
+}
+
+#[derive(Clone)]
+pub struct Token<LiteralType> {
     pub ttype: TokenType,
     pub lexeme: String,
-    pub literal: Option<T>,
+    pub literal: Option<LiteralType>,
     pub line: u32,
 }
 

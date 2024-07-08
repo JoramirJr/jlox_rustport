@@ -1,30 +1,33 @@
 use std::str::FromStr;
 
+use crate::token_type::LiteralType;
 use crate::token_type::Token;
 use crate::token_type::TokenType;
 use crate::Main;
-struct Scanner<T> {
-    source: String,
-    tokens: Vec<Token<T>>,
-    start: usize,
-    current: usize,
-    line: u32,
+
+#[derive(Clone)]
+pub struct Scanner<LiteralType> {
+    pub source: String,
+    pub tokens: Option<Vec<Token<LiteralType>>>,
+    pub start: usize,
+    pub current: usize,
+    pub line: u32,
 }
 
-impl<T> Scanner<T> {
-    fn scan_tokens(mut self) -> Vec<Token<T>> {
+impl Scanner<LiteralType> {
+    pub fn scan_tokens(mut self) -> Vec<Token<LiteralType>> {
         while !Self::is_at_end(&self) {
             self.start = self.current;
             Self::scan_token(&mut self);
         }
 
-        self.tokens.push(Token {
+        self.clone().tokens.unwrap().push(Token {
             ttype: TokenType::Eof,
             lexeme: String::new(),
             literal: None,
             line: self.line,
         });
-        self.tokens
+        self.tokens.unwrap()
     }
     fn scan_token(&mut self) {
         let c: Option<char> = Self::advance(self);
@@ -54,12 +57,14 @@ impl<T> Scanner<T> {
                 '\r' => {}
                 '\t' => {}
                 '\n' => self.line += 1,
+
                 '"' => Self::string(self),
                 _ => {
                     if Self::is_digit('c') {
+                        Self::number(self);
                     } else if Self::is_alpha('c') {
                         Self::identifier(self);
-                    } else {    
+                    } else {
                         Main::error(&self.line, "Unexpected character.")
                     }
                 }
@@ -72,6 +77,33 @@ impl<T> Scanner<T> {
     fn identifier(&mut self) {
         while Self::is_alphanumeric(Self::peek(&self)) {
             Self::advance(self);
+
+            let text: &str = self.source.get(self.start..self.current).unwrap();
+
+            let ttype = match text {
+                "and" => Some(TokenType::And),
+                "class" => Some(TokenType::Class),
+                "else" => Some(TokenType::Else),
+                "false" => Some(TokenType::False),
+                "for" => Some(TokenType::For),
+                "fun" => Some(TokenType::Fun),
+                "if" => Some(TokenType::If),
+                "nil" => Some(TokenType::Nil),
+                "or" => Some(TokenType::Or),
+                "print" => Some(TokenType::Print),
+                "return" => Some(TokenType::Return),
+                "super" => Some(TokenType::Super),
+                "this" => Some(TokenType::This),
+                "true" => Some(TokenType::True),
+                "var" => Some(TokenType::Var),
+                "while" => Some(TokenType::While),
+                _ => None,
+            };
+
+            match ttype {
+                Some(text) => Self::add_token(self, text, None),
+                None => Self::add_token(self, TokenType::Identifier, None),
+            }
         }
         Self::add_token(self, TokenType::Identifier, None)
     }
@@ -132,19 +164,33 @@ impl<T> Scanner<T> {
             };
         }
     }
-    fn add_token(&mut self, ttype: TokenType, literal: Option<T>) {
+    fn add_token(&mut self, ttype: TokenType, literal: Option<LiteralType>) {
         //not sure if 'get' will bring me the intended substring
         let text = self
             .source
             .get(self.start..self.current)
             .unwrap()
             .to_string();
-        self.tokens.push(Token {
-            ttype,
-            lexeme: text,
-            literal,
-            line: self.line,
-        });
+
+        match self.clone().tokens {
+            Some(_) => {
+                self.clone().tokens.unwrap().push(Token {
+                    ttype,
+                    lexeme: text,
+                    literal,
+                    line: self.line,
+                });
+            }
+            None => {
+                self.clone().tokens = Some(Vec::new());
+                self.clone().tokens.unwrap().push(Token {
+                    ttype,
+                    lexeme: text,
+                    literal,
+                    line: self.line,
+                });
+            }
+        }
     }
     fn advance(&mut self) -> Option<char> {
         self.source.chars().nth(self.current)
@@ -169,10 +215,15 @@ impl<T> Scanner<T> {
             }
         }
 
-        let float_number: f32 =
-            f32::from_str(self.source.get(self.start..self.current).unwrap()).ok().unwrap();
+        let float_number: f32 = f32::from_str(self.source.get(self.start..self.current).unwrap())
+            .ok()
+            .unwrap();
 
-        Self::add_token(self, TokenType::Number, Some(float_number));
+        Self::add_token(
+            self,
+            TokenType::Number,
+            Some(LiteralType::F32(float_number)),
+        );
     }
     fn string(&mut self) {
         while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
@@ -192,7 +243,7 @@ impl<T> Scanner<T> {
             .get((self.start + 1)..(self.current - 1))
             .unwrap()
             .to_string();
-        Self::add_token(self, TokenType::String, Some(value))
+        Self::add_token(self, TokenType::String, Some(LiteralType::String(value)))
     }
     fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {

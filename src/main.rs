@@ -1,11 +1,14 @@
+mod token_type;
+mod scanner;
+
 use std::env;
 use std::fs;
 use std::io;
 use std::io::Write;
 use std::process;
+use scanner::Scanner;
+use token_type::LiteralType;
 
-mod token_type;
-mod scanner;
 struct Main {
     args: Vec<String>,
     had_error: bool,
@@ -13,10 +16,10 @@ struct Main {
 
 impl Main {
     fn main(mut self) {
-        if self.args.len() > 1 {
+        if self.args.len() > 2 {
             println!("Usage: jlox [script]");
             process::exit(64);
-        } else if self.args.len() == 1 {
+        } else if self.args.len() == 2 {
             Self::run_file(&mut self);
         } else {
             Self::run_prompt(self);
@@ -26,7 +29,9 @@ impl Main {
         if self.had_error {
             process::exit(65);
         } else {
-            let _ = fs::read_to_string(&self.args[0]).expect_err("File reading successful");
+            let file = fs::read_to_string(&self.args[1]).expect("File reading successful");
+            let scanner: Scanner<LiteralType> = Scanner { source: file, tokens: None, start: 0, current: 0, line: 1 };
+            scanner.scan_tokens();
         }
     }
 
@@ -65,8 +70,9 @@ impl Main {
 }
 
 fn main() {
-    let _ = Main {
+    let main = Main {
         args: env::args().collect(),
         had_error: false,
     };
+    main.main();
 }

@@ -5,7 +5,6 @@ use crate::token_type::Token;
 use crate::token_type::TokenType;
 use crate::Main;
 
-#[derive(Clone)]
 pub struct Scanner<LiteralType> {
     pub source: String,
     pub tokens: Option<Vec<Token<LiteralType>>>,
@@ -21,7 +20,7 @@ impl Scanner<LiteralType> {
             Self::scan_token(&mut self);
         }
 
-        self.clone().tokens.unwrap().push(Token {
+        self.tokens.as_mut().unwrap().push(Token {
             ttype: TokenType::Eof,
             lexeme: String::new(),
             literal: None,
@@ -31,7 +30,7 @@ impl Scanner<LiteralType> {
     }
     fn scan_token(&mut self) {
         let c: Option<char> = Self::advance(self);
-
+        println!("curr char: {}", c.unwrap());
         let mut call_add_token = |ttype: TokenType| {
             Self::add_token(self, ttype, None);
         };
@@ -57,12 +56,11 @@ impl Scanner<LiteralType> {
                 '\r' => {}
                 '\t' => {}
                 '\n' => self.line += 1,
-
                 '"' => Self::string(self),
                 _ => {
-                    if Self::is_digit('c') {
+                    if Self::is_digit(c.unwrap()) {
                         Self::number(self);
-                    } else if Self::is_alpha('c') {
+                    } else if Self::is_alpha(c.unwrap()) {
                         Self::identifier(self);
                     } else {
                         Main::error(&self.line, "Unexpected character.")
@@ -72,7 +70,7 @@ impl Scanner<LiteralType> {
         }
     }
     fn is_alpha(c: char) -> bool {
-        (c >= 'a' && c >= 'z') || (c >= 'A' && c >= 'Z') || c == '_'
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
     }
     fn identifier(&mut self) {
         while Self::is_alphanumeric(Self::peek(&self)) {
@@ -172,9 +170,9 @@ impl Scanner<LiteralType> {
             .unwrap()
             .to_string();
 
-        match self.clone().tokens {
+        match self.tokens {
             Some(_) => {
-                self.clone().tokens.unwrap().push(Token {
+                self.tokens.as_mut().unwrap().push(Token {
                     ttype,
                     lexeme: text,
                     literal,
@@ -182,17 +180,17 @@ impl Scanner<LiteralType> {
                 });
             }
             None => {
-                self.clone().tokens = Some(Vec::new());
-                self.clone().tokens.unwrap().push(Token {
+                let _ = self.tokens.insert(Vec::from([Token {
                     ttype,
                     lexeme: text,
                     literal,
                     line: self.line,
-                });
+                }]));
             }
         }
     }
     fn advance(&mut self) -> Option<char> {
+        self.current = self.current + 1;
         self.source.chars().nth(self.current)
     }
     fn peek(&self) -> char {
@@ -214,6 +212,8 @@ impl Scanner<LiteralType> {
                 Self::advance(self);
             }
         }
+
+        // println!("curr str:", self.source.get(self.start..self.current).unwrap());
 
         let float_number: f32 = f32::from_str(self.source.get(self.start..self.current).unwrap())
             .ok()

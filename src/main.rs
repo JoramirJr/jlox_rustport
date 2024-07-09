@@ -31,7 +31,8 @@ impl Main {
         } else {
             let file = fs::read_to_string(&self.args[1]).expect("File reading successful");
             let scanner: Scanner<LiteralType> = Scanner { source: file, tokens: None, start: 0, current: 0, line: 1 };
-            scanner.scan_tokens();
+            let scanned_tokens = scanner.scan_tokens();
+            println!("Scanned Tokens: {:?}", scanned_tokens);
         }
     }
 

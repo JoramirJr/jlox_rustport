@@ -1,1 +1,5 @@
-var a = 1;
+if(true){
+  var variableA = 1;
+} else {
+  var varrB = 2;
+}

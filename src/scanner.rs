@@ -30,7 +30,9 @@ impl Scanner<LiteralType> {
     }
     fn scan_token(&mut self) {
         let c: Option<char> = Self::advance(self);
-        println!("curr char: {}", c.unwrap());
+
+        // println!("curr char: {}", c.unwrap());
+
         let mut call_add_token = |ttype: TokenType| {
             Self::add_token(self, ttype, None);
         };
@@ -69,41 +71,45 @@ impl Scanner<LiteralType> {
             }
         }
     }
+    fn advance(&mut self) -> Option<char> {
+        //+1 and -1 implemented to not jump the first chars position
+        self.current = self.current + 1;
+        self.source.chars().nth(self.current - 1)
+    }
     fn is_alpha(c: char) -> bool {
         (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
     }
     fn identifier(&mut self) {
         while Self::is_alphanumeric(Self::peek(&self)) {
             Self::advance(self);
-
-            let text: &str = self.source.get(self.start..self.current).unwrap();
-
-            let ttype = match text {
-                "and" => Some(TokenType::And),
-                "class" => Some(TokenType::Class),
-                "else" => Some(TokenType::Else),
-                "false" => Some(TokenType::False),
-                "for" => Some(TokenType::For),
-                "fun" => Some(TokenType::Fun),
-                "if" => Some(TokenType::If),
-                "nil" => Some(TokenType::Nil),
-                "or" => Some(TokenType::Or),
-                "print" => Some(TokenType::Print),
-                "return" => Some(TokenType::Return),
-                "super" => Some(TokenType::Super),
-                "this" => Some(TokenType::This),
-                "true" => Some(TokenType::True),
-                "var" => Some(TokenType::Var),
-                "while" => Some(TokenType::While),
-                _ => None,
-            };
-
-            match ttype {
-                Some(text) => Self::add_token(self, text, None),
-                None => Self::add_token(self, TokenType::Identifier, None),
-            }
         }
-        Self::add_token(self, TokenType::Identifier, None)
+
+        let text: &str = self.source.get(self.start..self.current).unwrap();
+
+        let ttype = match text {
+            "and" => Some(TokenType::And),
+            "class" => Some(TokenType::Class),
+            "else" => Some(TokenType::Else),
+            "false" => Some(TokenType::False),
+            "for" => Some(TokenType::For),
+            "fun" => Some(TokenType::Fun),
+            "if" => Some(TokenType::If),
+            "nil" => Some(TokenType::Nil),
+            "or" => Some(TokenType::Or),
+            "print" => Some(TokenType::Print),
+            "return" => Some(TokenType::Return),
+            "super" => Some(TokenType::Super),
+            "this" => Some(TokenType::This),
+            "true" => Some(TokenType::True),
+            "var" => Some(TokenType::Var),
+            "while" => Some(TokenType::While),
+            _ => None,
+        };
+
+        match ttype {
+            Some(text) => Self::add_token(self, text, None),
+            None => Self::add_token(self, TokenType::Identifier, None),
+        }
     }
     fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'
@@ -189,11 +195,6 @@ impl Scanner<LiteralType> {
             }
         }
     }
-    fn advance(&mut self) -> Option<char> {
-        //+1 and -1 implemented to not jump the first chars position
-        self.current = self.current + 1;
-        self.source.chars().nth(self.current - 1)
-    } 
     fn peek(&self) -> char {
         if Self::is_at_end(&self) {
             '\0'
@@ -255,6 +256,6 @@ impl Scanner<LiteralType> {
     }
 
     fn is_at_end(&self) -> bool {
-        &self.current >= &self.source.len()
+        self.current >= self.source.len()
     }
 }

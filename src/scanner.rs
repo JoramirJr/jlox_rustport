@@ -190,9 +190,10 @@ impl Scanner<LiteralType> {
         }
     }
     fn advance(&mut self) -> Option<char> {
+        //+1 and -1 implemented to not jump the first chars position
         self.current = self.current + 1;
-        self.source.chars().nth(self.current)
-    }
+        self.source.chars().nth(self.current - 1)
+    } 
     fn peek(&self) -> char {
         if Self::is_at_end(&self) {
             '\0'

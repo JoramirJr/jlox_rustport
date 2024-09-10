@@ -16,12 +16,13 @@ struct Main {
 
 impl Main {
     fn main(mut self) {
-        if self.args.len() > 2 {
+        let args_length = self.args.len();
+        if args_length < 2 || args_length > 3 {
             println!("Usage: jlox [script]");
             process::exit(64);
-        } else if self.args.len() == 2 {
+        } else if args_length == 3 {
             Self::run_file(&mut self);
-        } else {
+        } else if args_length == 2 {
             Self::run_prompt(self);
         }
     }
@@ -29,7 +30,7 @@ impl Main {
         if self.had_error {
             process::exit(65);
         } else {
-            let file = fs::read_to_string(&self.args[1]).expect("File reading successful");
+            let file = fs::read_to_string(&self.args[2]).expect("File reading successful");
             let scanner: Scanner<LiteralType> = Scanner { source: file, tokens: None, start: 0, current: 0, line: 1 };
             let scanned_tokens = scanner.scan_tokens();
             println!("Scanned Tokens: {:?}", scanned_tokens);

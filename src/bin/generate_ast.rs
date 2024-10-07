@@ -6,6 +6,7 @@ pub struct Main {
 }
 
 impl Main {
+    //
     fn main(self) {
         let args_length = self.args.len();
         if args_length != 1 {

@@ -20,13 +20,16 @@ impl Main {
             Vec::from([
                 "Binary: Expr left, Token operator, Expr right",
                 "Grouping: Expr expression",
-                "Literal: Object value",
+                "Literal: Struct  value",
                 "Unary: Token operator, Expr right",
             ]),
         )
     }
     fn define_ast(output_dir: &String, basename: &str, types: Vec<&str>) {
         let path = [output_dir, "/", basename, ".rs"].concat();
+        let mut std_out_handler: io::Stdout = io::stdout();
+
+        std_out_handler.write_all(buf)
 
         for t in types {
             let struct_name_and_fields = t.split_once(":").unwrap();

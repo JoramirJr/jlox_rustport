@@ -29,7 +29,9 @@ impl Main {
         let path = [output_dir, "/", basename, ".rs"].concat();
         let mut std_out_handler: io::Stdout = io::stdout();
 
-        std_out_handler.write_all(buf)
+        std_out_handler.write_all(["mod Expr", basename, "{"].concat().as_bytes());
+        std_out_handler.write_all(b"}");
+
 
         for t in types {
             let struct_name_and_fields = t.split_once(":").unwrap();

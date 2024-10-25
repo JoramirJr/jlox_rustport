@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{Stdout, Write};
 use std::{io, process};
 
 pub struct Main {
@@ -35,23 +35,25 @@ impl Main {
 
         for t in types {
             let struct_name_and_fields = t.split_once(":").unwrap();
-            let structname = struct_name_and_fields.0.trim();
+            let struct_name = struct_name_and_fields.0.trim();
             let fields = struct_name_and_fields.1.trim();
+            Self::define_type(&std_out_handler, basename, struct_name, fields);
         }
     }
 
-    fn define_type(basename: &str, structname: &str, fieldList: &str) {
+    fn define_type(std_out_handler: &Stdout, basename: &str, struct_name: &str, fieldList: &str) {
         let mut std_out_handler: io::Stdout = io::stdout();
 
         let _ = std_out_handler.write_all(
-            ["struct", structname, "extends", basename]
+            ["struct", struct_name]
                 .concat()
                 .as_bytes(),
         );
-        let _ = std_out_handler.write_all(["     ", "(", fieldList, ")", "{"].concat().as_bytes());
+        
         let fields = fieldList.split(", ");
 
         for field in fields {
+            let name: Vec<&str> = field.split(" ").collect()[0];
             let _ = std_out_handler.write_all(["     final", field, ";"].concat().as_bytes());
         }
         let _ = std_out_handler.write_all("  }".as_bytes());

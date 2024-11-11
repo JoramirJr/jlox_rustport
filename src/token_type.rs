@@ -47,6 +47,14 @@ pub enum TokenType {
     Eof,
 }
 
+mod ExprExpr{
+
+    structBinary{    left=Expr,    operator=Token,    right=Expr,}
+    structGrouping{    expression=Expr,}
+    structLiteral{    =Struct,}
+    structUnary{    operator=Token,    right=Expr,
+}
+
 #[derive(Debug)]
 pub enum LiteralType {
     String(String),

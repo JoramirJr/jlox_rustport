@@ -18,18 +18,42 @@ impl Main {
             output_dir,
             "Expr",
             Vec::from([
-                "Binary: Expr left, Token operator, Expr right",
-                "Grouping: Expr expression",
-                "Literal: Struct value",
-                "Unary: Token operator, Expr right",
+                "Binary: &str left, Token operator, &str right",
+                "Grouping: &str expression",
+                "Literal<T>: Option<T> value",
+                "Unary: Token operator, &str right",
             ]),
         )
+
+        use crate::token_type::Token;
+
+mod Expr {
+    struct Binary {
+        left: &str,
+        operator: Token,
+        right: &str,
+    }
+    struct Grouping {
+        expression: &str,
+    }
+    struct Literal<T> {
+        value: Option<T>,
+    }
+    struct Unary {
+        operator: Token,
+        right: &str,
+    }
+}
+
     }
     fn define_ast(output_dir: &String, basename: &str, types: Vec<&str>) {
         let path: String = [basename, ".rs"].concat();
         let mut file_handler = File::create(&path).unwrap();
 
+        let _ = file_handler.write("use crate::token_type::Token;\n\n".as_bytes());
+        
         let _ = file_handler.write(["mod", " ", basename, "{"].concat().as_bytes());
+        
         for t in types {
             let struct_name_and_fields = t.split_once(":").unwrap();
             let struct_name = struct_name_and_fields.0.trim();

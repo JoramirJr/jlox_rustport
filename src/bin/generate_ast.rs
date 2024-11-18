@@ -20,16 +20,16 @@ impl Main {
             Vec::from([
                 "Binary: Expr left, Token operator, Expr right",
                 "Grouping: Expr expression",
-                "Literal: Struct  value",
+                "Literal: Struct value",
                 "Unary: Token operator, Expr right",
             ]),
         )
     }
     fn define_ast(output_dir: &String, basename: &str, types: Vec<&str>) {
-        let path: String = [output_dir, "/", basename, ".rs"].concat();
-        let mut file_handler = File::open(&path).unwrap();
+        let path: String = [basename, ".rs"].concat();
+        let mut file_handler = File::create(&path).unwrap();
 
-        let _ = file_handler.write(["mod Expr", basename, "{"].concat().as_bytes());
+        let _ = file_handler.write(["mod", " ", basename, "{"].concat().as_bytes());
         for t in types {
             let struct_name_and_fields = t.split_once(":").unwrap();
             let struct_name = struct_name_and_fields.0.trim();
@@ -40,7 +40,7 @@ impl Main {
     }
 
     fn define_type(file_handler: &mut File, _: &str, struct_name: &str, field_list: &str) {
-        let _ = file_handler.write(["struct", struct_name, "{"].concat().as_bytes());
+        let _ = file_handler.write(["struct", " ", struct_name, "{"].concat().as_bytes());
 
         let fields = field_list.split(", ");
 
@@ -55,7 +55,7 @@ impl Main {
             let field_name = field_split[1];
             let field_type = field_split[0];
             let _ = file_handler.write(
-                ["    ", field_name, "=", field_type, ","]
+                ["    ", field_name, ": ", field_type, ","]
                     .concat()
                     .as_bytes(),
             );

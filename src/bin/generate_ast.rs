@@ -18,36 +18,17 @@ impl Main {
             output_dir,
             "Expr",
             Vec::from([
-                "Binary: &str left, Token operator, &str right",
-                "Grouping: &str expression",
+                "Binary: String left, Token operator, String right",
+                "Grouping: String expression",
                 "Literal<T>: Option<T> value",
-                "Unary: Token operator, &str right",
+                "Unary: Token operator, String right",
             ]),
         )
 
-        use crate::token_type::Token;
-
-mod Expr {
-    struct Binary {
-        left: &str,
-        operator: Token,
-        right: &str,
-    }
-    struct Grouping {
-        expression: &str,
-    }
-    struct Literal<T> {
-        value: Option<T>,
-    }
-    struct Unary {
-        operator: Token,
-        right: &str,
-    }
-}
-
     }
     fn define_ast(output_dir: &String, basename: &str, types: Vec<&str>) {
-        let path: String = [basename, ".rs"].concat();
+        let path: String = ["src", "bin", basename, ".rs"].concat();
+        //fazer arquivo ser criado sempre dentro de /src
         let mut file_handler = File::create(&path).unwrap();
 
         let _ = file_handler.write("use crate::token_type::Token;\n\n".as_bytes());

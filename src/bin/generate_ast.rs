@@ -15,7 +15,9 @@ impl Main {
         }
         let output_dir: &_ = &self.args[1];
         let path_to_output_dir = ["src/", "bin/", "generated/", output_dir].concat();
-        let _ = DirBuilder::new().recursive(true).create(&path_to_output_dir);
+        let _ = DirBuilder::new()
+            .recursive(true)
+            .create(&path_to_output_dir);
         Self::define_ast(
             path_to_output_dir,
             "Expr",
@@ -28,7 +30,13 @@ impl Main {
         )
     }
     fn define_ast(path_to_output_dir: String, basename: &str, types: Vec<&str>) {
-        let path = [path_to_output_dir, "/".to_string(), basename.to_string(), ".rs".to_string()].concat();
+        let path = [
+            path_to_output_dir,
+            "/".to_string(),
+            basename.to_string(),
+            ".rs".to_string(),
+        ]
+        .concat();
 
         let mut file_handler = File::create(&path).unwrap();
 
@@ -37,10 +45,13 @@ impl Main {
         let _ = file_handler.write(["mod", " ", basename, "{"].concat().as_bytes());
 
         for t in types {
-            let struct_name_and_fields = t.split_once(":").unwrap();
-            let struct_name = struct_name_and_fields.0.trim();
-            let fields = struct_name_and_fields.1.trim();
-            Self::define_type(&mut file_handler, basename, struct_name, fields);
+            let (struct_name, fields) = t.split_once(":").unwrap();
+            Self::define_type(
+                &mut file_handler,
+                basename,
+                struct_name.trim(),
+                fields.trim(),
+            );
         }
         let _ = file_handler.write(["}"].concat().as_bytes());
     }
@@ -49,12 +60,6 @@ impl Main {
         let _ = file_handler.write(["struct", " ", struct_name, "{"].concat().as_bytes());
 
         let fields = field_list.split(", ");
-
-        // todo!(
-        //     "is the struct to be outputted fully correct?"
-        // );
-        // todo!("all of this structure is a Java class in the book; here, I'm trying to work with a struct; try to imagine possible corner cases that I'll maybe have to face");
-        // todo!("don't get stuck on little implementation details from this section; I have been dealing with this portion of the project for a while already");
 
         for field in fields {
             let field_split: Vec<&str> = field.split(" ").collect();

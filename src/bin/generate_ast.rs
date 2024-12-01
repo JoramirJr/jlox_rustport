@@ -20,7 +20,7 @@ impl Main {
             .create(&path_to_output_dir);
         Self::define_ast(
             path_to_output_dir,
-            "Expr",
+            "expr",
             Vec::from([
                 "Binary: String left, Token operator, String right",
                 "Grouping: String expression",
@@ -40,24 +40,38 @@ impl Main {
 
         let mut file_handler = File::create(&path).unwrap();
 
-        let _ = file_handler.write(["use crate::token_type::Token;\n\n", "mod", " ", basename, " {\n\n"].concat().as_bytes());
-                
-        let _ = file_handler.write(["trait ExpressionBehaviors {\n", "  fn interpret(&self) -> ();\n", "  fn resolve(&self) -> ();\n", "  fn analyze(&self) -> ();\n","}", "\n\n"].concat().as_bytes());
+        let _ = file_handler.write(
+            [
+                "use crate::token_type::Token;\n\n",
+                "mod",
+                " ",
+                basename,
+                " {\n\n",
+            ]
+            .concat()
+            .as_bytes(),
+        );
 
-        
-        for t in types {
+        let _ = file_handler.write(
+            [
+                "trait ExpressionBehaviors {\n",
+                "  fn interpret(&self) -> ();\n",
+                "  fn resolve(&self) -> ();\n",
+                "  fn analyze(&self) -> ();\n",
+                "}",
+                "\n\n",
+            ]
+            .concat()
+            .as_bytes(),
+        );
+
+        for t in &types {
             let (struct_name, fields) = t.split_once(":").unwrap();
-            Self::define_type(
-                &mut file_handler,
-                struct_name.trim(),
-                fields.trim(),
-            );
+            Self::define_type(&mut file_handler, struct_name.trim(), fields.trim());
         }
-        for t in types {
-            let (struct_name, fields) = t.split_once(":").unwrap();
-            Self::define_impls(
-                &mut file_handler,
-                struct_name.trim()            );
+        for t in &types {
+            let (struct_name, _) = t.split_once(":").unwrap();
+            Self::define_impls(&mut file_handler, struct_name.trim());
         }
         let _ = file_handler.write(["}"].concat().as_bytes());
     }
@@ -77,12 +91,32 @@ impl Main {
                     .as_bytes(),
             );
         }
-        
+
         let _ = file_handler.write(b"}\n");
     }
     fn define_impls(file_handler: &mut File, struct_name: &str) {
-        
+        let _ = file_handler.write(
+            [
+                "impl ExpressionBehaviors for ",
+                struct_name,
+                " { \n",
+                "  fn interpret(&self) -> () {
+                        ()
+                    }\n",
+                "  fn resolve(&self) -> () {
+                        ()
+                    }\n",
+                "  fn analyze(&self) -> () {
+                        ()
+                    }\n",
+                "}",
+                "\n",
+            ]
+            .concat()
+            .as_bytes(),
+        );
     }
+}
 
 fn main() {
     let main = Main {

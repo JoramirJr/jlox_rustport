@@ -1,6 +1,6 @@
 use crate::token_type::Token;
 
-mod expr {
+pub mod expr {
 
     trait ExpressionBehaviors {
         fn interpret(&self) -> ();

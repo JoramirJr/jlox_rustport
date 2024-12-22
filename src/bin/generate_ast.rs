@@ -14,7 +14,7 @@ impl Main {
             process::exit(64);
         }
         let output_dir: &_ = &self.args[1];
-        let path_to_output_dir = ["src/", "bin/", "generated/", output_dir].concat();
+        let path_to_output_dir = ["src/", output_dir].concat();
         let _ = DirBuilder::new()
             .recursive(true)
             .create(&path_to_output_dir);
@@ -43,7 +43,7 @@ impl Main {
         let _ = file_handler.write(
             [
                 "use crate::token_type::Token;\n\n",
-                "mod",
+                "pub mod",
                 " ",
                 basename,
                 " {\n\n",

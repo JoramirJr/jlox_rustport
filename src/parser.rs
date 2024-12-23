@@ -13,18 +13,13 @@ impl Parser {
         Self::equality()
     }
     fn equality() {
-        // let mut expr: Expr = Self::comparison();
-        // while Self::match_expr() {
-        //     let operator = Self::previous();
-        //     let right = Self::comparison();
-        //     expr = expr
-        // }
-        expr
+        let mut expr = Self::comparison();
+        while Self::match_expr() {
+            let operator = Self::previous();
+            let right = Self::comparison();
+            expr = expr
+        }
     }
-    fn comparison() {
-
-    }
-    fn match_expr(){
-        
-    }
+    fn comparison() {}
+    fn match_expr() {}
 }

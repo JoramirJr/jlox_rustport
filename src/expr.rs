@@ -1,6 +1,5 @@
-use crate::token_type::Token;
-
 pub mod expr {
+    use crate::token_type::Token;
 
     trait ExpressionBehaviors {
         fn interpret(&self) -> ();
@@ -10,7 +9,7 @@ pub mod expr {
 
     struct Binary {
         left: String,
-        operator: Token,
+        operator: Token<String>,
         right: String,
     }
     struct Grouping {
@@ -20,7 +19,7 @@ pub mod expr {
         value: Option<T>,
     }
     struct Unary {
-        operator: Token,
+        operator: Token<String>,
         right: String,
     }
     impl ExpressionBehaviors for Binary {
@@ -45,7 +44,7 @@ pub mod expr {
             ()
         }
     }
-    impl ExpressionBehaviors for Literal<T> {
+    impl ExpressionBehaviors for Literal<String> {
         fn interpret(&self) -> () {
             ()
         }

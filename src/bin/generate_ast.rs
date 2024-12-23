@@ -3,23 +3,17 @@ use std::io::Write;
 use std::{env, process};
 
 pub struct Main {
-    args: Vec<String>,
+    // args: Vec<String>,
 }
 
 impl Main {
     fn main(self) {
-        let args_length = self.args.len();
-        if args_length == 0 {
-            println!("Usage: generate_ast <output dir>");
-            process::exit(64);
-        }
-        let output_dir: &_ = &self.args[1];
-        let path_to_output_dir = ["src/", output_dir].concat();
-        let _ = DirBuilder::new()
-            .recursive(true)
-            .create(&path_to_output_dir);
+        // let args_length = self.args.len();
+        // if args_length == 0 {
+        //     println!("Usage: generate_ast <output dir>");
+        //     process::exit(64);
+        // }
         Self::define_ast(
-            path_to_output_dir,
             "expr",
             Vec::from([
                 "Binary: String left, Token operator, String right",
@@ -29,24 +23,18 @@ impl Main {
             ]),
         )
     }
-    fn define_ast(path_to_output_dir: String, basename: &str, types: Vec<&str>) {
-        let path = [
-            path_to_output_dir,
-            "/".to_string(),
-            basename.to_string(),
-            ".rs".to_string(),
-        ]
-        .concat();
+    fn define_ast(basename: &str, types: Vec<&str>) {
+        let path = ["src", "/", basename, ".rs"].concat();
 
         let mut file_handler = File::create(&path).unwrap();
 
         let _ = file_handler.write(
             [
-                "use crate::token_type::Token;\n\n",
                 "pub mod",
                 " ",
                 basename,
-                " {\n\n",
+                " {\n",
+                "use crate::token_type::Token;\n\n",
             ]
             .concat()
             .as_bytes(),
@@ -120,7 +108,7 @@ impl Main {
 
 fn main() {
     let main = Main {
-        args: env::args().collect(),
+        // args: env::args().collect(),
     };
     main.main();
 }

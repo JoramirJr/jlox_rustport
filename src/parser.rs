@@ -1,4 +1,4 @@
-use crate::token_type::Token;
+use crate::token_type::*;
 
 struct Parser {
     tokens: Vec<Token<String>>,
@@ -10,7 +10,7 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
     fn expression() -> fn() {
-        Self::equality()
+        Self::equality(TokenType::BangEqual, TokenType::EqualEqual)
     }
     fn equality() {
         let mut expr = Self::comparison();

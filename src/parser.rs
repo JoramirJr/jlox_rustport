@@ -10,16 +10,16 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
     fn expression() -> fn() {
-        Self::equality(TokenType::BangEqual, TokenType::EqualEqual)
+        Self::equality()
     }
     fn equality() {
         let mut expr = Self::comparison();
-        while Self::match_expr() {
+        while Self::match_expr([TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous();
             let right = Self::comparison();
             expr = expr
         }
     }
     fn comparison() {}
-    fn match_expr() {}
+    fn match_expr(types: &[TokenType]) {}
 }

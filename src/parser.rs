@@ -20,7 +20,9 @@ impl Parser {
             expr = expr
         }
     }
-    fn comparison() {}
+    fn comparison() {
+        
+    }
     fn match_expr(types: &[TokenType]) -> bool {
         types.iter().any(|t| { 
             if Self::check(t) {

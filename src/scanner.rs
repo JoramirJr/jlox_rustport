@@ -31,8 +31,6 @@ impl Scanner<LiteralType> {
     fn scan_token(&mut self) {
         let c: Option<char> = Self::advance(self);
 
-        // println!("curr char: {}", c.unwrap());
-
         let mut call_add_token = |ttype: TokenType| {
             Self::add_token(self, ttype, None);
         };
@@ -214,8 +212,6 @@ impl Scanner<LiteralType> {
                 Self::advance(self);
             }
         }
-
-        // println!("curr str:", self.source.get(self.start..self.current).unwrap());
 
         let float_number: f32 = f32::from_str(self.source.get(self.start..self.current).unwrap())
             .ok()

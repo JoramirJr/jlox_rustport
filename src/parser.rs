@@ -45,7 +45,13 @@ impl Parser {
         }
         return Self::previous()
     }
-    fn is_at_end() {}
-    fn peek() {}
-    fn previous(){}
+    fn is_at_end() -> bool {
+        Self::peek().type == 'EOF'
+    }
+    fn peek() {
+        self.tokens[self.current]
+    }
+    fn previous(){
+        self.tokens[self.current - 1]
+    }
 }

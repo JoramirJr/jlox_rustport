@@ -16,10 +16,10 @@ impl Main {
         Self::define_ast(
             "expr",
             Vec::from([
-                "Binary: String left, Token operator, String right",
+                "Binary: String left, Token<String> operator, String right",
                 "Grouping: String expression",
                 "Literal<T>: Option<T> value",
-                "Unary: Token operator, String right",
+                "Unary: Token<String> operator, String right",
             ]),
         )
     }
@@ -65,7 +65,7 @@ impl Main {
     }
 
     fn define_type(file_handler: &mut File, struct_name: &str, field_list: &str) {
-        let _ = file_handler.write(["struct", " ", struct_name, " {\n"].concat().as_bytes());
+        let _ = file_handler.write(["pub struct", " ", struct_name, " {\n"].concat().as_bytes());
 
         let fields = field_list.split(", ");
 
@@ -74,7 +74,7 @@ impl Main {
             let field_name = field_split[1];
             let field_type = field_split[0];
             let _ = file_handler.write(
-                ["    ", field_name, ": ", field_type, ",\n"]
+                ["    ", "pub ", field_name, ": ", field_type, ",\n"]
                     .concat()
                     .as_bytes(),
             );

@@ -1,8 +1,9 @@
 use crate::token_type::*;
+use crate::expr::expr::Binary;
 
 struct Parser {
     tokens: Vec<Token<String>>,
-    current: u16,
+    current: usize,
 }
 
 impl Parser {
@@ -17,7 +18,7 @@ impl Parser {
         while Self::match_expr([TokenType::BangEqual, TokenType::EqualEqual] ) {
             let operator = Self::previous();
             let right = Self::comparison();
-            expr = expr
+            expr = Binary { left: expr, operator, right: right }
         }
     }
     fn comparison() {
@@ -50,10 +51,11 @@ impl Parser {
     fn is_at_end() -> bool {
         Self::peek().type == 'EOF'
     }
-    fn peek() {
+    fn peek(self) -> Token<String> {
         self.tokens[self.current]
     }
-    fn previous(){
-        self.tokens[self.current - 1]
+    fn previous(self) -> Token<String> {
+        let previous: Token<String> = self.tokens.into_iter().collect();
+        previous[self.current - 1]
     }
 }

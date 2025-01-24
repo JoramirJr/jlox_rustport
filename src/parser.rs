@@ -13,21 +13,22 @@ impl Parser {
     fn expression() -> fn() {
         Self::equality()
     }
-    fn equality() {
+    fn equality(&mut self) -> Binary {
         let mut expr = Self::comparison();
-        while Self::match_expr([TokenType::BangEqual, TokenType::EqualEqual] ) {
-            let operator = Self::previous();
+        while Self::match_expr(self, [TokenType::BangEqual, TokenType::EqualEqual] ) {
+            let operator = Self::previous(self);
             let right = Self::comparison();
             expr = Binary { left: expr, operator, right: right }
         }
+        expr
     }
-    fn comparison() {
+    fn comparison() -> Binary {
         
     }
-    fn match_expr(types: &[TokenType]) -> bool {
+    fn match_expr(&mut self, types: [TokenType; 2]) -> bool {
         types.iter().any(|t| { 
-            if Self::check(t) {
-                Self::advance();
+            if Self::check(self, t) {
+                Self::advance(self);
                 return true;
             } else {
                 return false;
@@ -35,27 +36,26 @@ impl Parser {
          });
          false
     }
-    fn check(t_type: &TokenType) -> bool {
-        if(Self::is_at_end()) {
+    fn check(&self, t_type: &TokenType) -> bool {
+        if(Self::is_at_end(self)) {
             false
         } else {
-            Self::peek().type == t_type
+            Self::peek(self).ttype == *t_type
         }
     }
-    fn advance() {
-        if(Self::is_at_end()) {
+    fn advance(&mut self) -> Token<String> {
+        if Self::is_at_end(self)  {
             self.current += 1;
         }
-        return Self::previous()
+        Self::previous(self)
     }
-    fn is_at_end() -> bool {
-        Self::peek().type == 'EOF'
+    fn is_at_end(&self) -> bool {
+        Self::peek(self).ttype == TokenType::Eof
     }
-    fn peek(self) -> Token<String> {
-        self.tokens[self.current]
+    fn peek(&self) -> Token<String> {
+        self.tokens[self.current].clone()
     }
-    fn previous(self) -> Token<String> {
-        let previous: Token<String> = self.tokens.into_iter().collect();
-        previous[self.current - 1]
+    fn previous(&self) -> Token<String> {
+        self.tokens[self.current - 1].clone()
     }
 }

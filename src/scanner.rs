@@ -1,9 +1,12 @@
+use std::io;
+use std::io::Write;
 use std::str::FromStr;
+
+use jlox_rustport::ScanningParsingCommon;
 
 use crate::token_type::LiteralType;
 use crate::token_type::Token;
 use crate::token_type::TokenType;
-use crate::Main;
 
 pub struct Scanner<LiteralType> {
     pub source: String,
@@ -11,6 +14,17 @@ pub struct Scanner<LiteralType> {
     pub start: usize,
     pub current: usize,
     pub line: u32,
+}
+
+impl ScanningParsingCommon for Scanner<LiteralType> {
+    fn error(line: &u32, message: &str) {
+        Self::report(line, String::new(), message);
+    }
+    fn report(line: &u32, location: String, message: &str) {
+        let err_msg = format!("[line {}] Error {}: {}", line, location, message);
+        let mut err_out_handler = io::stderr();
+        let _ = err_out_handler.write_all(err_msg.as_bytes());
+    }
 }
 
 impl Scanner<LiteralType> {
@@ -63,7 +77,7 @@ impl Scanner<LiteralType> {
                     } else if Self::is_alpha(c.unwrap()) {
                         Self::identifier(self);
                     } else {
-                        Main::error(&self.line, "Unexpected character.")
+                        self.error(&self.line, "Unexpected character.")
                     }
                 }
             }
@@ -231,7 +245,7 @@ impl Scanner<LiteralType> {
             }
         }
         if Self::is_at_end(&self) {
-            Main::error(&self.line, "Unterminated string");
+            self.error(&self.line, "Unterminated string");
         }
 
         Self::advance(self);

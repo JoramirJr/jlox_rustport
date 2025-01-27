@@ -1,9 +1,24 @@
 use crate::expr::expr::{Binary, Grouping, Literal, Unary};
 use crate::token_type::*;
 
+use std::io;
+use std::io::Write;
+
+use jlox_rustport::ScanningParsingCommon;
 struct Parser {
     tokens: Vec<Token<String>>,
     current: usize,
+}
+
+impl ScanningParsingCommon for Parser {
+    fn error(line: &u32, message: &str) {
+        Self::report(line, String::new(), message);
+    }
+    fn report(line: &u32, location: String, message: &str) {
+        let err_msg = format!("[line {}] Error {}: {}", line, location, message);
+        let mut err_out_handler = io::stderr();
+        let _ = err_out_handler.write_all(err_msg.as_bytes());
+    }
 }
 
 impl Parser {
@@ -98,7 +113,13 @@ impl Parser {
             Grouping { expression: expr }
         }
     }
-    fn consume (){}
+    fn consume (self, t_type: &TokenType, message: String) -> Result<TokenType, E>{
+        if Self::check(&self, t_type) {
+            Self::advance(&mut self)
+        } else {
+            Self::error(Self::peek(&self), message);
+        }
+    }
     fn match_expr(&mut self, types: &[TokenType]) -> bool {
         let check = types.iter().any(|t| {
             if Self::check(self, t) {

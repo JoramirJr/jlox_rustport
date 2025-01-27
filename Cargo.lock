@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "jlow_rustport"
+name = "jlox_rustport"
 version = "0.1.0"

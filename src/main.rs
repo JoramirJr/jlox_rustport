@@ -1,13 +1,14 @@
-mod token_type;
-mod scanner;
-mod parser;
 mod expr;
+mod parser;
+mod scanner;
+mod token_type;
 
 use std::env;
 use std::fs;
 use std::io;
 use std::io::Write;
 use std::process;
+
 use scanner::Scanner;
 use token_type::LiteralType;
 
@@ -33,7 +34,13 @@ impl Main {
             process::exit(65);
         } else {
             let file = fs::read_to_string(&self.args[2]).expect("File reading successful");
-            let scanner: Scanner<LiteralType> = Scanner { source: file, tokens: None, start: 0, current: 0, line: 1 };
+            let scanner: Scanner<LiteralType> = Scanner {
+                source: file,
+                tokens: None,
+                start: 0,
+                current: 0,
+                line: 1,
+            };
             let scanned_tokens = scanner.scan_tokens();
             println!("Scanned Tokens: {:?}", scanned_tokens);
         }
@@ -50,7 +57,7 @@ impl Main {
                     Self::run(&input, &mut std_out_handler);
                     self.had_error = false;
                 }
-                //Not sure if ctlr+D, to exit the program, generates an error response
+                //Not sure if ctrl+D, to exit the program, generates an error response
                 Err(error) => return error,
             }
         }
@@ -60,16 +67,6 @@ impl Main {
         source.split(" ").for_each(|token| {
             let _ = std_out_handler.write_all(token.as_bytes());
         });
-    }
-
-    fn error(line: &u32, message: &str) {
-        Self::report(line, String::new(), message);
-    }
-
-    fn report(line: &u32, location: String, message: &str) {
-        let err_msg = format!("[line {}] Error {}: {}", line, location, message);
-        let mut err_out_handler = io::stderr();
-        let _ = err_out_handler.write_all(err_msg.as_bytes());
     }
 }
 

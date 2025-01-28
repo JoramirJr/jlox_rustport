@@ -21,28 +21,33 @@ impl ScanningParsingCommon for Parser {
     }
 }
 
+enum ExpressionReturnType {
+    BinaryExpr(Binary),
+    UnaryExpr(Unary)
+}
+
 impl Parser {
     fn new(tokens: Vec<Token<String>>) -> Self {
         Parser { tokens, current: 0 }
     }
-    fn expression() -> fn() {
-        Self::equality()
+    fn expression(&mut self) -> ExpressionReturnType {
+        Self::equality(self)
     }
-    fn equality(&mut self) -> Binary {
+    fn equality(&mut self) -> ExpressionReturnType {
         let mut expr = Self::comparison(self);
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
             let right = Self::comparison(self);
-            expr = Binary {
+            expr = ExpressionReturnType::BinaryExpr(Binary {
                 left: expr,
-                operator,
+                operator, 
                 right: right,
-            }
+            });
         }
         expr
     }
-    fn comparison(&mut self) -> Binary {
-        let expr = Self::term();
+    fn comparison(&mut self) -> ExpressionReturnType {
+        let mut expr = Self::term();
 
         while Self::match_expr(
             &mut self,
@@ -55,7 +60,7 @@ impl Parser {
         ) {
             let operator = Self::previous(&self);
             let right = Self::term();
-            let expr = Binary { left: expr, operator: operator, right: right }
+            expr = Binary { left: expr, operator: operator, right: right }
         }
 
         return expr;

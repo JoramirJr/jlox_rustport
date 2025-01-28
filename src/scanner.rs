@@ -77,7 +77,7 @@ impl Scanner<LiteralType> {
                     } else if Self::is_alpha(c.unwrap()) {
                         Self::identifier(self);
                     } else {
-                        self.error(&self.line, "Unexpected character.")
+                        Scanner::error(&self.line, "Unexpected character.")
                     }
                 }
             }
@@ -245,7 +245,7 @@ impl Scanner<LiteralType> {
             }
         }
         if Self::is_at_end(&self) {
-            self.error(&self.line, "Unterminated string");
+            Scanner::error(&self.line, "Unterminated string");
         }
 
         Self::advance(self);

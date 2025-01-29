@@ -7,10 +7,17 @@ pub mod expr {
         fn analyze(&self) -> ();
     }
 
-    pub struct Binary {
-        pub left: String,
+    pub enum ExpressionType<T> {
+        BinaryExpr(Binary<T>),
+        UnaryExpr(Unary<T>),
+        GroupingExpr(Grouping),
+        LiteralExpr(Literal<T>),
+    }
+
+    pub struct Binary<T> {
+        pub left: Box<ExpressionType<T>>,
         pub operator: Token<String>,
-        pub right: String,
+        pub right: Box<ExpressionType<T>>,
     }
     pub struct Grouping {
         pub expression: String,
@@ -18,11 +25,11 @@ pub mod expr {
     pub struct Literal<T> {
         pub value: Option<T>,
     }
-    pub struct Unary {
+    pub struct Unary<T> {
         pub operator: Token<String>,
-        pub right: String,
+        pub right: Box<ExpressionType<T>>,
     }
-    impl ExpressionBehaviors for Binary {
+    impl<T> ExpressionBehaviors for Binary<T> {
         fn interpret(&self) -> () {
             ()
         }
@@ -55,7 +62,7 @@ pub mod expr {
             ()
         }
     }
-    impl ExpressionBehaviors for Unary {
+    impl<T> ExpressionBehaviors for Unary<T> {
         fn interpret(&self) -> () {
             ()
         }

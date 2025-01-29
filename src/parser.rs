@@ -21,11 +21,6 @@ impl ScanningParsingCommon for Parser {
     }
 }
 
-enum ExpressionReturnType {
-    BinaryExpr(Binary),
-    UnaryExpr(Unary)
-}
-
 impl Parser {
     fn new(tokens: Vec<Token<String>>) -> Self {
         Parser { tokens, current: 0 }

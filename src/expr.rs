@@ -1,5 +1,5 @@
 pub mod expr {
-    use crate::token_type::Token;
+    use crate::token_type::{Token, TokenType};
 
     trait ExpressionBehaviors {
         fn interpret(&self) -> ();
@@ -7,17 +7,24 @@ pub mod expr {
         fn analyze(&self) -> ();
     }
 
-    pub enum ExpressionType<T> {
-        BinaryExpr(Binary<T>),
-        UnaryExpr(Unary<T>),
-        GroupingExpr(Grouping),
-        LiteralExpr(Literal<T>),
+    pub enum ExpressionGenericType {
+        Token(TokenType),
+        Empty(())
     }
 
-    pub struct Binary<T> {
-        pub left: Box<ExpressionType<T>>,
+    pub enum ExpressionType<ExpressionGenericType> {
+        BinaryExpr(Binary),
+        UnaryExpr(Unary),
+        GroupingExpr(Grouping),
+        LiteralExpr(Literal<ExpressionGenericType>),
+    }
+
+    pub type NonGenericExpressionType = ExpressionType<ExpressionGenericType>;
+
+    pub struct Binary {
+        pub left: Box<NonGenericExpressionType>,
         pub operator: Token<String>,
-        pub right: Box<ExpressionType<T>>,
+        pub right: Box<NonGenericExpressionType>,
     }
     pub struct Grouping {
         pub expression: String,
@@ -25,11 +32,11 @@ pub mod expr {
     pub struct Literal<T> {
         pub value: Option<T>,
     }
-    pub struct Unary<T> {
+    pub struct Unary {
         pub operator: Token<String>,
-        pub right: Box<ExpressionType<T>>,
+        pub right: Box<NonGenericExpressionType>,
     }
-    impl<T> ExpressionBehaviors for Binary<T> {
+    impl ExpressionBehaviors for Binary {
         fn interpret(&self) -> () {
             ()
         }
@@ -62,7 +69,7 @@ pub mod expr {
             ()
         }
     }
-    impl<T> ExpressionBehaviors for Unary<T> {
+    impl ExpressionBehaviors for Unary {
         fn interpret(&self) -> () {
             ()
         }

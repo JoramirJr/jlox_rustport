@@ -1,4 +1,4 @@
-use crate::expr::expr::{Binary, Grouping, Literal, Unary};
+use crate::expr::expr::{Binary, ExpressionGenericType, ExpressionType, Grouping, Literal, Unary};
 use crate::token_type::*;
 
 use std::io;
@@ -25,27 +25,27 @@ impl Parser {
     fn new(tokens: Vec<Token<String>>) -> Self {
         Parser { tokens, current: 0 }
     }
-    fn expression(&mut self) -> ExpressionReturnType {
+    fn expression(&mut self) -> ExpressionType<ExpressionGenericType> {
         Self::equality(self)
     }
-    fn equality(&mut self) -> ExpressionReturnType {
+    fn equality(&mut self) -> ExpressionType<ExpressionGenericType> {
         let mut expr = Self::comparison(self);
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
             let right = Self::comparison(self);
-            expr = ExpressionReturnType::BinaryExpr(Binary {
-                left: expr,
+            expr = ExpressionType::BinaryExpr(Binary {
+                left: Box::new(expr),
                 operator, 
-                right: right,
+                right: Box::new(right),
             });
         }
         expr
     }
-    fn comparison(&mut self) -> ExpressionReturnType {
-        let mut expr = Self::term();
+    fn comparison(&mut self) -> ExpressionType<ExpressionGenericType> {
+        let mut expr = Self::term(self);
 
         while Self::match_expr(
-            &mut self,
+            self,
             &[
                 TokenType::Greater,
                 TokenType::GreaterEqual,
@@ -54,57 +54,57 @@ impl Parser {
             ],
         ) {
             let operator = Self::previous(&self);
-            let right = Self::term();
-            expr = Binary { left: expr, operator: operator, right: right }
+            let right = Self::term(self);
+            expr = ExpressionType::BinaryExpr(Binary { left: Box::new(expr), operator: operator, right: Box::new(right) })
         }
 
         return expr;
     }
-    fn term() {
-        let expr = Self::factor();
+    fn term(&mut self) -> ExpressionType<ExpressionGenericType>{
+        let mut expr = Self::factor(self);
 
-        while Self::match_expr(&mut self, &[TokenType::Minus, TokenType::Plus]) {
-            let operator = Self::previous(&self);
-            let right = Self::factor();
-            let expr = Binary { left: expr, operator: operator, right: right }
-        }
-
-        return expr;
-
-    }
-    fn factor() {
-        let expr = Self::unary();
-
-        while Self::match_expr(&mut self, &[TokenType::Slash, TokenType::Star]) {
-            let operator = Self::previous(&self);
-            let right = Self::unary();
-            let expr = Binary { left: expr, operator: operator, right: right }
+        while Self::match_expr(self, &[TokenType::Minus, TokenType::Plus]) {
+            let operator = Self::previous(self);
+            let right = Self::factor(self);
+            expr = ExpressionType::BinaryExpr(Binary { left: Box::new(expr), operator: operator, right: Box::new(right) })
         }
 
         return expr;
 
     }
-    fn unary(){
-        if Self::match_expr(&mut self, &[TokenType::Bang, TokenType::Minus]) {
+    fn factor(&mut self) -> ExpressionType<ExpressionGenericType>{
+        let mut expr = Self::unary(self);
+
+        while Self::match_expr(self, &[TokenType::Slash, TokenType::Star]) {
             let operator = Self::previous(&self);
-            let expr = Self::unary();
-            return Unary { operator: operator, right: right } 
+            let right = Self::unary(self);
+            let expr = ExpressionType::BinaryExpr(Binary { left: expr, operator: operator, right: Box::new(right) });
         }
-        return; Self::primary();
+
+        return expr;
+
     }
-    fn primary(){
-        if Self::match_expr(&mut self, &[TokenType::False]) {
-            Literal { value: false }
+    fn unary(&mut self) -> ExpressionType<ExpressionGenericType>{
+        if Self::match_expr(self, &[TokenType::Bang, TokenType::Minus]) {
+            let operator = Self::previous(&self);
+            let right = Self::unary(self);
+            return ExpressionType::UnaryExpr(Unary { operator: operator, right: Box::new(right) })  
         }
-        if Self::match_expr(&mut self, &[TokenType::True]) {
-            Literal { value: true }
+        return Self::primary(self);
+    }
+    fn primary(&mut self) -> ExpressionType<ExpressionGenericType>{
+        if Self::match_expr(self, &[TokenType::False]) {
+            ExpressionType::LiteralExpr(Literal { value: false });
         }
-        if Self::match_expr(&mut self, &[TokenType::Nil]) {
-            Literal { value: () }
+        if Self::match_expr(self, &[TokenType::True]) {
+            ExpressionType::LiteralExpr(Literal { value: true }); 
+        }
+        if Self::match_expr(self, &[TokenType::Nil]) {
+            ExpressionType::LiteralExpr(Literal { value: () }); 
         }
 
         if Self::match_expr(&mut self, &[TokenType::Number, TokenType::String]) {
-            Literal { value: Self::previous(&self).literal }
+            ExpressionType::LiteralExpr(Literal { value: Self::previous(&self).literal });
         }
 
         if Self::match_expr(&mut self, &[TokenType::LeftParen]) {

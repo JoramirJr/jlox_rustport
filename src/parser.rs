@@ -6,7 +6,7 @@ use std::io::Write;
 
 use jlox_rustport::ScanningParsingCommon;
 struct Parser {
-    tokens: Vec<Token<String>>,
+    tokens: Vec<Token<LiteralType>>,
     current: usize,
 }
 
@@ -22,7 +22,7 @@ impl ScanningParsingCommon for Parser {
 }
 
 impl Parser {
-    fn new(tokens: Vec<Token<String>>) -> Self {
+    fn new(tokens: Vec<Token<LiteralType>>) -> Self {
         Parser { tokens, current: 0 }
     }
     fn expression(&mut self) -> ExpressionType<ExpressionGenericType> {
@@ -35,7 +35,7 @@ impl Parser {
             let right = Self::comparison(self);
             expr = ExpressionType::BinaryExpr(Binary {
                 left: Box::new(expr),
-                operator, 
+                operator,
                 right: Box::new(right),
             });
         }
@@ -55,69 +55,88 @@ impl Parser {
         ) {
             let operator = Self::previous(&self);
             let right = Self::term(self);
-            expr = ExpressionType::BinaryExpr(Binary { left: Box::new(expr), operator: operator, right: Box::new(right) })
+            expr = ExpressionType::BinaryExpr(Binary {
+                left: Box::new(expr),
+                operator: operator,
+                right: Box::new(right),
+            })
         }
 
         return expr;
     }
-    fn term(&mut self) -> ExpressionType<ExpressionGenericType>{
+    fn term(&mut self) -> ExpressionType<ExpressionGenericType> {
         let mut expr = Self::factor(self);
 
         while Self::match_expr(self, &[TokenType::Minus, TokenType::Plus]) {
             let operator = Self::previous(self);
             let right = Self::factor(self);
-            expr = ExpressionType::BinaryExpr(Binary { left: Box::new(expr), operator: operator, right: Box::new(right) })
+            expr = ExpressionType::BinaryExpr(Binary {
+                left: Box::new(expr),
+                operator: operator,
+                right: Box::new(right),
+            })
         }
 
         return expr;
-
     }
-    fn factor(&mut self) -> ExpressionType<ExpressionGenericType>{
+    fn factor(&mut self) -> ExpressionType<ExpressionGenericType> {
         let mut expr = Self::unary(self);
 
         while Self::match_expr(self, &[TokenType::Slash, TokenType::Star]) {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
-            let expr = ExpressionType::BinaryExpr(Binary { left: expr, operator: operator, right: Box::new(right) });
+            let expr = ExpressionType::BinaryExpr(Binary {
+                left: expr,
+                operator: operator,
+                right: Box::new(right),
+            });
         }
 
         return expr;
-
     }
-    fn unary(&mut self) -> ExpressionType<ExpressionGenericType>{
+    fn unary(&mut self) -> ExpressionType<ExpressionGenericType> {
         if Self::match_expr(self, &[TokenType::Bang, TokenType::Minus]) {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
-            return ExpressionType::UnaryExpr(Unary { operator: operator, right: Box::new(right) })  
+            return ExpressionType::UnaryExpr(Unary {
+                operator: operator,
+                right: Box::new(right),
+            });
         }
         return Self::primary(self);
     }
-    fn primary(&mut self) -> ExpressionType<ExpressionGenericType>{
+    fn primary(&mut self) -> ExpressionType<ExpressionGenericType> {
         if Self::match_expr(self, &[TokenType::False]) {
-            ExpressionType::LiteralExpr(Literal { value: false });
+            return ExpressionType::LiteralExpr(Literal { value: Some(ExpressionGenericType::Token(TokenType::False)) });
         }
         if Self::match_expr(self, &[TokenType::True]) {
-            ExpressionType::LiteralExpr(Literal { value: true }); 
+            return ExpressionType::LiteralExpr(Literal { value: Some(ExpressionGenericType::Token(TokenType::True)) });
         }
         if Self::match_expr(self, &[TokenType::Nil]) {
-            ExpressionType::LiteralExpr(Literal { value: () }); 
+            return ExpressionType::LiteralExpr(Literal { value: None });
         }
 
         if Self::match_expr(&mut self, &[TokenType::Number, TokenType::String]) {
-            ExpressionType::LiteralExpr(Literal { value: Self::previous(&self).literal });
+            if let LiteralType::String = Self::previous(&self) {
+               
+            }
+            // return ExpressionType::LiteralExpr(Literal {
+            //     value: Some(ExpressionGenericType::Token(TokenType::String)),
+            // });
         }
 
         if Self::match_expr(&mut self, &[TokenType::LeftParen]) {
-            let expr = Self::expression();
-            Self::consume(TokenType::RightParen, "Expect ')' after expression");
-            Grouping { expression: expr }
+            let expr = Self::expression(self);
+            Self::consume(self, TokenType::RightParen, "Expect ')' after expression");
+            ExpressionType::GroupingExpr(Grouping { expression: expr })
         }
+        ExpressionType::LiteralExpr(Literal { value: None })
     }
-    fn consume (self, t_type: &TokenType, message: String) -> Result<TokenType, E>{
-        if Self::check(&self, t_type) {
-            Self::advance(&mut self)
+    fn consume(&mut self, t_type: TokenType, message: &str) -> Result<TokenType, E> {
+        if Self::check(self, t_type) {
+            Self::advance(self)
         } else {
-            Self::error(Self::peek(&self), message);
+            Self::error(Self::peek(self), message);
         }
     }
     fn match_expr(&mut self, types: &[TokenType]) -> bool {

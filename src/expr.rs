@@ -27,7 +27,7 @@ pub mod expr {
         pub right: Box<NonGenericExpressionType>,
     }
     pub struct Grouping {
-        pub expression: String,
+        pub expression: Box<NonGenericExpressionType>,
     }
     pub struct Literal<T> {
         pub value: Option<T>,

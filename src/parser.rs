@@ -140,16 +140,22 @@ impl Parser {
 
         if Self::match_expr(&mut self, &[TokenType::LeftParen]) {
             let expr = Self::expression(self);
-            Self::consume(self, TokenType::RightParen, "Expect ')' after expression");
-            return ExpressionType::GroupingExpr(Grouping { expression: expr });
+            Self::consume(self, &TokenType::RightParen, "Expect ')' after expression");
+            return ExpressionType::GroupingExpr(Grouping {
+                expression: Box::new(ExpressionType::GroupingExpr(Grouping { expression: Box::new(expr) })),
+            });
         }
         ExpressionType::LiteralExpr(Literal { value: None })
     }
-    fn consume(&mut self, t_type: TokenType, message: &str) -> Result<TokenType, E> {
+    fn consume(&mut self, t_type: &TokenType, message: &str) -> Result<TokenType, E> {
         if Self::check(self, t_type) {
             Self::advance(self)
         } else {
-            Self::error(Self::peek(self), message);
+            let next_token = Self::peek(self);
+            if next_token.ttype == TokenType::Eof {
+                Self::report(next_token.line, " at end", message);
+            }
+            // Self::error(Self::peek(self), message);
         }
     }
     fn match_expr(&mut self, types: &[TokenType]) -> bool {

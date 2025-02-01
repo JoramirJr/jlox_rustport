@@ -154,8 +154,9 @@ impl Parser {
             let next_token = Self::peek(self);
             if next_token.ttype == TokenType::Eof {
                 Self::report(next_token.line, " at end", message);
+            } else {
+                Self::report(next_token.line, " at end", message);
             }
-            // Self::error(Self::peek(self), message);
         }
     }
     fn match_expr(&mut self, types: &[TokenType]) -> bool {

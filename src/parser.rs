@@ -107,28 +107,41 @@ impl Parser {
     }
     fn primary(&mut self) -> ExpressionType<ExpressionGenericType> {
         if Self::match_expr(self, &[TokenType::False]) {
-            return ExpressionType::LiteralExpr(Literal { value: Some(ExpressionGenericType::Token(TokenType::False)) });
+            return ExpressionType::LiteralExpr(Literal {
+                value: Some(ExpressionGenericType::Token(TokenType::False)),
+            });
         }
         if Self::match_expr(self, &[TokenType::True]) {
-            return ExpressionType::LiteralExpr(Literal { value: Some(ExpressionGenericType::Token(TokenType::True)) });
+            return ExpressionType::LiteralExpr(Literal {
+                value: Some(ExpressionGenericType::Token(TokenType::True)),
+            });
         }
         if Self::match_expr(self, &[TokenType::Nil]) {
             return ExpressionType::LiteralExpr(Literal { value: None });
         }
 
         if Self::match_expr(&mut self, &[TokenType::Number, TokenType::String]) {
-            if let LiteralType::String = Self::previous(&self) {
-               
+            let previous = Self::previous(&self).literal;
+
+            match previous {
+                Some(LiteralType::String(_)) => {
+                    return ExpressionType::LiteralExpr(Literal {
+                        value: Some(ExpressionGenericType::Token(TokenType::String)),
+                    });
+                }
+                Some(LiteralType::F32(_)) => {
+                    return ExpressionType::LiteralExpr(Literal {
+                        value: Some(ExpressionGenericType::Token(TokenType::Number)),
+                    });
+                }
+                None => {}
             }
-            // return ExpressionType::LiteralExpr(Literal {
-            //     value: Some(ExpressionGenericType::Token(TokenType::String)),
-            // });
         }
 
         if Self::match_expr(&mut self, &[TokenType::LeftParen]) {
             let expr = Self::expression(self);
             Self::consume(self, TokenType::RightParen, "Expect ')' after expression");
-            ExpressionType::GroupingExpr(Grouping { expression: expr })
+            return ExpressionType::GroupingExpr(Grouping { expression: expr });
         }
         ExpressionType::LiteralExpr(Literal { value: None })
     }
@@ -170,10 +183,10 @@ impl Parser {
     fn is_at_end(&self) -> bool {
         Self::peek(self).ttype == TokenType::Eof
     }
-    fn peek(&self) -> Token<String> {
+    fn peek(&self) -> Token<LiteralType> {
         self.tokens[self.current].clone()
     }
-    fn previous(&self) -> Token<String> {
+    fn previous(&self) -> Token<LiteralType> {
         self.tokens[self.current - 1].clone()
     }
 }

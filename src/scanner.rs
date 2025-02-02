@@ -18,9 +18,9 @@ pub struct Scanner<LiteralType> {
 
 impl ScanningParsingCommon for Scanner<LiteralType> {
     fn error(line: &u32, message: &str) {
-        Self::report(line, String::new(), message);
+        Self::report(line, "", message);
     }
-    fn report(line: &u32, location: String, message: &str) {
+    fn report(line: &u32, location: &str, message: &str) {
         let err_msg = format!("[line {}] Error {}: {}", line, location, message);
         let mut err_out_handler = io::stderr();
         let _ = err_out_handler.write_all(err_msg.as_bytes());

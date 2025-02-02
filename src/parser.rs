@@ -12,9 +12,9 @@ struct Parser {
 
 impl ScanningParsingCommon for Parser {
     fn error(line: &u32, message: &str) {
-        Self::report(line, String::new(), message);
+        Self::report(line, "", message);
     }
-    fn report(line: &u32, location: String, message: &str) {
+    fn report(line: &u32, location: &str, message: &str) {
         let err_msg = format!("[line {}] Error {}: {}", line, location, message);
         let mut err_out_handler = io::stderr();
         let _ = err_out_handler.write_all(err_msg.as_bytes());
@@ -33,11 +33,16 @@ impl Parser {
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
             let right = Self::comparison(self);
-            expr = ExpressionType::BinaryExpr(Binary {
-                left: Box::new(expr),
-                operator,
-                right: Box::new(right),
-            });
+            match operator.ttype {
+                TokenType::String => {
+                    expr = ExpressionType::BinaryExpr(Binary {
+                        left: Box::new(expr),
+                        operator: operator as Token<String>,
+                        right: Box::new(right),
+                    });
+                },
+                _ => {}
+            }
         }
         expr
     }
@@ -153,9 +158,9 @@ impl Parser {
         } else {
             let next_token = Self::peek(self);
             if next_token.ttype == TokenType::Eof {
-                Self::report(next_token.line, " at end", message);
+                Self::report(&next_token.line, " at end", message);
             } else {
-                Self::report(next_token.line, " at end", message);
+                Self::report(&next_token.line, " at end", message);
             }
         }
     }

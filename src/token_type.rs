@@ -47,7 +47,7 @@ pub enum TokenType {
     Eof
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LiteralType {
     String(String),
     F32(f32),
@@ -60,9 +60,3 @@ pub struct Token<LiteralType> {
     pub literal: Option<LiteralType>,
     pub line: u32,
 }
-
-// impl<'a, T: Debug> Token<T> {
-//     pub fn to_string(&self) -> String {
-//         format!("{:?} {} {:?}", &self.ttype, &self.lexeme, &self.literal)
-//     }
-// }

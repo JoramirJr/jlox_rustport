@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::expr::expr::{Binary, ExpressionGenericType, ExpressionType, Grouping, Literal, Unary};
 use crate::token_type::*;
 
@@ -9,9 +11,9 @@ struct Parser {
 
 impl ScanningParsingCommon for Parser {
     fn error(line: &u32, message: &str) {
-        Self::report(line, "", message);
+        Self::report(line, String::new(), message);
     }
-    fn report(line: &u32, location: &str, message: &str) {
+    fn report(line: &u32, location: String, message: &str) {
         panic!("[line {}] Error {}: {}", line, location, message)
     }
 }
@@ -181,18 +183,48 @@ impl Parser {
                 })),
             });
         }
-        ExpressionType::LiteralExpr(Literal { value: None })
+        Self::error(Self::peek(self), "Expect expression.");
+        // ExpressionType::LiteralExpr(Literal { value: None })
     }
     fn consume(&mut self, t_type: &TokenType, message: &str) -> Token<LiteralType> {
         if !Self::check(self, t_type) {
             let next_token = Self::peek(self);
             if next_token.ttype == TokenType::Eof {
-                Self::report(&next_token.line, " at end", message);
+                Self::report(
+                    &next_token.line,
+                    String::from_str(" at end").unwrap(),
+                    message,
+                );
             } else {
-                Self::report(&next_token.line, " at end", message);
+                Self::report(
+                    &next_token.line,
+                    format!(" at '{}'", next_token.lexeme),
+                    message,
+                );
             }
         }
         Self::advance(self)
+    }
+    fn synchronize(&mut self) -> () {
+        Self::advance(self);
+
+        while !Self::is_at_end(self) {
+            if Self::previous(self).ttype == TokenType::Semicolon {
+                return;
+            }
+            match Self::peek(self).ttype {
+                TokenType::Class => return,
+                TokenType::For => return,
+                TokenType::Fun => return,
+                TokenType::If => return,
+                TokenType::Print => return,
+                TokenType::Return => return,
+                TokenType::Var => return,
+                TokenType::While => return,
+                _ => {}
+            }
+            Self::advance(self);
+        }
     }
     fn match_expr(&mut self, types: &[TokenType]) -> bool {
         let check = types.iter().any(|t| {

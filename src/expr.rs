@@ -6,12 +6,13 @@ pub mod expr {
         fn resolve(&self) -> ();
         fn analyze(&self) -> ();
     }
-
+    #[derive(Debug)]
     pub enum ExpressionGenericType {
         Token(TokenType),
-        Empty(())
+        Empty(()),
     }
 
+    #[derive(Debug)]
     pub enum ExpressionType<ExpressionGenericType> {
         BinaryExpr(Binary),
         UnaryExpr(Unary),
@@ -21,17 +22,25 @@ pub mod expr {
 
     pub type NonGenericExpressionType = ExpressionType<ExpressionGenericType>;
 
+    #[derive(Debug)]
+
     pub struct Binary {
         pub left: Box<NonGenericExpressionType>,
         pub operator: Token<String>,
         pub right: Box<NonGenericExpressionType>,
     }
+    #[derive(Debug)]
+
     pub struct Grouping {
         pub expression: Box<NonGenericExpressionType>,
     }
+    #[derive(Debug)]
+
     pub struct Literal<T> {
         pub value: Option<T>,
     }
+    #[derive(Debug)]
+
     pub struct Unary {
         pub operator: Token<String>,
         pub right: Box<NonGenericExpressionType>,

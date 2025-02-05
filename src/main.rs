@@ -9,6 +9,7 @@ use std::io;
 use std::io::Write;
 use std::process;
 
+use parser::Parser;
 use scanner::Scanner;
 use token_type::LiteralType;
 
@@ -42,7 +43,9 @@ impl Main {
                 line: 1,
             };
             let scanned_tokens = scanner.scan_tokens();
-            println!("Scanned Tokens: {:?}", scanned_tokens);
+            let mut parser = Parser::new(scanned_tokens);
+            let expr = parser.parse();
+            println!("{:?}", expr);
         }
     }
 
@@ -64,9 +67,9 @@ impl Main {
     }
 
     fn run(source: &String, std_out_handler: &mut io::Stdout) {
-        source.split(" ").for_each(|token| {
-            let _ = std_out_handler.write_all(token.as_bytes());
-        });
+        // source.split(" ").for_each(|token| {
+        //     let _ = std_out_handler.write_all(token.as_bytes());
+        // });
     }
 }
 

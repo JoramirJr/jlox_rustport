@@ -4,28 +4,36 @@ use crate::expr::expr::{Binary, ExpressionGenericType, ExpressionType, Grouping,
 use crate::token_type::*;
 
 use jlox_rustport::ScanningParsingCommon;
-struct Parser {
-    tokens: Vec<Token<LiteralType>>,
-    current: usize,
+pub struct Parser {
+    pub tokens: Vec<Token<LiteralType>>,
+    pub current: usize,
 }
 
 impl ScanningParsingCommon for Parser {
-    fn error(line: &u32, message: &str) {
-        Self::report(line, String::new(), message);
-    }
     fn report(line: &u32, location: String, message: &str) {
         panic!("[line {}] Error {}: {}", line, location, message)
     }
+    fn error(_: &u32, _: &str) -> () {}
 }
 
 impl Parser {
-    fn new(tokens: Vec<Token<LiteralType>>) -> Self {
+    pub fn new(tokens: Vec<Token<LiteralType>>) -> Self {
         Parser { tokens, current: 0 }
     }
-    fn expression(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn parse(&mut self) -> ExpressionType<ExpressionGenericType> {
+        Self::expression(self)
+    }
+    pub fn error(token: Token<LiteralType>, message: &str) {
+        if token.ttype == TokenType::Eof {
+            Self::report(&token.line, String::from_str(" at end").unwrap(), message);
+        } else {
+            Self::report(&token.line, format!(" at '{}'", token.lexeme), message);
+        }
+    }
+    pub fn expression(&mut self) -> ExpressionType<ExpressionGenericType> {
         Self::equality(self)
     }
-    fn equality(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn equality(&mut self) -> ExpressionType<ExpressionGenericType> {
         let mut expr = Self::comparison(self);
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
@@ -45,7 +53,7 @@ impl Parser {
         }
         expr
     }
-    fn comparison(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn comparison(&mut self) -> ExpressionType<ExpressionGenericType> {
         let mut expr = Self::term(self);
 
         while Self::match_expr(
@@ -76,7 +84,7 @@ impl Parser {
 
         return expr;
     }
-    fn term(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn term(&mut self) -> ExpressionType<ExpressionGenericType> {
         let mut expr = Self::factor(self);
 
         while Self::match_expr(self, &[TokenType::Minus, TokenType::Plus]) {
@@ -99,7 +107,7 @@ impl Parser {
 
         return expr;
     }
-    fn factor(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn factor(&mut self) -> ExpressionType<ExpressionGenericType> {
         let mut expr = Self::unary(self);
 
         while Self::match_expr(self, &[TokenType::Slash, TokenType::Star]) {
@@ -122,7 +130,7 @@ impl Parser {
 
         return expr;
     }
-    fn unary(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn unary(&mut self) -> ExpressionType<ExpressionGenericType> {
         if Self::match_expr(self, &[TokenType::Bang, TokenType::Minus]) {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
@@ -141,7 +149,7 @@ impl Parser {
         }
         return Self::primary(self);
     }
-    fn primary(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn primary(&mut self) -> ExpressionType<ExpressionGenericType> {
         if Self::match_expr(self, &[TokenType::False]) {
             return ExpressionType::LiteralExpr(Literal {
                 value: Some(ExpressionGenericType::Token(TokenType::False)),
@@ -184,28 +192,16 @@ impl Parser {
             });
         }
         Self::error(Self::peek(self), "Expect expression.");
-        // ExpressionType::LiteralExpr(Literal { value: None })
+        ExpressionType::LiteralExpr(Literal { value: None })
     }
-    fn consume(&mut self, t_type: &TokenType, message: &str) -> Token<LiteralType> {
+    pub fn consume(&mut self, t_type: &TokenType, message: &str) -> Token<LiteralType> {
         if !Self::check(self, t_type) {
             let next_token = Self::peek(self);
-            if next_token.ttype == TokenType::Eof {
-                Self::report(
-                    &next_token.line,
-                    String::from_str(" at end").unwrap(),
-                    message,
-                );
-            } else {
-                Self::report(
-                    &next_token.line,
-                    format!(" at '{}'", next_token.lexeme),
-                    message,
-                );
-            }
+            Self::error(next_token, message);
         }
         Self::advance(self)
     }
-    fn synchronize(&mut self) -> () {
+    pub fn synchronize(&mut self) -> () {
         Self::advance(self);
 
         while !Self::is_at_end(self) {
@@ -226,7 +222,7 @@ impl Parser {
             Self::advance(self);
         }
     }
-    fn match_expr(&mut self, types: &[TokenType]) -> bool {
+    pub fn match_expr(&mut self, types: &[TokenType]) -> bool {
         let check = types.iter().any(|t| {
             if Self::check(self, t) {
                 Self::advance(self);
@@ -241,26 +237,26 @@ impl Parser {
             false
         }
     }
-    fn check(&self, t_type: &TokenType) -> bool {
-        if (Self::is_at_end(self)) {
+    pub fn check(&self, t_type: &TokenType) -> bool {
+        if Self::is_at_end(self) {
             false
         } else {
             Self::peek(self).ttype == *t_type
         }
     }
-    fn advance(&mut self) -> Token<LiteralType> {
+    pub fn advance(&mut self) -> Token<LiteralType> {
         if Self::is_at_end(self) {
             self.current += 1;
         }
         Self::previous(self)
     }
-    fn is_at_end(&self) -> bool {
+    pub fn is_at_end(&self) -> bool {
         Self::peek(self).ttype == TokenType::Eof
     }
-    fn peek(&self) -> Token<LiteralType> {
+    pub fn peek(&self) -> Token<LiteralType> {
         self.tokens[self.current].clone()
     }
-    fn previous(&self) -> Token<LiteralType> {
+    pub fn previous(&self) -> Token<LiteralType> {
         self.tokens[self.current - 1].clone()
     }
 }

@@ -62,7 +62,7 @@ impl Main {
         }
         let _ = file_handler.write(["}"].concat().as_bytes());
     }
-
+    fn define_visitor() {}
     fn define_type(file_handler: &mut File, struct_name: &str, field_list: &str) {
         let _ = file_handler.write(["pub struct", " ", struct_name, " {\n"].concat().as_bytes());
 

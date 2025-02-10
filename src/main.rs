@@ -44,7 +44,7 @@ impl Main {
             };
             let scanned_tokens = scanner.scan_tokens();
             let mut parser = Parser::new(scanned_tokens);
-            let expr = parser.parse();
+            let expr = parser.parse(); 
             println!("{:?}", expr);
         }
     }

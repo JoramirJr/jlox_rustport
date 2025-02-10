@@ -27,6 +27,8 @@ impl Main {
 
         let mut file_handler = File::create(&path).unwrap();
 
+        Self::define_visitor(&mut file_handler, &types);
+
         let _ = file_handler.write(
             [
                 "pub mod",
@@ -60,9 +62,29 @@ impl Main {
             let (struct_name, _) = t.split_once(":").unwrap();
             Self::define_impls(&mut file_handler, struct_name.trim());
         }
-        let _ = file_handler.write(["}"].concat().as_bytes());
+        let _ = file_handler.write("}".as_bytes());
     }
-    fn define_visitor() {}
+    fn define_visitor(file_handler: &mut File, field_list: &Vec<&str>) {
+        let _ = file_handler.write("    pub enum Visitor<T>".as_bytes());
+
+        for t in field_list {
+            let (struct_name, _) = t.split_once(":").unwrap();
+            let _ = file_handler.write(
+                [
+                    "    ",
+                    "Visit",
+                    struct_name,
+                    "(&",
+                    struct_name,
+                    struct_name,
+                    ");",
+                ]
+                .concat()
+                .as_bytes(),
+            );
+            let _ = file_handler.write("}".as_bytes());
+        }
+    }
     fn define_type(file_handler: &mut File, struct_name: &str, field_list: &str) {
         let _ = file_handler.write(["pub struct", " ", struct_name, " {\n"].concat().as_bytes());
 

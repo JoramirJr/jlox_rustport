@@ -1,7 +1,6 @@
 mod expr;
 mod parser;
 mod scanner;
-mod token_type;
 
 use std::env;
 use std::fs;
@@ -11,6 +10,7 @@ use std::process;
 
 use parser::Parser;
 use scanner::Scanner;
+use jlox_rustport::token_type;
 use token_type::LiteralType;
 
 struct Main {

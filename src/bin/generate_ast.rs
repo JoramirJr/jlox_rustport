@@ -52,6 +52,19 @@ impl Main {
             .as_bytes(),
         );
 
+        let _ = file_handler.write(
+            [
+                "#[derive(Debug)]\n",
+                "pub enum ExpressionGenericType {\n",
+                "  Token(TokenType),\n",
+                "  Empty(()),\n",
+                "}",
+                "\n\n",
+            ]
+            .concat()
+            .as_bytes(),
+        );
+
         for t in &types {
             let (struct_name, fields) = t.split_once(":").unwrap();
             Self::define_type(&mut file_handler, struct_name.trim(), fields.trim());
@@ -62,7 +75,6 @@ impl Main {
         }
         Self::define_visitor(&mut file_handler, types);
         let _ = file_handler.write("}\n\n".as_bytes());
-
     }
     fn define_visitor(file_handler: &mut File, field_list: Vec<&str>) {
         let _ = file_handler.write("    pub enum Visitor<T> {".as_bytes());
@@ -70,15 +82,21 @@ impl Main {
         for t in field_list {
             let (struct_name, _) = t.split_once(":").unwrap();
             if struct_name.ends_with("<T>") {
-
+                let struct_name_without_generic = struct_name.replace("<T>", "");
 
                 let _ = file_handler.write(
-                    ["    ", "Visit", struct_name, "(", struct_name, "),"]
-                        .concat()
-                        .as_bytes(),
+                    [
+                        "    ",
+                        "Visit",
+                        struct_name_without_generic.as_str(),
+                        "(",
+                        struct_name,
+                        "),",
+                    ]
+                    .concat()
+                    .as_bytes(),
                 );
             } else {
-
                 let _ = file_handler.write(
                     ["    ", "Visit", struct_name, "(", struct_name, "),"]
                         .concat()
@@ -107,26 +125,49 @@ impl Main {
         let _ = file_handler.write(b"}\n");
     }
     fn define_impls(file_handler: &mut File, struct_name: &str) {
-        let _ = file_handler.write(
-            [
-                "impl ExpressionBehaviors for ",
-                struct_name,
-                " { \n",
-                "  fn interpret(&self) -> () {
-                        ()
-                    }\n",
-                "  fn resolve(&self) -> () {
-                        ()
-                    }\n",
-                "  fn analyze(&self) -> () {
-                        ()
-                    }\n",
-                "}",
-                "\n",
-            ]
-            .concat()
-            .as_bytes(),
-        );
+        if struct_name.ends_with("<T>") {
+            let _ = file_handler.write(
+                [
+                    "impl<T> ExpressionBehaviors for ",
+                    struct_name,
+                    " { \n",
+                    "  fn interpret(&self) -> () {
+                            ()
+                        }\n",
+                    "  fn resolve(&self) -> () {
+                            ()
+                        }\n",
+                    "  fn analyze(&self) -> () {
+                            ()
+                        }\n",
+                    "}",
+                    "\n",
+                ]
+                .concat()
+                .as_bytes(),
+            );
+        } else {
+            let _ = file_handler.write(
+                [
+                    "impl ExpressionBehaviors for ",
+                    struct_name,
+                    " { \n",
+                    "  fn interpret(&self) -> () {
+                            ()
+                        }\n",
+                    "  fn resolve(&self) -> () {
+                            ()
+                        }\n",
+                    "  fn analyze(&self) -> () {
+                            ()
+                        }\n",
+                    "}",
+                    "\n",
+                ]
+                .concat()
+                .as_bytes(),
+            );
+        }
     }
 }
 

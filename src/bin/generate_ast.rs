@@ -15,10 +15,10 @@ impl Main {
         Self::define_ast(
             "expr",
             Vec::from([
-                "Binary: String left, Token<String> operator, String right",
-                "Grouping: String expression",
+                "Binary: Box<NonGenericExpressionType> left, Token<String> operator, Box<NonGenericExpressionType> right",
+                "Grouping: Box<NonGenericExpressionType> expression",
                 "Literal<T>: Option<T> value",
-                "Unary: Token<String> operator, String right",
+                "Unary: Token<String> operator, Box<NonGenericExpressionType> right",
             ]),
         )
     }
@@ -33,7 +33,7 @@ impl Main {
                 " ",
                 basename,
                 " {\n",
-                "use crate::token_type::Token;\n\n",
+                "use crate::token_type::{Token, TokenType};\n\n",
             ]
             .concat()
             .as_bytes(),
@@ -65,6 +65,13 @@ impl Main {
             .as_bytes(),
         );
 
+        Self::define_expr_type(&mut file_handler, &types);
+
+        let _ = file_handler.write(
+            "    pub type NonGenericExpressionType = ExpressionType<ExpressionGenericType>;"
+                .as_bytes(),
+        );
+
         for t in &types {
             let (struct_name, fields) = t.split_once(":").unwrap();
             Self::define_type(&mut file_handler, struct_name.trim(), fields.trim());
@@ -73,10 +80,45 @@ impl Main {
             let (struct_name, _) = t.split_once(":").unwrap();
             Self::define_impls(&mut file_handler, struct_name.trim());
         }
-        Self::define_visitor(&mut file_handler, types);
+        Self::define_visitor(&mut file_handler, &types);
         let _ = file_handler.write("}\n\n".as_bytes());
     }
-    fn define_visitor(file_handler: &mut File, field_list: Vec<&str>) {
+    fn define_expr_type(file_handler: &mut File, field_list: &Vec<&str>) {
+        let _ = file_handler.write(
+            [
+                "#[derive(Debug)]\n",
+                "pub enum ExpressionType<ExpressionGenericType> {\n",
+            ]
+            .concat()
+            .as_bytes(),
+        );
+
+        for t in field_list {
+            let (struct_name, _) = t.split_once(":").unwrap();
+
+            if struct_name.ends_with("<T>") {
+                let struct_name_without_generic = struct_name.replace("<T>", "");
+                let _ = file_handler.write(
+                    [
+                        struct_name_without_generic.as_str(),
+                        "Expr(",
+                        struct_name_without_generic.as_str(),
+                        "<ExpressionGenericType>),\n",
+                    ]
+                    .concat()
+                    .as_bytes(),
+                );
+            } else {
+                let _ = file_handler.write(
+                    [struct_name, "Expr(", struct_name, "),\n"]
+                        .concat()
+                        .as_bytes(),
+                );
+            }
+        }
+        let _ = file_handler.write("}".as_bytes());
+    }
+    fn define_visitor(file_handler: &mut File, field_list: &Vec<&str>) {
         let _ = file_handler.write("    pub enum Visitor<T> {".as_bytes());
 
         for t in field_list {
@@ -107,7 +149,11 @@ impl Main {
         let _ = file_handler.write("}".as_bytes());
     }
     fn define_type(file_handler: &mut File, struct_name: &str, field_list: &str) {
-        let _ = file_handler.write(["pub struct", " ", struct_name, " {\n"].concat().as_bytes());
+        let _ = file_handler.write(
+            ["#[derive(Debug)]", "pub struct", " ", struct_name, " {\n"]
+                .concat()
+                .as_bytes(),
+        );
 
         let fields = field_list.split(", ");
 

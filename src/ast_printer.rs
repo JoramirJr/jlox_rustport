@@ -1,7 +1,10 @@
+mod astPrinter {
+    use crate::expr::expr::VisitorMethods;
 
 
-pub struct AstPrinter();
+    pub struct AstPrinter();
 
-impl AstPrinter {
-    pub fn print() {} 
+    impl VisitorMethods for AstPrinter {
+        
+    }
 }

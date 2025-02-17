@@ -1,3 +1,10 @@
+pub enum Visitor<T> {
+    VisitBinary(Binary),
+    VisitGrouping(Grouping),
+    VisitLiteral(Literal<T>),
+    VisitUnary(Unary),
+}
+
 pub trait ScanningParsingCommon {
     fn error(line: &u32, message: &str) -> ();
     fn report(line: &u32, location: String, message: &str);

@@ -1,4 +1,5 @@
 pub mod expr {
+
     use crate::token_type::{Token, TokenType};
 
     trait ExpressionBehaviors {
@@ -11,17 +12,6 @@ pub mod expr {
     pub enum ExpressionGenericType {
         Token(TokenType),
         Empty(()),
-    }
-
-    pub trait VisitorMethods {
-        fn accept(visitor: Visitor<T>) -> ();
-    }
-
-    pub enum Visitor<T> {
-        VisitBinary(Binary),
-        VisitGrouping(Grouping),
-        VisitLiteral(Literal<T>),
-        VisitUnary(Unary),
     }
 
     #[derive(Debug)]
@@ -51,6 +41,7 @@ pub mod expr {
         pub operator: Token<String>,
         pub right: Box<NonGenericExpressionType>,
     }
+
     impl ExpressionBehaviors for Binary {
         fn interpret(&self) -> () {
             ()
@@ -95,24 +86,24 @@ pub mod expr {
             ()
         }
     }
-    impl VisitorMethods for Binary {
-        fn accept(visitor: Visitor<T>) -> () {
-            Visitor::VisitBinary(self);
+    impl Binary {
+        fn accept(self) -> Binary {
+            self
         }
     }
-    impl VisitorMethods for Grouping {
-        fn accept(visitor: Visitor<T>) -> () {
-            Visitor::VisitGrouping(self);
+    impl Unary {
+        fn accept(self) -> Unary {
+            self
         }
     }
-    impl VisitorMethods for Literal<T> {
-        fn accept(visitor: Visitor<T>) -> () {
-            Visitor::VisitLiteral<T>(self);
+    impl Grouping {
+        fn accept(self) -> Grouping {
+            self
         }
     }
-    impl VisitorMethods for Unary {
-        fn accept(visitor: Visitor<T>) -> () { 
-            Visitor::VisitUnary(self);
+    impl<T> Literal<T> {
+        fn accept(self) -> Literal<T> {
+            self
         }
     }
 }

@@ -1,5 +1,7 @@
 pub mod expr;
 
+use expr::expr::{Binary, Grouping, Literal, Unary};
+
 pub enum Visitor<T> {
     VisitBinary(Binary),
     VisitGrouping(Grouping),

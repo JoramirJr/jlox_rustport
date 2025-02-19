@@ -1,3 +1,5 @@
+pub mod expr;
+
 pub enum Visitor<T> {
     VisitBinary(Binary),
     VisitGrouping(Grouping),

@@ -1,6 +1,6 @@
 pub mod expr {
 
-    use crate::token_type::{Token, TokenType};
+    use crate::token_type::{LiteralType, Token, TokenType};
 
     trait ExpressionBehaviors {
         fn interpret(&self) -> ();
@@ -33,8 +33,8 @@ pub mod expr {
         pub expression: Box<NonGenericExpressionType>,
     }
     #[derive(Debug)]
-    pub struct Literal<T> {
-        pub value: Option<T>,
+    pub struct Literal<LiteralType> {
+        pub value: Option<LiteralType>,
     }
     #[derive(Debug)]
     pub struct Unary {

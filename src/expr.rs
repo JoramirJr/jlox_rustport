@@ -23,7 +23,7 @@ pub mod expr {
     }
     pub type NonGenericExpressionType = ExpressionType<ExpressionGenericType>;
     #[derive(Debug)]
-    pub struct Binary {
+    pub struct Binary { 
         pub left: Box<NonGenericExpressionType>,
         pub operator: Token<String>,
         pub right: Box<NonGenericExpressionType>,

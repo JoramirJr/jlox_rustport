@@ -9,6 +9,10 @@ use std::io;
 use std::io::Write;
 use std::process;
 
+use expr::expr::Binary;
+use expr::expr::Unary;
+use jlox_rustport::token_type::Token;
+use jlox_rustport::token_type::TokenType;
 use parser::Parser;
 use scanner::Scanner;
 use jlox_rustport::token_type;
@@ -21,15 +25,16 @@ struct Main {
 
 impl Main {
     fn main(mut self) {
-        let args_length = self.args.len();
-        if args_length < 2 || args_length > 3 {
-            println!("Usage: jlox [script]");
-            process::exit(64);
-        } else if args_length == 3 {
-            Self::run_file(&mut self);
-        } else if args_length == 2 {
-            Self::run_prompt(self);
-        }
+        // let args_length = self.args.len();
+        // if args_length < 2 || args_length > 3 {
+        //     println!("Usage: jlox [script]");
+        //     process::exit(64);
+        // } else if args_length == 3 {
+        //     Self::run_file(&mut self);
+        // } else if args_length == 2 {
+        //     Self::run_prompt(self);
+        // }
+        let expr = Binary { left: Unary { operator: Token { lexeme: "*".to_string(), literal: None, line: 1, ttype: TokenType::Minus } }, operator }
     }
     fn run_file(&self) {
         if self.had_error {

@@ -1,6 +1,6 @@
 pub mod expr {
 
-    use crate::token_type::{LiteralType, Token, TokenType};
+    use crate::token_type::{LiteralType, Token};
 
     trait ExpressionBehaviors {
         fn interpret(&self) -> ();
@@ -9,28 +9,21 @@ pub mod expr {
     }
 
     #[derive(Debug)]
-    pub enum ExpressionGenericType {
-        Token(TokenType),
-        Empty(()),
-    }
-
-    #[derive(Debug)]
-    pub enum ExpressionType<ExpressionGenericType> {
+    pub enum ExpressionType<LiteralType> {
         BinaryExpr(Binary),
         GroupingExpr(Grouping),
-        LiteralExpr(Literal<ExpressionGenericType>),
+        LiteralExpr(Literal<LiteralType>),
         UnaryExpr(Unary),
     }
-    pub type NonGenericExpressionType = ExpressionType<ExpressionGenericType>;
     #[derive(Debug)]
-    pub struct Binary { 
-        pub left: Box<NonGenericExpressionType>,
+    pub struct Binary {
+        pub left: Box<ExpressionType<()>>,
         pub operator: Token<String>,
-        pub right: Box<NonGenericExpressionType>,
+        pub right: Box<ExpressionType<()>>,
     }
     #[derive(Debug)]
     pub struct Grouping {
-        pub expression: Box<NonGenericExpressionType>,
+        pub expression: Box<ExpressionType<()>>,
     }
     #[derive(Debug)]
     pub struct Literal<LiteralType> {
@@ -39,7 +32,7 @@ pub mod expr {
     #[derive(Debug)]
     pub struct Unary {
         pub operator: Token<String>,
-        pub right: Box<NonGenericExpressionType>,
+        pub right: Box<ExpressionType<()>>,
     }
 
     impl ExpressionBehaviors for Binary {

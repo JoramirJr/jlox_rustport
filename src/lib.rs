@@ -68,6 +68,7 @@ pub mod token_type {
     pub enum LiteralType {
         String(String),
         F32(f32),
+        Empty(())
     }
 
     #[derive(Debug, Clone)]

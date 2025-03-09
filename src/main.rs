@@ -10,6 +10,10 @@ use std::io::Write;
 use std::process;
 
 use expr::expr::Binary;
+use expr::expr::ExpressionGenericType;
+use expr::expr::ExpressionType;
+use expr::expr::Grouping;
+use expr::expr::Literal;
 use expr::expr::Unary;
 use jlox_rustport::token_type::Token;
 use jlox_rustport::token_type::TokenType;
@@ -34,7 +38,14 @@ impl Main {
         // } else if args_length == 2 {
         //     Self::run_prompt(self);
         // }
-        let expr = Binary { left: Unary { operator: Token { lexeme: "*".to_string(), literal: None, line: 1, ttype: TokenType::Minus } }, operator }
+        let expr = Binary { 
+            left: Box::new(ExpressionType::UnaryExpr(Unary { 
+                operator: Token { lexeme: "-".to_string(), literal: None, line: 1, ttype: TokenType::Minus }, 
+                right: Box::new( ExpressionType::LiteralExpr(Literal { value: Some(LiteralType::F32(123)) })) 
+            })), 
+            operator: Token { lexeme: "*", line: 1, literal: None, ttype: TokenType::Star}, 
+            right: Grouping { expression: Literal { value: 45.67 } } 
+        }
     }
     fn run_file(&self) {
         if self.had_error {

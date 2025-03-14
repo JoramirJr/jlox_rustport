@@ -1,7 +1,8 @@
-mod expr;
+mod ast_printer;
 mod parser;
 mod scanner;
-mod ast_printer;
+mod token_type;
+mod expr;
 
 use std::env;
 use std::fs;
@@ -9,18 +10,10 @@ use std::io;
 use std::io::Write;
 use std::process;
 
-use expr::expr::Binary;
-use expr::expr::ExpressionType;
-use expr::expr::Grouping;
-use expr::expr::Literal;
-use expr::expr::Unary;
-use jlox_rustport::token_type::Token;
-use jlox_rustport::token_type::TokenType;
+use expr::{Binary, ExpressionType, Grouping, Literal, Unary};
+use token_type::{LiteralType, Token, TokenType};
 use parser::Parser;
 use scanner::Scanner;
-use jlox_rustport::token_type;
-use token_type::LiteralType;
-
 struct Main {
     args: Vec<String>,
     had_error: bool,
@@ -37,16 +30,35 @@ impl Main {
         // } else if args_length == 2 {
         //     Self::run_prompt(self);
         // }
-        let expr = Binary { 
-            left: Box::new(ExpressionType::UnaryExpr(Unary { 
-                operator: Token { lexeme: "-".to_string(), literal: LiteralType::Nil, line: 1, ttype: TokenType::Minus }, 
-                right: Box::new( ExpressionType::LiteralExpr(Literal { value: LiteralType::F32(123 as f32) })) 
-            })), 
-            operator: Token { lexeme: "*".to_string(), line: 1, literal: LiteralType::Nil, ttype: TokenType::Star}, 
-            right:  Box::new(ExpressionType::GroupingExpr(Grouping { expression: Box::new(ExpressionType::LiteralExpr(Literal { value: LiteralType::F32(45.67) })) })) 
+        let expr = Binary {
+            left: Box::new(ExpressionType::UnaryExpr(Unary {
+                operator: Token {
+                    lexeme: "-".to_string(),
+                    literal: LiteralType::Nil,
+                    line: 1,
+                    ttype: TokenType::Minus,
+                },
+                right: Box::new(ExpressionType::LiteralExpr(Literal {
+                    value: LiteralType::F32(123 as f32),
+                })),
+            })),
+            operator: Token {
+                lexeme: "*".to_string(),
+                line: 1,
+                literal: LiteralType::Nil,
+                ttype: TokenType::Star,
+            },
+            right: Box::new(ExpressionType::GroupingExpr(Grouping {
+                expression: Box::new(ExpressionType::LiteralExpr(Literal {
+                    value: LiteralType::F32(45.67),
+                })),
+            })),
         };
 
-        println!("{:?}", ast_printer::astPrinter::AstPrinter::print(ExpressionType::BinaryExpr(expr)))
+        println!(
+            "{:?}",
+            ast_printer::astPrinter::AstPrinter::print(ExpressionType::BinaryExpr(expr))
+        )
     }
     fn run_file(&self) {
         if self.had_error {
@@ -62,7 +74,7 @@ impl Main {
             };
             let scanned_tokens = scanner.scan_tokens();
             let mut parser = Parser::new(scanned_tokens);
-            let expr = parser.parse(); 
+            let expr = parser.parse();
             println!("{:?}", expr);
         }
     }

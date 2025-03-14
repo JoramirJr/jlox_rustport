@@ -8,15 +8,15 @@ use crate::token_type::LiteralType;
 use crate::token_type::Token;
 use crate::token_type::TokenType;
 
-pub struct Scanner<LiteralType> {
+pub struct Scanner {
     pub source: String,
-    pub tokens: Option<Vec<Token<LiteralType>>>,
+    pub tokens: Vec<Token>,
     pub start: usize,
     pub current: usize,
     pub line: u32,
 }
 
-impl ScanningParsingCommon for Scanner<LiteralType> {
+impl ScanningParsingCommon for Scanner {
     fn error(line: &u32, message: &str) {
         Self::report(line, String::new(), message);
     }
@@ -27,30 +27,30 @@ impl ScanningParsingCommon for Scanner<LiteralType> {
     }
 }
 
-impl Scanner<LiteralType> {
-    pub fn scan_tokens(mut self) -> Vec<Token<LiteralType>> {
+impl Scanner {
+    pub fn scan_tokens(mut self) -> Vec<Token> {
         while !Self::is_at_end(&self) {
             self.start = self.current;
             Self::scan_token(&mut self);
         }
 
-        self.tokens.as_mut().unwrap().push(Token {
+        self.tokens.as_mut().push(Token {
             ttype: TokenType::Eof,
             lexeme: String::new(),
-            literal: None,
+            literal: LiteralType::Nil,
             line: self.line,
         });
-        self.tokens.unwrap()
+        self.tokens
     }
     fn scan_token(&mut self) {
         let c: Option<char> = Self::advance(self);
 
         let mut call_add_token = |ttype: TokenType| {
-            Self::add_token(self, ttype, None);
+            Self::add_token(self, ttype, LiteralType::Nil);
         };
 
         if c != None {
-            match c.unwrap() {
+            match Some(c) {
                 '(' => call_add_token(TokenType::LeftParen),
                 ')' => call_add_token(TokenType::RightParen),
                 '{' => call_add_token(TokenType::LeftBrace),
@@ -61,20 +61,20 @@ impl Scanner<LiteralType> {
                 '+' => call_add_token(TokenType::Plus),
                 ';' => call_add_token(TokenType::Semicolon),
                 '*' => call_add_token(TokenType::Star),
-                '!' => Self::match_token_sequence(self, '!', '='),
-                '=' => Self::match_token_sequence(self, '=', '='),
-                '<' => Self::match_token_sequence(self, '<', '='),
-                '>' => Self::match_token_sequence(self, '>', '='),
-                '/' => Self::match_token_sequence(self, '/', '/'),
+                '!' => Self::match_token_sequence(self, '!', Some('=')),
+                '=' => Self::match_token_sequence(self, '=', Some('=')),
+                '<' => Self::match_token_sequence(self, '<', Some('=')),
+                '>' => Self::match_token_sequence(self, '>', Some('=')),
+                '/' => Self::match_token_sequence(self, '/', Some('/')),
                 ' ' => {}
                 '\r' => {}
                 '\t' => {}
                 '\n' => self.line += 1,
                 '"' => Self::string(self),
                 _ => {
-                    if Self::is_digit(c.unwrap()) {
+                    if Self::is_digit(c) {
                         Self::number(self);
-                    } else if Self::is_alpha(c.unwrap()) {
+                    } else if Self::is_alpha(c) {
                         Self::identifier(self);
                     } else {
                         Scanner::error(&self.line, "Unexpected character.")
@@ -96,7 +96,7 @@ impl Scanner<LiteralType> {
             Self::advance(self);
         }
 
-        let text: &str = self.source.get(self.start..self.current).unwrap();
+        let text: &str = self.source.get(self.start..self.current);
 
         let ttype = match text {
             "and" => Some(TokenType::And),
@@ -115,12 +115,12 @@ impl Scanner<LiteralType> {
             "true" => Some(TokenType::True),
             "var" => Some(TokenType::Var),
             "while" => Some(TokenType::While),
-            _ => None,
+            _ => LiteralType::Nil,
         };
 
         match ttype {
-            Some(text) => Self::add_token(self, text, None),
-            None => Self::add_token(self, TokenType::Identifier, None),
+            Some(text) => Self::add_token(self, text, LiteralType::Nil),
+            LiteralType::Nil => Self::add_token(self, TokenType::Identifier, LiteralType::Nil),
         }
     }
     fn is_digit(c: char) -> bool {
@@ -129,17 +129,17 @@ impl Scanner<LiteralType> {
     fn is_alphanumeric(peeked_c: char) -> bool {
         Self::is_alpha(peeked_c) || Self::is_digit(peeked_c)
     }
-    fn match_token(&mut self, expected: char) -> bool {
+    fn match_token(&mut self, expected: Option<char>) -> bool {
         if Self::is_at_end(&self) {
             return false;
-        } else if self.source.chars().nth(self.current).unwrap() != expected {
+        } else if self.source.chars().nth(self.current) != expected {
             return false;
         } else {
             self.current += 1;
             return true;
         }
     }
-    fn match_token_sequence(&mut self, case: char, expected: char) {
+    fn match_token_sequence(&mut self, case: char, expected: Option<char>) {
         let match_sequence = Self::match_token(self, expected);
 
         if case == '!' {
@@ -148,57 +148,57 @@ impl Scanner<LiteralType> {
             } else {
                 TokenType::Bang
             };
-            Self::add_token(self, ttype, None)
+            Self::add_token(self, ttype, LiteralType::Nil)
         } else if case == '=' {
             let ttype = if match_sequence {
                 TokenType::EqualEqual
             } else {
                 TokenType::Equal
             };
-            Self::add_token(self, ttype, None)
+            Self::add_token(self, ttype, LiteralType::Nil)
         } else if case == '<' {
             let ttype = if match_sequence {
                 TokenType::LessEqual
             } else {
                 TokenType::Less
             };
-            Self::add_token(self, ttype, None)
+            Self::add_token(self, ttype, LiteralType::Nil)
         } else if case == '>' {
             let ttype = if match_sequence {
                 TokenType::GreaterEqual
             } else {
                 TokenType::Greater
             };
-            Self::add_token(self, ttype, None)
+            Self::add_token(self, ttype, LiteralType::Nil)
         } else if case == '/' {
             if match_sequence {
                 while Self::peek(&self) != '\n' && Self::is_at_end(&self) {
                     let _ = Self::advance(self);
                 }
             } else {
-                Self::add_token(self, TokenType::Slash, None);
+                Self::add_token(self, TokenType::Slash, LiteralType::Nil);
             };
         }
     }
-    fn add_token(&mut self, ttype: TokenType, literal: Option<LiteralType>) {
+    fn add_token(&mut self, ttype: TokenType, literal: LiteralType) {
         //not sure if 'get' will bring me the intended substring
         let text = self
             .source
             .get(self.start..self.current)
-            .unwrap()
+            
             .to_string();
 
         match self.tokens {
             Some(_) => {
-                self.tokens.as_mut().unwrap().push(Token {
+                self.tokens.as_mut().push(Token {
                     ttype,
                     lexeme: text,
                     literal,
                     line: self.line,
                 });
             }
-            None => {
-                let _ = self.tokens.insert(Vec::from([Token {
+            LiteralType::Nil => {
+                let _ = self.tokens.insert(self, Vec::from([Token {
                     ttype,
                     lexeme: text,
                     literal,
@@ -211,7 +211,7 @@ impl Scanner<LiteralType> {
         if Self::is_at_end(&self) {
             '\0'
         } else {
-            self.source.chars().nth(self.current).unwrap()
+            self.source.chars().nth(self.current)
         }
     }
     fn number(&mut self) {
@@ -227,14 +227,14 @@ impl Scanner<LiteralType> {
             }
         }
 
-        let float_number: f32 = f32::from_str(self.source.get(self.start..self.current).unwrap())
+        let float_number: f32 = f32::from_str(self.source.get(self.start..self.current))
             .ok()
-            .unwrap();
+            ;
 
         Self::add_token(
             self,
             TokenType::Number,
-            Some(LiteralType::F32(float_number)),
+            LiteralType::F32(float_number),
         );
     }
     fn string(&mut self) {
@@ -253,15 +253,15 @@ impl Scanner<LiteralType> {
         let value: String = self
             .source
             .get((self.start + 1)..(self.current - 1))
-            .unwrap()
+            
             .to_string();
-        Self::add_token(self, TokenType::String, Some(LiteralType::String(value)))
+        Self::add_token(self, TokenType::String, LiteralType::String(value))
     }
     fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {
             '\0'
         } else {
-            self.source.chars().nth(self.current + 1).unwrap()
+            self.source.chars().nth(self.current + 1)
         }
     }
 

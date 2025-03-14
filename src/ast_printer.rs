@@ -1,17 +1,17 @@
-mod astPrinter {
+pub mod astPrinter {
     use std::ops::Deref;
 
     use jlox_rustport::{
         expr::{
             self,
-            expr::{Binary, ExpressionGenericType, ExpressionType, Grouping, Literal, NonGenericExpressionType, Unary},
+            expr::{Binary, ExpressionType, Grouping, Literal, Unary},
         },
         token_type::LiteralType,
     };
     pub struct AstPrinter();
 
     impl AstPrinter {
-        fn print(expr: ExpressionType<ExpressionGenericType>) -> ExpressionType<ExpressionGenericType> {
+        pub fn print(expr: ExpressionType) -> ExpressionType {
             expr
         }
         fn visit_binary_expr(expr: Binary) -> String {

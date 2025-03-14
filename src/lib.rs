@@ -2,10 +2,10 @@ pub mod expr;
 
 use expr::expr::{Binary, Grouping, Literal, Unary};
 
-pub enum Visitor<T> {
+pub enum Visitor {
     VisitBinary(Binary),
     VisitGrouping(Grouping),
-    VisitLiteral(Literal<T>),
+    VisitLiteral(Literal),
     VisitUnary(Unary),
 }
 
@@ -68,14 +68,15 @@ pub mod token_type {
     pub enum LiteralType {
         String(String),
         F32(f32),
-        Empty(())
+        Bool(bool),
+        Nil,
     }
 
     #[derive(Debug, Clone)]
-    pub struct Token<LiteralType> {
+    pub struct Token {
         pub ttype: TokenType,
         pub lexeme: String,
-        pub literal: Option<LiteralType>,
+        pub literal: LiteralType,
         pub line: u32,
     }
 }

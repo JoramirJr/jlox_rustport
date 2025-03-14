@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use crate::expr::expr::{Binary, ExpressionGenericType, ExpressionType, Grouping, Literal, Unary};
+use crate::expr::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
 use crate::token_type::*;
 
 use jlox_rustport::ScanningParsingCommon;
 pub struct Parser {
-    pub tokens: Vec<Token<LiteralType>>,
+    pub tokens: Vec<Token>,
     pub current: usize,
 }
 
@@ -17,34 +17,34 @@ impl ScanningParsingCommon for Parser {
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token<LiteralType>>) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
-    pub fn parse(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn parse(&mut self) -> ExpressionType {
         Self::expression(self)
     }
-    pub fn error(token: Token<LiteralType>, message: &str) {
+    pub fn error(token: Token, message: &str) {
         if token.ttype == TokenType::Eof {
             Self::report(&token.line, String::from_str(" at end").unwrap(), message);
         } else {
             Self::report(&token.line, format!(" at '{}'", token.lexeme), message);
         }
     }
-    pub fn expression(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn expression(&mut self) -> ExpressionType {
         Self::equality(self)
     }
-    pub fn equality(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn equality(&mut self) -> ExpressionType {
         let mut expr = Self::comparison(self);
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
             let right = Self::comparison(self);
-            if let Some(LiteralType::String(string_literal)) = operator.literal {
+            if let LiteralType::String(string_literal) = operator.literal {
                 expr = ExpressionType::BinaryExpr(Binary {
                     left: Box::new(expr),
                     operator: Token {
                         ttype: operator.ttype,
                         lexeme: operator.lexeme,
-                        literal: Some(string_literal),
+                        literal: LiteralType::String(string_literal),
                         line: operator.line,
                     },
                     right: Box::new(right),
@@ -53,7 +53,7 @@ impl Parser {
         }
         expr
     }
-    pub fn comparison(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn comparison(&mut self) -> ExpressionType {
         let mut expr = Self::term(self);
 
         while Self::match_expr(
@@ -68,13 +68,13 @@ impl Parser {
             let operator = Self::previous(&self);
             let right = Self::term(self);
 
-            if let Some(LiteralType::String(string_literal)) = operator.literal {
+            if let LiteralType::String(string_literal) = operator.literal {
                 expr = ExpressionType::BinaryExpr(Binary {
                     left: Box::new(expr),
                     operator: Token {
                         ttype: operator.ttype,
                         lexeme: operator.lexeme,
-                        literal: Some(string_literal),
+                        literal: LiteralType::String(string_literal),
                         line: operator.line,
                     },
                     right: Box::new(right),
@@ -84,20 +84,20 @@ impl Parser {
 
         return expr;
     }
-    pub fn term(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn term(&mut self) -> ExpressionType {
         let mut expr = Self::factor(self);
 
         while Self::match_expr(self, &[TokenType::Minus, TokenType::Plus]) {
             let operator = Self::previous(self);
             let right = Self::factor(self);
 
-            if let Some(LiteralType::String(string_literal)) = operator.literal {
+            if let LiteralType::String(string_literal) = operator.literal {
                 expr = ExpressionType::BinaryExpr(Binary {
                     left: Box::new(expr),
                     operator: Token {
                         ttype: operator.ttype,
                         lexeme: operator.lexeme,
-                        literal: Some(string_literal),
+                        literal: LiteralType::String(string_literal),
                         line: operator.line,
                     },
                     right: Box::new(right),
@@ -107,7 +107,7 @@ impl Parser {
 
         return expr;
     }
-    pub fn factor(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn factor(&mut self) -> ExpressionType {
         let mut expr = Self::unary(self);
 
         while Self::match_expr(self, &[TokenType::Slash, TokenType::Star]) {
@@ -130,7 +130,7 @@ impl Parser {
 
         return expr;
     }
-    pub fn unary(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn unary(&mut self) -> ExpressionType {
         if Self::match_expr(self, &[TokenType::Bang, TokenType::Minus]) {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
@@ -149,37 +149,27 @@ impl Parser {
         }
         return Self::primary(self);
     }
-    pub fn primary(&mut self) -> ExpressionType<ExpressionGenericType> {
+    pub fn primary(&mut self) -> ExpressionType {
         if Self::match_expr(self, &[TokenType::False]) {
             return ExpressionType::LiteralExpr(Literal {
-                value: Some(ExpressionGenericType::Token(TokenType::False)),
+                value: LiteralType::Bool(false),
             });
         }
         if Self::match_expr(self, &[TokenType::True]) {
             return ExpressionType::LiteralExpr(Literal {
-                value: Some(ExpressionGenericType::Token(TokenType::True)),
+                value: LiteralType::Bool(true),
             });
         }
         if Self::match_expr(self, &[TokenType::Nil]) {
-            return ExpressionType::LiteralExpr(Literal { value: None });
+            return ExpressionType::LiteralExpr(Literal {
+                value: LiteralType::Nil,
+            });
         }
 
         if Self::match_expr(self, &[TokenType::Number, TokenType::String]) {
-            let previous = Self::previous(&self).literal;
-
-            match previous {
-                Some(LiteralType::String(_)) => {
-                    return ExpressionType::LiteralExpr(Literal {
-                        value: Some(ExpressionGenericType::Token(TokenType::String)),
-                    });
-                }
-                Some(LiteralType::F32(_)) => {
-                    return ExpressionType::LiteralExpr(Literal {
-                        value: Some(ExpressionGenericType::Token(TokenType::Number)),
-                    });
-                }
-                None => {}
-            }
+            return ExpressionType::LiteralExpr(Literal {
+                value: Self::previous(&self).literal,
+            });
         }
 
         if Self::match_expr(self, &[TokenType::LeftParen]) {
@@ -192,9 +182,11 @@ impl Parser {
             });
         }
         Self::error(Self::peek(self), "Expect expression.");
-        ExpressionType::LiteralExpr(Literal { value: None })
+        ExpressionType::LiteralExpr(Literal {
+            value: LiteralType::Nil,
+        })
     }
-    pub fn consume(&mut self, t_type: &TokenType, message: &str) -> Token<LiteralType> {
+    pub fn consume(&mut self, t_type: &TokenType, message: &str) -> Token {
         if !Self::check(self, t_type) {
             let next_token = Self::peek(self);
             Self::error(next_token, message);
@@ -244,7 +236,7 @@ impl Parser {
             Self::peek(self).ttype == *t_type
         }
     }
-    pub fn advance(&mut self) -> Token<LiteralType> {
+    pub fn advance(&mut self) -> Token {
         if Self::is_at_end(self) {
             self.current += 1;
         }
@@ -253,10 +245,10 @@ impl Parser {
     pub fn is_at_end(&self) -> bool {
         Self::peek(self).ttype == TokenType::Eof
     }
-    pub fn peek(&self) -> Token<LiteralType> {
+    pub fn peek(&self) -> Token {
         self.tokens[self.current].clone()
     }
-    pub fn previous(&self) -> Token<LiteralType> {
+    pub fn previous(&self) -> Token {
         self.tokens[self.current - 1].clone()
     }
 }

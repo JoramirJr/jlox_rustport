@@ -1,6 +1,6 @@
 pub mod expr {
 
-    use crate::token_type::{LiteralType, Token};
+    use crate::token_type::Token;
 
     trait ExpressionBehaviors {
         fn interpret(&self) -> ();
@@ -9,30 +9,30 @@ pub mod expr {
     }
 
     #[derive(Debug)]
-    pub enum ExpressionType<LiteralType> {
+    pub enum ExpressionType {
         BinaryExpr(Binary),
         GroupingExpr(Grouping),
-        LiteralExpr(Literal<LiteralType>),
+        LiteralExpr(Literal),
         UnaryExpr(Unary),
     }
-    #[derive(Debug)]
+    #[derive(Debug)]  
     pub struct Binary {
-        pub left: Box<ExpressionType<()>>,
-        pub operator: Token<String>,
-        pub right: Box<ExpressionType<()>>,
+        pub left: Box<ExpressionType>,
+        pub operator: Token,
+        pub right: Box<ExpressionType>,
     }
     #[derive(Debug)]
     pub struct Grouping {
-        pub expression: Box<ExpressionType<()>>,
+        pub expression: Box<ExpressionType>,
     }
     #[derive(Debug)]
-    pub struct Literal<LiteralType> {
-        pub value: Option<LiteralType>,
+    pub struct Literal {
+        pub value: crate::token_type::LiteralType,
     }
     #[derive(Debug)]
     pub struct Unary {
-        pub operator: Token<String>,
-        pub right: Box<ExpressionType<()>>,
+        pub operator: Token,
+        pub right: Box<ExpressionType>,
     }
 
     impl ExpressionBehaviors for Binary {
@@ -57,7 +57,7 @@ pub mod expr {
             ()
         }
     }
-    impl<T> ExpressionBehaviors for Literal<T> {
+    impl ExpressionBehaviors for Literal {
         fn interpret(&self) -> () {
             ()
         }
@@ -94,8 +94,8 @@ pub mod expr {
             self
         }
     }
-    impl<T> Literal<T> {
-        fn accept(self) -> Literal<T> {
+    impl Literal {
+        fn accept(self) -> Literal {
             self
         }
     }

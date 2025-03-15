@@ -23,7 +23,7 @@ pub struct Binary {
 pub struct Grouping {
     pub expression: Box<ExpressionType>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Literal {
     pub value: LiteralType,
 }

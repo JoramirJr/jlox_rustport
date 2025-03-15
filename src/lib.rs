@@ -1,4 +1,8 @@
 pub mod expr;
+pub mod token_type;
+pub mod ast_printer;
+pub mod parser;
+pub mod scanner;
 
 use expr::{Binary, Grouping, Literal, Unary};
 

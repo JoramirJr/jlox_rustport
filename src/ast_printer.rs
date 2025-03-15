@@ -48,19 +48,24 @@ impl AstPrinter {
         for expr in exprs {
             builder.push(' ');
             let expression_type = expr.as_ref();
-            if let ExpressionType::LiteralExpr(lit_expr) = expression_type {
-                match lit_expr.value.clone() {
-                    LiteralType::Bool(value) => {
-                        builder.push_str(value.to_string().as_str());
+            match expression_type {
+                ExpressionType::LiteralExpr(lit_expr) => {
+                    match lit_expr.value.clone() {
+                        LiteralType::Bool(value) => {
+                            builder.push_str(value.to_string().as_str());
+                        }
+                        LiteralType::String(value) => {
+                            builder.push_str(value.as_str());
+                        }
+                        LiteralType::F32(value) => {
+                            builder.push_str(value.to_string().as_str());
+                        }
+                        LiteralType::Nil => {}
                     }
-                    LiteralType::String(value) => {
-                        builder.push_str(value.as_str());
-                    }
-                    LiteralType::F32(value) => {
-                        builder.push_str(value.to_string().as_str());
-                    }
-                    LiteralType::Nil => {}
                 }
+                ExpressionType::BinaryExpr(bin_expr) => {}
+                ExpressionType::GroupingExpr(grp_expr) => {}
+                ExpressionType::UnaryExpr(un_expr) => {}
             }
         }
         builder.push(')');

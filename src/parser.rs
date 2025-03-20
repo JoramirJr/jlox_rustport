@@ -37,18 +37,16 @@ impl Parser {
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
             let right = Self::comparison(self);
-            if let LiteralType::String(string_literal) = operator.literal {
-                expr = ExpressionType::BinaryExpr(Binary {
-                    left: Box::new(expr),
-                    operator: Token {
-                        ttype: operator.ttype,
-                        lexeme: operator.lexeme,
-                        literal: LiteralType::String(string_literal),
-                        line: operator.line,
-                    },
-                    right: Box::new(right),
-                });
-            }
+            expr = ExpressionType::BinaryExpr(Binary {
+                left: Box::new(expr),
+                operator: Token {
+                    ttype: operator.ttype,
+                    lexeme: operator.lexeme,
+                    literal: operator.literal,
+                    line: operator.line,
+                },
+                right: Box::new(right),
+            });
         }
         expr
     }
@@ -67,18 +65,16 @@ impl Parser {
             let operator = Self::previous(&self);
             let right = Self::term(self);
 
-            if let LiteralType::String(string_literal) = operator.literal {
-                expr = ExpressionType::BinaryExpr(Binary {
-                    left: Box::new(expr),
-                    operator: Token {
-                        ttype: operator.ttype,
-                        lexeme: operator.lexeme,
-                        literal: LiteralType::String(string_literal),
-                        line: operator.line,
-                    },
-                    right: Box::new(right),
-                })
-            }
+            expr = ExpressionType::BinaryExpr(Binary {
+                left: Box::new(expr),
+                operator: Token {
+                    ttype: operator.ttype,
+                    lexeme: operator.lexeme,
+                    literal: operator.literal,
+                    line: operator.line,
+                },
+                right: Box::new(right),
+            })
         }
 
         return expr;
@@ -90,18 +86,16 @@ impl Parser {
             let operator = Self::previous(self);
             let right = Self::factor(self);
 
-            if let LiteralType::String(string_literal) = operator.literal {
-                expr = ExpressionType::BinaryExpr(Binary {
-                    left: Box::new(expr),
-                    operator: Token {
-                        ttype: operator.ttype,
-                        lexeme: operator.lexeme,
-                        literal: LiteralType::String(string_literal),
-                        line: operator.line,
-                    },
-                    right: Box::new(right),
-                });
-            }
+            expr = ExpressionType::BinaryExpr(Binary {
+                left: Box::new(expr),
+                operator: Token {
+                    ttype: operator.ttype,
+                    lexeme: operator.lexeme,
+                    literal: operator.literal,
+                    line: operator.line,
+                },
+                right: Box::new(right),
+            });
         }
 
         return expr;
@@ -113,18 +107,16 @@ impl Parser {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
 
-            if let LiteralType::String(string_literal) = operator.literal {
-                expr = ExpressionType::BinaryExpr(Binary {
-                    left: Box::new(expr),
-                    operator: Token {
-                        ttype: operator.ttype,
-                        lexeme: operator.lexeme,
-                        literal: LiteralType::String(string_literal),
-                        line: operator.line,
-                    },
-                    right: Box::new(right),
-                });
-            }
+            expr = ExpressionType::BinaryExpr(Binary {
+                left: Box::new(expr),
+                operator: Token {
+                    ttype: operator.ttype,
+                    lexeme: operator.lexeme,
+                    literal: operator.literal,
+                    line: operator.line,
+                },
+                right: Box::new(right),
+            });
         }
 
         return expr;
@@ -134,17 +126,15 @@ impl Parser {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
 
-            if let LiteralType::String(string_literal) = operator.literal {
-                return ExpressionType::UnaryExpr(Unary {
-                    operator: Token {
-                        ttype: operator.ttype,
-                        lexeme: operator.lexeme,
-                        literal: LiteralType::String(string_literal),
-                        line: operator.line,
-                    },
-                    right: Box::new(right),
-                });
-            }
+            return ExpressionType::UnaryExpr(Unary {
+                operator: Token {
+                    ttype: operator.ttype,
+                    lexeme: operator.lexeme,
+                    literal: operator. literal,
+                    line: operator.line,
+                },
+                right: Box::new(right),
+            });
         }
         return Self::primary(self);
     }
@@ -214,19 +204,14 @@ impl Parser {
         }
     }
     pub fn match_expr(&mut self, types: &[TokenType]) -> bool {
-        let check = types.iter().any(|t| {
+        types.iter().any(|t| {
             if Self::check(self, t) {
                 Self::advance(self);
                 return true;
             } else {
                 return false;
             }
-        });
-        if check {
-            check
-        } else {
-            false
-        }
+        })
     }
     pub fn check(&self, t_type: &TokenType) -> bool {
         if Self::is_at_end(self) {
@@ -236,7 +221,7 @@ impl Parser {
         }
     }
     pub fn advance(&mut self) -> Token {
-        if Self::is_at_end(self) {
+        if !Self::is_at_end(self) {
             self.current += 1;
         }
         Self::previous(self)

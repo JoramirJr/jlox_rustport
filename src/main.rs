@@ -61,10 +61,12 @@ impl Main {
             let scanned_tokens = scanner.scan_tokens();
             let mut parser = Parser::new(scanned_tokens);
             let expr = parser.parse();
-            println!(
-                "{:?}",
-                ast_printer::AstPrinter::print(&ExpressionType::BinaryExpr(expr))
-            )
+            if let ExpressionType::BinaryExpr(sub_type) = expr {
+                println!(
+                    "{:?}",
+                    ast_printer::AstPrinter::print(&ExpressionType::BinaryExpr(sub_type))
+                )
+            }
         }
     }
 

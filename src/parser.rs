@@ -8,31 +8,40 @@ pub struct Parser {
     pub current: usize,
 }
 
+struct ParseError(String);
+
 impl ScanningParsingCommon for Parser {
-    fn report(line: &u32, location: String, message: &str) {
-        panic!("[line {}] Error {}: {}", line, location, message)
+    fn report(line: &u32, location: String, message: &str) -> String {
+        format!("[line {}] Error {}: {}", line, location, message)
     }
-    fn error(_: &u32, _: &str) -> () {}
+    fn error(_: &u32, _: &str) -> String {
+        //guess this method doens't make sense to be 'common'; investigate it
+        String::new()
+    }
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
-    pub fn parse(&mut self) -> ExpressionType {
-        Self::expression(self)
-    }
-    pub fn error(token: Token, message: &str) {
-        if token.ttype == TokenType::Eof {
-            Self::report(&token.line, String::from_str(" at end").unwrap(), message);
-        } else {
-            Self::report(&token.line, format!(" at '{}'", token.lexeme), message);
+    pub fn parse(&mut self) -> Result<ExpressionType, ParseError> {
+        let response = Self::expression(self);
+        match response {
+            Result::Err(error_response) => Err(error_response),
+            Result::Ok(ok_response) => Ok(ok_response),
         }
     }
-    pub fn expression(&mut self) -> ExpressionType {
+    pub fn error(token: Token, message: &str) -> String {
+        if token.ttype == TokenType::Eof {
+            Self::report(&token.line, String::from_str(" at end").unwrap(), message)
+        } else {
+            Self::report(&token.line, format!(" at '{}'", token.lexeme), message)
+        }
+    }
+    pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
         Self::equality(self)
     }
-    pub fn equality(&mut self) -> ExpressionType {
+    pub fn equality(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::comparison(self);
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
@@ -50,7 +59,7 @@ impl Parser {
         }
         expr
     }
-    pub fn comparison(&mut self) -> ExpressionType {
+    pub fn comparison(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::term(self);
 
         while Self::match_expr(
@@ -79,7 +88,7 @@ impl Parser {
 
         return expr;
     }
-    pub fn term(&mut self) -> ExpressionType {
+    pub fn term(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::factor(self);
 
         while Self::match_expr(self, &[TokenType::Minus, TokenType::Plus]) {
@@ -100,7 +109,7 @@ impl Parser {
 
         return expr;
     }
-    pub fn factor(&mut self) -> ExpressionType {
+    pub fn factor(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::unary(self);
 
         while Self::match_expr(self, &[TokenType::Slash, TokenType::Star]) {
@@ -121,7 +130,7 @@ impl Parser {
 
         return expr;
     }
-    pub fn unary(&mut self) -> ExpressionType {
+    pub fn unary(&mut self) -> Result<ExpressionType, ParseError> {
         if Self::match_expr(self, &[TokenType::Bang, TokenType::Minus]) {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
@@ -130,7 +139,7 @@ impl Parser {
                 operator: Token {
                     ttype: operator.ttype,
                     lexeme: operator.lexeme,
-                    literal: operator. literal,
+                    literal: operator.literal,
                     line: operator.line,
                 },
                 right: Box::new(right),
@@ -138,49 +147,57 @@ impl Parser {
         }
         return Self::primary(self);
     }
-    pub fn primary(&mut self) -> ExpressionType {
+    pub fn primary(&mut self) -> Result<ExpressionType, ParseError> {
         if Self::match_expr(self, &[TokenType::False]) {
-            return ExpressionType::LiteralExpr(Literal {
+            return Ok(ExpressionType::LiteralExpr(Literal {
                 value: LiteralType::Bool(false),
-            });
+            }));
         }
         if Self::match_expr(self, &[TokenType::True]) {
-            return ExpressionType::LiteralExpr(Literal {
+            return Ok(ExpressionType::LiteralExpr(Literal {
                 value: LiteralType::Bool(true),
-            });
+            }));
         }
         if Self::match_expr(self, &[TokenType::Nil]) {
-            return ExpressionType::LiteralExpr(Literal {
+            return Ok(ExpressionType::LiteralExpr(Literal {
                 value: LiteralType::Nil,
-            });
+            }));
         }
 
         if Self::match_expr(self, &[TokenType::Number, TokenType::String]) {
-            return ExpressionType::LiteralExpr(Literal {
+            return Ok(ExpressionType::LiteralExpr(Literal {
                 value: Self::previous(&self).literal,
-            });
+            }));
         }
 
         if Self::match_expr(self, &[TokenType::LeftParen]) {
             let expr = Self::expression(self);
-            Self::consume(self, &TokenType::RightParen, "Expect ')' after expression");
-            return ExpressionType::GroupingExpr(Grouping {
-                expression: Box::new(ExpressionType::GroupingExpr(Grouping {
-                    expression: Box::new(expr),
-                })),
-            });
+
+            match expr {
+                Ok(ok_response) => {
+                    Self::consume(self, &TokenType::RightParen, "Expect ')' after expression");
+                    return Ok(ExpressionType::GroupingExpr(Grouping {
+                        expression: Box::new(ExpressionType::GroupingExpr(Grouping {
+                            expression: Box::new(ok_response),
+                        })),
+                    }));
+                }
+                Err(err_response) => {
+                    return Err(err_response);
+                }
+            }
         }
         Self::error(Self::peek(self), "Expect expression.");
         ExpressionType::LiteralExpr(Literal {
             value: LiteralType::Nil,
         })
     }
-    pub fn consume(&mut self, t_type: &TokenType, message: &str) -> Token {
+    pub fn consume(&mut self, t_type: &TokenType, message: &str) -> Result<Token, ParseError> {
         if !Self::check(self, t_type) {
             let next_token = Self::peek(self);
-            Self::error(next_token, message);
+            return Err(ParseError(Self::error(next_token, message)));
         }
-        Self::advance(self)
+        Ok(Self::advance(self))
     }
     pub fn synchronize(&mut self) -> () {
         Self::advance(self);

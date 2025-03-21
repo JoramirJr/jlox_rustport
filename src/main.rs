@@ -1,10 +1,9 @@
-use jlox_rustport::{ast_printer, expr, parser, scanner, token_type};
+use jlox_rustport::{ast_printer, expr, parser, scanner};
 use std::{env, fs, io, io::Write, process};
 
-use expr::{Binary, ExpressionType, Grouping, Literal, Unary};
+use expr::ExpressionType;
 use parser::Parser;
 use scanner::Scanner;
-use token_type::{LiteralType, Token, TokenType};
 struct Main {
     args: Vec<String>,
     had_error: bool,
@@ -47,27 +46,29 @@ impl Main {
         //  };
     }
     fn run_file(&self) {
+        let file = fs::read_to_string(&self.args[2]).expect("File reading successful");
+        let scanner: Scanner = Scanner {
+            source: file,
+            tokens: Vec::new(),
+            start: 0,
+            current: 0,
+            line: 1,
+        };
+        let scanned_tokens = scanner.scan_tokens();
+        let mut parser = Parser::new(scanned_tokens);
+        let expr = parser.parse();
+
         if self.had_error {
             process::exit(65);
-        } else {
-            let file = fs::read_to_string(&self.args[2]).expect("File reading successful");
-            let scanner: Scanner = Scanner {
-                source: file,
-                tokens: Vec::new(),
-                start: 0,
-                current: 0,
-                line: 1,
-            };
-            let scanned_tokens = scanner.scan_tokens();
-            let mut parser = Parser::new(scanned_tokens);
-            let expr = parser.parse();
-            if let ExpressionType::BinaryExpr(sub_type) = expr {
-                println!(
-                    "{:?}",
-                    ast_printer::AstPrinter::print(&ExpressionType::BinaryExpr(sub_type))
-                )
-            }
         }
+
+        if let ExpressionType::BinaryExpr(sub_type) = expr {
+            println!(
+                "{:?}",
+                ast_printer::AstPrinter::print(&ExpressionType::BinaryExpr(sub_type))
+            )
+        }
+        
     }
 
     fn run_prompt(mut self) -> io::Error {

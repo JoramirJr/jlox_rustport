@@ -116,16 +116,25 @@ impl Parser {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
 
-            expr = ExpressionType::BinaryExpr(Binary {
-                left: Box::new(expr),
-                operator: Token {
-                    ttype: operator.ttype,
-                    lexeme: operator.lexeme,
-                    literal: operator.literal,
-                    line: operator.line,
-                },
-                right: Box::new(right),
-            });
+            match expr {
+                Ok(ok_response) => {
+                    if let Ok(right_expr) = right {
+                        expr = Ok(ExpressionType::BinaryExpr(Binary {
+                            left: Box::new(ok_response.clone()),
+                            operator: Token {
+                                ttype: operator.ttype,
+                                lexeme: operator.lexeme,
+                                literal: operator.literal,
+                                line: operator.line,
+                            },
+                            right: Box::new(right_expr),
+                        }));
+                    }
+                }
+                Err(err_response) => {
+                    return Err(*err_response);
+                }
+            }
         }
 
         return expr;
@@ -135,15 +144,22 @@ impl Parser {
             let operator = Self::previous(&self);
             let right = Self::unary(self);
 
-            return ExpressionType::UnaryExpr(Unary {
-                operator: Token {
-                    ttype: operator.ttype,
-                    lexeme: operator.lexeme,
-                    literal: operator.literal,
-                    line: operator.line,
-                },
-                right: Box::new(right),
-            });
+            match right {
+                Ok(ok_response) => {
+                    return Ok(ExpressionType::UnaryExpr(Unary {
+                        operator: Token {
+                            ttype: operator.ttype,
+                            lexeme: operator.lexeme,
+                            literal: operator.literal,
+                            line: operator.line,
+                        },
+                        right: Box::new(ok_response),
+                    }));
+                }
+                Err(err_response) => {
+                    return Err(err_response);
+                }
+            }
         }
         return Self::primary(self);
     }
@@ -188,9 +204,10 @@ impl Parser {
             }
         }
         Self::error(Self::peek(self), "Expect expression.");
-        ExpressionType::LiteralExpr(Literal {
+
+        return Ok(ExpressionType::LiteralExpr(Literal {
             value: LiteralType::Nil,
-        })
+        }));
     }
     pub fn consume(&mut self, t_type: &TokenType, message: &str) -> Result<Token, ParseError> {
         if !Self::check(self, t_type) {

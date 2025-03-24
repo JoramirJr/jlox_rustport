@@ -2,8 +2,6 @@ use std::io;
 use std::io::Write;
 use std::str::FromStr;
 
-use crate::ScanningParsingCommon;
-
 use crate::token_type::LiteralType;
 use crate::token_type::Token;
 use crate::token_type::TokenType;
@@ -16,18 +14,15 @@ pub struct Scanner {
     pub line: u32,
 }
 
-impl ScanningParsingCommon for Scanner {
-    fn error(line: &u32, message: &str) {
-        Self::report(line, String::new(), message);
-    }
-    fn report(line: &u32, location: String, message: &str) {
+impl Scanner {
+    pub fn report(line: &u32, location: String, message: &str) {
         let err_msg = format!("[line {}] Error {}: {}", line, location, message);
         let mut err_out_handler = io::stderr();
         let _ = err_out_handler.write_all(err_msg.as_bytes());
     }
-}
-
-impl Scanner {
+    pub fn error(line: &u32, message: &str) {
+        Self::report(line, String::new(), message);
+    }
     pub fn scan_tokens(mut self) -> Vec<Token> {
         while !Self::is_at_end(&self) {
             self.start = self.current;
@@ -214,7 +209,9 @@ impl Scanner {
             }
         }
 
-        let float_number: f32 = f32::from_str(self.source.get(self.start..self.current).unwrap()).ok().unwrap();
+        let float_number: f32 = f32::from_str(self.source.get(self.start..self.current).unwrap())
+            .ok()
+            .unwrap();
 
         Self::add_token(self, TokenType::Number, LiteralType::F32(float_number));
     }

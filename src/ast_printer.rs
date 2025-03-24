@@ -1,4 +1,4 @@
-use crate::expr::{self, Binary, ExpressionType, Grouping, Literal, Unary};
+use crate::expr::ExpressionType;
 use crate::token_type::LiteralType;
 pub struct AstPrinter();
 

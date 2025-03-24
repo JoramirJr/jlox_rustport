@@ -1,24 +1,14 @@
-use std::str::FromStr;
-
 use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
+use crate::lox::Lox;
 use crate::token_type::*;
-use crate::ScanningParsingCommon;
+
 pub struct Parser {
     pub tokens: Vec<Token>,
     pub current: usize,
 }
 
-struct ParseError(String);
-
-impl ScanningParsingCommon for Parser {
-    fn report(line: &u32, location: String, message: &str) -> String {
-        format!("[line {}] Error {}: {}", line, location, message)
-    }
-    fn error(_: &u32, _: &str) -> String {
-        //guess this method doens't make sense to be 'common'; investigate it
-        String::new()
-    }
-}
+#[derive(Debug)]
+pub struct ParseError(String);
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
@@ -30,23 +20,17 @@ impl Parser {
             Result::Err(error_response) => Err(error_response),
             Result::Ok(ok_response) => Ok(ok_response),
         }
-    }
-    pub fn error(token: Token, message: &str) -> String {
-        if token.ttype == TokenType::Eof {
-            Self::report(&token.line, String::from_str(" at end").unwrap(), message)
-        } else {
-            Self::report(&token.line, format!(" at '{}'", token.lexeme), message)
-        }
+        
     }
     pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
         Self::equality(self)
     }
     pub fn equality(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::comparison(self);
-        
+
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
-          
+
             match expr {
                 Ok(ok_response) => {
                     let right = Self::unary(self);
@@ -261,7 +245,7 @@ impl Parser {
     pub fn consume(&mut self, t_type: &TokenType, message: &str) -> Result<Token, ParseError> {
         if !Self::check(self, t_type) {
             let next_token = Self::peek(self);
-            return Err(ParseError(Self::error(next_token, message)));
+            return Err(Self::error(next_token, message));
         }
         Ok(Self::advance(self))
     }
@@ -317,5 +301,9 @@ impl Parser {
     }
     pub fn previous(&self) -> Token {
         self.tokens[self.current - 1].clone()
+    }
+    pub fn error(token: Token, message: &str) -> ParseError {
+        Lox::error(token, message);
+        ParseError("".to_string())
     }
 }

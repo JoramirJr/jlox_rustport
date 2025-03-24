@@ -9,11 +9,6 @@ pub enum Visitor {
     VisitUnary(Unary),
 }
 
-pub trait ScanningParsingCommon {
-    fn error(line: &u32, message: &str) -> ();
-    fn report(line: &u32, location: String, message: &str);
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     //single-character tokens

@@ -2,7 +2,8 @@ use crate::token_type::{Token, TokenType};
 use crate::{ast_printer, expr, parser, scanner};
 use std::{
     fs,
-    io::{self, Write},
+    io,
+    io::Write,
     process,
     str::FromStr,
 };
@@ -96,7 +97,8 @@ impl Lox {
             Self::report(&token.line, format!(" at '{}'", token.lexeme), message)
         }
     }
-    pub fn report(line: &u32, location: String, message: &str) -> String {
-        format!("[line {}] Error {}: {}", line, location, message)
+    pub fn report(line: &u32, location: String, message: &str) -> () {
+        format!("[line {}] Error {}: {}", line, location, message);
+        self.had_error = true;
     }
 }

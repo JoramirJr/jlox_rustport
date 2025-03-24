@@ -43,19 +43,35 @@ impl Parser {
     }
     pub fn equality(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::comparison(self);
+        
         while Self::match_expr(self, &[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = Self::previous(self);
-            let right = Self::comparison(self);
-            expr = ExpressionType::BinaryExpr(Binary {
-                left: Box::new(expr),
-                operator: Token {
-                    ttype: operator.ttype,
-                    lexeme: operator.lexeme,
-                    literal: operator.literal,
-                    line: operator.line,
-                },
-                right: Box::new(right),
-            });
+          
+            match expr {
+                Ok(ok_response) => {
+                    let right = Self::unary(self);
+                    match right {
+                        Ok(right_expr) => {
+                            expr = Ok(ExpressionType::BinaryExpr(Binary {
+                                left: Box::new(ok_response),
+                                operator: Token {
+                                    ttype: operator.ttype,
+                                    lexeme: operator.lexeme,
+                                    literal: operator.literal,
+                                    line: operator.line,
+                                },
+                                right: Box::new(right_expr),
+                            }));
+                        }
+                        Err(err_response) => {
+                            return Err(err_response);
+                        }
+                    }
+                }
+                Err(err_response) => {
+                    return Err(err_response);
+                }
+            }
         }
         expr
     }
@@ -71,19 +87,33 @@ impl Parser {
                 TokenType::LessEqual,
             ],
         ) {
-            let operator = Self::previous(&self);
-            let right = Self::term(self);
+            let operator = Self::previous(self);
 
-            expr = ExpressionType::BinaryExpr(Binary {
-                left: Box::new(expr),
-                operator: Token {
-                    ttype: operator.ttype,
-                    lexeme: operator.lexeme,
-                    literal: operator.literal,
-                    line: operator.line,
-                },
-                right: Box::new(right),
-            })
+            match expr {
+                Ok(ok_response) => {
+                    let right = Self::unary(self);
+                    match right {
+                        Ok(right_expr) => {
+                            expr = Ok(ExpressionType::BinaryExpr(Binary {
+                                left: Box::new(ok_response),
+                                operator: Token {
+                                    ttype: operator.ttype,
+                                    lexeme: operator.lexeme,
+                                    literal: operator.literal,
+                                    line: operator.line,
+                                },
+                                right: Box::new(right_expr),
+                            }));
+                        }
+                        Err(err_response) => {
+                            return Err(err_response);
+                        }
+                    }
+                }
+                Err(err_response) => {
+                    return Err(err_response);
+                }
+            }
         }
 
         return expr;
@@ -93,18 +123,32 @@ impl Parser {
 
         while Self::match_expr(self, &[TokenType::Minus, TokenType::Plus]) {
             let operator = Self::previous(self);
-            let right = Self::factor(self);
 
-            expr = ExpressionType::BinaryExpr(Binary {
-                left: Box::new(expr),
-                operator: Token {
-                    ttype: operator.ttype,
-                    lexeme: operator.lexeme,
-                    literal: operator.literal,
-                    line: operator.line,
-                },
-                right: Box::new(right),
-            });
+            match expr {
+                Ok(ok_response) => {
+                    let right = Self::unary(self);
+                    match right {
+                        Ok(right_expr) => {
+                            expr = Ok(ExpressionType::BinaryExpr(Binary {
+                                left: Box::new(ok_response),
+                                operator: Token {
+                                    ttype: operator.ttype,
+                                    lexeme: operator.lexeme,
+                                    literal: operator.literal,
+                                    line: operator.line,
+                                },
+                                right: Box::new(right_expr),
+                            }));
+                        }
+                        Err(err_response) => {
+                            return Err(err_response);
+                        }
+                    }
+                }
+                Err(err_response) => {
+                    return Err(err_response);
+                }
+            }
         }
 
         return expr;
@@ -114,25 +158,30 @@ impl Parser {
 
         while Self::match_expr(self, &[TokenType::Slash, TokenType::Star]) {
             let operator = Self::previous(&self);
-            let right = Self::unary(self);
 
             match expr {
                 Ok(ok_response) => {
-                    if let Ok(right_expr) = right {
-                        expr = Ok(ExpressionType::BinaryExpr(Binary {
-                            left: Box::new(ok_response.clone()),
-                            operator: Token {
-                                ttype: operator.ttype,
-                                lexeme: operator.lexeme,
-                                literal: operator.literal,
-                                line: operator.line,
-                            },
-                            right: Box::new(right_expr),
-                        }));
+                    let right = Self::unary(self);
+                    match right {
+                        Ok(right_expr) => {
+                            expr = Ok(ExpressionType::BinaryExpr(Binary {
+                                left: Box::new(ok_response),
+                                operator: Token {
+                                    ttype: operator.ttype,
+                                    lexeme: operator.lexeme,
+                                    literal: operator.literal,
+                                    line: operator.line,
+                                },
+                                right: Box::new(right_expr),
+                            }));
+                        }
+                        Err(err_response) => {
+                            return Err(err_response);
+                        }
                     }
                 }
                 Err(err_response) => {
-                    return Err(*err_response);
+                    return Err(err_response);
                 }
             }
         }

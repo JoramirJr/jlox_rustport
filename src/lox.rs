@@ -1,30 +1,34 @@
 use crate::token_type::{Token, TokenType};
 use crate::{ast_printer, expr, parser, scanner};
-use std::{
-    fs,
-    io,
-    io::Write,
-    process,
-    str::FromStr,
-};
+use std::{fs, io, io::Write, process, str::FromStr};
 
 use expr::ExpressionType;
 use parser::Parser;
 use scanner::Scanner;
+use std::env;
+use std::sync::{LazyLock, Mutex};
 
 pub struct Lox {
     pub args: Vec<String>,
     pub had_error: bool,
 }
 
+pub static LOX_SINGLETON: LazyLock<Mutex<Lox>> = LazyLock::new(|| {
+    Mutex::new(Lox {
+        args: env::args().collect(),
+        had_error: false,
+    })
+});
+
 impl Lox {
-    pub fn start(mut self) {
-        let args_length = self.args.len();
+    pub fn start() {
+        let mut lox_singleton = LOX_SINGLETON.lock().unwrap();
+        let args_length = lox_singleton.args.len();
         if args_length < 1 || args_length > 2 {
             println!("Usage: jlox [script]");
             process::exit(64);
         } else if args_length == 2 {
-            Self::run_file(&mut self);
+            Self::run_file(&mut lox_singleton);
         }
         //  else if args_length == 2 {
         //     Self::run_prompt(self);
@@ -43,6 +47,8 @@ impl Lox {
         let mut parser = Parser::new(scanned_tokens);
         let expr = parser.parse();
 
+        println!("I'm here!!!");
+
         if self.had_error {
             process::exit(65);
         }
@@ -51,18 +57,18 @@ impl Lox {
 
         match expr {
             Ok(expr) => {
-                // if let ExpressionType::BinaryExpr(sub_type) = expr {
-                //     println!(
-                //         "{:?}",
-                //         ast_printer::AstPrinter::print(&ExpressionType::BinaryExpr(sub_type))
-                //     )
-                // }
-                if let ExpressionType::GroupingExpr(sub_type) = expr {
+                if let ExpressionType::BinaryExpr(sub_type) = expr {
                     println!(
-                        "Print: {:?}",
-                        ast_printer::AstPrinter::print(&ExpressionType::GroupingExpr(sub_type))
+                        "Parsed Binary: {:?}",
+                        ast_printer::AstPrinter::print(&ExpressionType::BinaryExpr(sub_type))
                     )
                 }
+                // if let ExpressionType::GroupingExpr(sub_type) = expr {
+                //     println!(
+                //         "Print: {:?}",
+                //         ast_printer::AstPrinter::print(&ExpressionType::GroupingExpr(sub_type))
+                //     )
+                // }
             }
             Err(_) => {}
         }
@@ -90,15 +96,28 @@ impl Lox {
             let _ = std_out_handler.write_all(token.as_bytes());
         });
     }
-    pub fn error(token: Token, message: &str) -> String {
+    pub fn error(&self, token: Token, message: &str) -> () {
         if token.ttype == TokenType::Eof {
-            Self::report(&token.line, String::from_str(" at end").unwrap(), message)
+            Self::report(
+                self,
+                &token.line,
+                String::from_str(" at end").unwrap(),
+                message,
+            )
         } else {
-            Self::report(&token.line, format!(" at '{}'", token.lexeme), message)
+            Self::report(
+                self,
+                &token.line,
+                format!(" at '{}'", token.lexeme),
+                message,
+            )
         }
     }
-    pub fn report(line: &u32, location: String, message: &str) -> () {
-        format!("[line {}] Error {}: {}", line, location, message);
-        self.had_error = true;
+    pub fn report(&self, line: &u32, location: String, message: &str) -> () {
+        let mut lox_singleton = LOX_SINGLETON.lock().unwrap();
+        let report_message = format!("[line {}] Error {}: {}", line, location, message);
+        // println!("Error?: a: {}, b: {}, c: {}", line, location, message);
+        eprintln!("{}", report_message);
+        lox_singleton.had_error = true;
     }
 }

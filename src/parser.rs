@@ -1,5 +1,5 @@
 use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
-use crate::lox::Lox;
+use crate::lox::{Lox, LOX_SINGLETON};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -20,7 +20,6 @@ impl Parser {
             Result::Err(error_response) => Err(error_response),
             Result::Ok(ok_response) => Ok(ok_response),
         }
-        
     }
     pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
         Self::equality(self)
@@ -104,7 +103,6 @@ impl Parser {
     }
     pub fn term(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::factor(self);
-
         while Self::match_expr(self, &[TokenType::Minus, TokenType::Plus]) {
             let operator = Self::previous(self);
 
@@ -224,7 +222,8 @@ impl Parser {
 
             match expr {
                 Ok(ok_response) => {
-                    Self::consume(self, &TokenType::RightParen, "Expect ')' after expression");
+                    let _ =
+                        Self::consume(self, &TokenType::RightParen, "Expect ')' after expression");
                     return Ok(ExpressionType::GroupingExpr(Grouping {
                         expression: Box::new(ExpressionType::GroupingExpr(Grouping {
                             expression: Box::new(ok_response),
@@ -303,7 +302,8 @@ impl Parser {
         self.tokens[self.current - 1].clone()
     }
     pub fn error(token: Token, message: &str) -> ParseError {
-        Lox::error(token, message);
+        let lox_singleton = LOX_SINGLETON.lock().unwrap();
+        lox_singleton.error(token, message);
         ParseError("".to_string())
     }
 }

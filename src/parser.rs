@@ -192,7 +192,9 @@ impl Parser {
                 }
             }
         }
-        return Self::primary(self);
+        let primary_return = Self::primary(self);
+        println!("primary return: {:?}", primary_return.as_ref());
+        return primary_return;
     }
     pub fn primary(&mut self) -> Result<ExpressionType, ParseError> {
         if Self::match_expr(self, &[TokenType::False]) {
@@ -222,8 +224,9 @@ impl Parser {
 
             match expr {
                 Ok(ok_response) => {
-                    let _ =
+                    let consume_response =
                         Self::consume(self, &TokenType::RightParen, "Expect ')' after expression");
+                    println!("consume response: {:?}", consume_response);
                     return Ok(ExpressionType::GroupingExpr(Grouping {
                         expression: Box::new(ExpressionType::GroupingExpr(Grouping {
                             expression: Box::new(ok_response),
@@ -302,8 +305,15 @@ impl Parser {
         self.tokens[self.current - 1].clone()
     }
     pub fn error(token: Token, message: &str) -> ParseError {
-        let lox_singleton = LOX_SINGLETON.lock().unwrap();
-        lox_singleton.error(token, message);
-        ParseError("".to_string())
+        let lox_singleton = LOX_SINGLETON.lock();
+        match lox_singleton {
+            Ok(singleton) => {
+                singleton.error(token, message, singleton);
+                ParseError("".to_string())
+            }
+            Err(err) => {
+                panic!("Singleton lock unwrap failed; error: {:?}", err);
+            }
+        }
     }
 }

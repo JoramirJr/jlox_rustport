@@ -6,7 +6,7 @@ use expr::ExpressionType;
 use parser::Parser;
 use scanner::Scanner;
 use std::env;
-use std::sync::{LazyLock, Mutex};
+use std::sync::{LazyLock, Mutex, MutexGuard};
 
 pub struct Lox {
     pub args: Vec<String>,
@@ -22,20 +22,28 @@ pub static LOX_SINGLETON: LazyLock<Mutex<Lox>> = LazyLock::new(|| {
 
 impl Lox {
     pub fn start() {
-        let mut lox_singleton = LOX_SINGLETON.lock().unwrap();
-        let args_length = lox_singleton.args.len();
-        if args_length < 1 || args_length > 2 {
-            println!("Usage: jlox [script]");
-            process::exit(64);
-        } else if args_length == 2 {
-            Self::run_file(&mut lox_singleton);
+        let lox_singleton = LOX_SINGLETON.lock();
+
+        match lox_singleton {
+            Ok(singleton) => {
+                let args_length = singleton.args.len();
+                if args_length < 1 || args_length > 2 {
+                    println!("Usage: jlox [script]");
+                    process::exit(64);
+                } else if args_length == 2 {
+                    Self::run_file(singleton);
+                }
+                //  else if args_length == 2 {
+                //     Self::run_prompt(self);
+                // }
+            }
+            Err(err) => {
+                panic!("Singleton lock unwrap failed; error: {:?}", err);
+            }
         }
-        //  else if args_length == 2 {
-        //     Self::run_prompt(self);
-        // }
     }
-    pub fn run_file(&self) {
-        let file = fs::read_to_string(&self.args[1]).expect("File reading successful");
+    pub fn run_file(singleton: MutexGuard<'_, Lox>) {
+        let file = fs::read_to_string(&singleton.args[1]).expect("File reading successful");
         let scanner: Scanner = Scanner {
             source: file,
             tokens: Vec::new(),
@@ -43,17 +51,10 @@ impl Lox {
             current: 0,
             line: 1,
         };
+        std::mem::drop(singleton);
         let scanned_tokens = scanner.scan_tokens();
         let mut parser = Parser::new(scanned_tokens);
         let expr = parser.parse();
-
-        println!("I'm here!!!");
-
-        if self.had_error {
-            process::exit(65);
-        }
-
-        println!("expr: {:?}", expr);
 
         match expr {
             Ok(expr) => {
@@ -70,7 +71,9 @@ impl Lox {
                 //     )
                 // }
             }
-            Err(_) => {}
+            Err(_) => {
+                process::exit(65);
+            }
         }
     }
 
@@ -96,13 +99,15 @@ impl Lox {
             let _ = std_out_handler.write_all(token.as_bytes());
         });
     }
-    pub fn error(&self, token: Token, message: &str) -> () {
+    pub fn error(&self, token: Token, message: &str, singleton: MutexGuard<'_, Lox>) -> () {
+
         if token.ttype == TokenType::Eof {
             Self::report(
                 self,
                 &token.line,
                 String::from_str(" at end").unwrap(),
                 message,
+                singleton
             )
         } else {
             Self::report(
@@ -110,14 +115,15 @@ impl Lox {
                 &token.line,
                 format!(" at '{}'", token.lexeme),
                 message,
+                singleton
             )
         }
     }
-    pub fn report(&self, line: &u32, location: String, message: &str) -> () {
-        let mut lox_singleton = LOX_SINGLETON.lock().unwrap();
+    pub fn report(&self, line: &u32, location: String, message: &str, mut singleton: MutexGuard<'_, Lox>) -> () {
         let report_message = format!("[line {}] Error {}: {}", line, location, message);
-        // println!("Error?: a: {}, b: {}, c: {}", line, location, message);
         eprintln!("{}", report_message);
-        lox_singleton.had_error = true;
+        singleton.had_error = true;
+        std::mem::drop(singleton);
+
     }
 }

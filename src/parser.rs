@@ -14,11 +14,11 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
-    pub fn parse(&mut self) -> Result<ExpressionType, ParseError> {
+    pub fn parse(&mut self) -> Option<ExpressionType> {
         let response = Self::expression(self);
         match response {
-            Result::Err(error_response) => Err(error_response),
-            Result::Ok(ok_response) => Ok(ok_response),
+            Result::Err(_) => None,
+            Result::Ok(ok_response) => Some(ok_response),
         }
     }
     pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
@@ -192,9 +192,7 @@ impl Parser {
                 }
             }
         }
-        let primary_return = Self::primary(self);
-        println!("primary return: {:?}", primary_return.as_ref());
-        return primary_return;
+        return Self::primary(self);
     }
     pub fn primary(&mut self) -> Result<ExpressionType, ParseError> {
         if Self::match_expr(self, &[TokenType::False]) {
@@ -224,9 +222,7 @@ impl Parser {
 
             match expr {
                 Ok(ok_response) => {
-                    let consume_response =
-                        Self::consume(self, &TokenType::RightParen, "Expect ')' after expression");
-                    println!("consume response: {:?}", consume_response);
+                    Self::consume(self, &TokenType::RightParen, "Expect ')' after expression")?;
                     return Ok(ExpressionType::GroupingExpr(Grouping {
                         expression: Box::new(ExpressionType::GroupingExpr(Grouping {
                             expression: Box::new(ok_response),
@@ -307,8 +303,9 @@ impl Parser {
     pub fn error(token: Token, message: &str) -> ParseError {
         let lox_singleton = LOX_SINGLETON.lock();
         match lox_singleton {
-            Ok(singleton) => {
-                singleton.error(token, message, singleton);
+            Ok(mut singleton) => {
+                let owned_singleton = std::mem::take(&mut *singleton);
+                singleton.error(token, message, owned_singleton);
                 ParseError("".to_string())
             }
             Err(err) => {

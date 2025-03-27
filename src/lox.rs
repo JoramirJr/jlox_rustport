@@ -7,7 +7,7 @@ use parser::Parser;
 use scanner::Scanner;
 use std::env;
 use std::sync::{LazyLock, Mutex, MutexGuard};
-
+#[derive(Default)]
 pub struct Lox {
     pub args: Vec<String>,
     pub had_error: bool,
@@ -57,7 +57,7 @@ impl Lox {
         let expr = parser.parse();
 
         match expr {
-            Ok(expr) => {
+            Some(expr) => {
                 if let ExpressionType::BinaryExpr(sub_type) = expr {
                     println!(
                         "Parsed Binary: {:?}",
@@ -71,8 +71,8 @@ impl Lox {
                 //     )
                 // }
             }
-            Err(_) => {
-                process::exit(65);
+            None => {
+                return;
             }
         }
     }
@@ -99,15 +99,14 @@ impl Lox {
             let _ = std_out_handler.write_all(token.as_bytes());
         });
     }
-    pub fn error(&self, token: Token, message: &str, singleton: MutexGuard<'_, Lox>) -> () {
-
+    pub fn error(&self, token: Token, message: &str, singleton: Lox) -> () {
         if token.ttype == TokenType::Eof {
             Self::report(
                 self,
                 &token.line,
                 String::from_str(" at end").unwrap(),
                 message,
-                singleton
+                singleton,
             )
         } else {
             Self::report(
@@ -115,15 +114,14 @@ impl Lox {
                 &token.line,
                 format!(" at '{}'", token.lexeme),
                 message,
-                singleton
+                singleton,
             )
         }
     }
-    pub fn report(&self, line: &u32, location: String, message: &str, mut singleton: MutexGuard<'_, Lox>) -> () {
+    pub fn report(&self, line: &u32, location: String, message: &str, mut singleton: Lox) -> () {
         let report_message = format!("[line {}] Error {}: {}", line, location, message);
         eprintln!("{}", report_message);
         singleton.had_error = true;
         std::mem::drop(singleton);
-
     }
 }

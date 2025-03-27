@@ -1,14 +1,5 @@
 use std::fmt;
 
-use crate::expr::{Binary, Grouping, Literal, Unary};
-
-pub enum Visitor {
-    VisitBinary(Binary),
-    VisitGrouping(Grouping),
-    VisitLiteral(Literal),
-    VisitUnary(Unary),
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     //single-character tokens

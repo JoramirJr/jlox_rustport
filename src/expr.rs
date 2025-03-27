@@ -1,4 +1,5 @@
-use crate::token_type::{Token, LiteralType};
+use crate::token_type::{LiteralType, Token};
+use std::ops::Neg;
 
 trait ExpressionBehaviors {
     fn interpret(&self) -> ();
@@ -75,6 +76,13 @@ impl ExpressionBehaviors for Unary {
     }
     fn analyze(&self) -> () {
         ()
+    }
+}
+impl Neg for Unary {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        -self
     }
 }
 impl Binary {

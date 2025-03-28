@@ -1,4 +1,9 @@
-use crate::{expr::{ExpressionType, Unary}, token_type::{LiteralType, TokenType}};
+use std::ops::Neg;
+
+use crate::{
+    expr::{ExpressionType, Unary},
+    token_type::{LiteralType, TokenType},
+};
 
 pub struct Interpreter();
 
@@ -17,17 +22,28 @@ impl Interpreter {
             panic!("visitGroupingExpr must accept only grouping as param");
         }
     }
-    fn visitUnaryExpr(expr: ExpressionType) -> ExpressionType {
+    fn visitUnaryExpr(expr: ExpressionType) -> LiteralType {
         if let ExpressionType::UnaryExpr(unary) = expr {
             let right = *unary.right;
 
             match unary.operator.ttype {
                 TokenType::Minus => {
-                    return -right;
+                    if let ExpressionType::LiteralExpr(literal) = right {
+                        if let LiteralType::F32(f32_value) = literal.value {
+                            return LiteralType::F32(f32_value.neg());
+                        }
+                    }
                 }
+                TokenType::Bang => { 
+                    return !Self::is_truthy(&right);
+                 }
             }
+            return LiteralType::Nil;
         } else {
             panic!("visitUnaryExpr must accept only unary as param");
         }
+    }
+    fn is_truthy(item: &LiteralType) -> bool {
+        true
     }
 }

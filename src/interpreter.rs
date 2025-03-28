@@ -1,7 +1,7 @@
 use std::ops::Neg;
 
 use crate::{
-    expr::{ExpressionType, Unary},
+    expr::ExpressionType,
     token_type::{LiteralType, TokenType},
 };
 
@@ -22,7 +22,7 @@ impl Interpreter {
             panic!("visitGroupingExpr must accept only grouping as param");
         }
     }
-    fn visitUnaryExpr(expr: ExpressionType) -> LiteralType {
+    fn visitUnaryExpr(expr: ExpressionType) -> Option<LiteralType> {
         if let ExpressionType::UnaryExpr(unary) = expr {
             let right = *unary.right;
 
@@ -30,20 +30,38 @@ impl Interpreter {
                 TokenType::Minus => {
                     if let ExpressionType::LiteralExpr(literal) = right {
                         if let LiteralType::F32(f32_value) = literal.value {
-                            return LiteralType::F32(f32_value.neg());
+                            return Some(LiteralType::F32(f32_value.neg()));
                         }
                     }
                 }
-                TokenType::Bang => { 
-                    return !Self::is_truthy(&right);
-                 }
+                TokenType::Bang => {
+                    return Some(LiteralType::Bool(!Self::is_truthy(&right)));
+                }
+                _ => {}
             }
-            return LiteralType::Nil;
+            return Some(LiteralType::Nil);
         } else {
-            panic!("visitUnaryExpr must accept only unary as param");
+            return None;
         }
     }
-    fn is_truthy(item: &LiteralType) -> bool {
-        true
+    fn is_truthy(item: &ExpressionType) -> bool {
+        match item {
+            ExpressionType::LiteralExpr(literal) => {
+                match literal.value {
+                LiteralType::Bool(bool_literal) => {
+                    return bool_literal;
+                }
+                LiteralType::Nil => {
+                    return false;
+                }
+                _ => {
+                    return true;
+                }
+            }
+            },
+            _ => {
+                return true;
+            }
+        }
     }
 }

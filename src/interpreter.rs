@@ -26,7 +26,7 @@ impl Interpreter {
         if let ExpressionType::UnaryExpr(unary) = expr {
             let right = *unary.right;
 
-            match unary.operator.ttype {
+            match unary.operator.ttype { 
                 TokenType::Minus => {
                     if let ExpressionType::LiteralExpr(literal) = right {
                         if let LiteralType::F32(f32_value) = literal.value {

@@ -2,10 +2,15 @@ use std::ops::Neg;
 
 use crate::{
     expr::ExpressionType,
-    token_type::{LiteralType, TokenType},
+    token_type::{LiteralType, Token, TokenType},
 };
 
 pub struct Interpreter();
+
+struct RuntimeError<'a> {
+    token: &'a Token,
+    message: &'a str
+}
 
 impl Interpreter {
     fn visit_literal_expr(expr: ExpressionType) -> LiteralType {
@@ -22,7 +27,7 @@ impl Interpreter {
             panic!("visit_grouping_expr must accept only grouping as param");
         }
     }
-    fn visit_unary_expr(expr: ExpressionType) -> Option<LiteralType> {
+    fn visit_unary_expr(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
         if let ExpressionType::UnaryExpr(unary) = expr {
             let right = *unary.right;
 
@@ -30,16 +35,18 @@ impl Interpreter {
                 TokenType::Minus => {
                     if let ExpressionType::LiteralExpr(literal) = right {
                         if let LiteralType::F32(f32_value) = literal.value {
-                            return Some(LiteralType::F32(f32_value.neg()));
+                            return Ok(LiteralType::F32(f32_value.neg()));
+                        } else {
+                            return Err(RuntimeError { message: "Operand must be a number", token: &unary.operator }) 
                         }
                     }
                 }
                 TokenType::Bang => {
-                    return Some(LiteralType::Bool(!Self::is_truthy(&right)));
+                    return Ok(LiteralType::Bool(!Self::is_truthy(&right)));
                 }
                 _ => {}
             }
-            return Some(LiteralType::Nil);
+            return Ok(LiteralType::Nil);
         } else {
             panic!("visit_unary_expr must accept only unary as param");
         }

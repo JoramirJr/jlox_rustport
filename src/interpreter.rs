@@ -8,11 +8,24 @@ use crate::{
 pub struct Interpreter();
 
 struct RuntimeError<'a> {
-    token: &'a Token,
-    message: &'a str
+    token: Token,
+    message: &'a str,
 }
 
 impl Interpreter {
+    fn interpret(expr: ExpressionType) -> () {
+        match expr {
+            ExpressionType::BinaryExpr(expr) => {
+                let value = Self::visit_binary_expr(expr);
+                match value {
+                    Ok(value) => {
+                        println!("{}", Self::stringify(value));
+                    }
+                }
+            }
+        }
+    }
+    fn stringify(value: LiteralType) -> String {}
     fn visit_literal_expr(expr: ExpressionType) -> LiteralType {
         if let ExpressionType::LiteralExpr(literal) = expr {
             return literal.value;
@@ -27,17 +40,20 @@ impl Interpreter {
             panic!("visit_grouping_expr must accept only grouping as param");
         }
     }
-    fn visit_unary_expr(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
+    fn visit_unary_expr(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
         if let ExpressionType::UnaryExpr(unary) = expr {
             let right = *unary.right;
 
-            match unary.operator.ttype { 
+            match unary.operator.ttype {
                 TokenType::Minus => {
                     if let ExpressionType::LiteralExpr(literal) = right {
                         if let LiteralType::F32(f32_value) = literal.value {
                             return Ok(LiteralType::F32(f32_value.neg()));
                         } else {
-                            return Err(RuntimeError { message: "Operand must be a number", token: &unary.operator }) 
+                            return Err(RuntimeError {
+                                message: "Operand must be a number",
+                                token: unary.operator,
+                            });
                         }
                     }
                 }
@@ -51,7 +67,7 @@ impl Interpreter {
             panic!("visit_unary_expr must accept only unary as param");
         }
     }
-    fn visit_binary_expr(expr: ExpressionType) -> Option<LiteralType> {
+    fn visit_binary_expr(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
         if let ExpressionType::BinaryExpr(binary) = expr {
             let left = *binary.left;
             let right = *binary.right;
@@ -78,101 +94,134 @@ impl Interpreter {
             if let TokenType::Minus = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::F32(f32_left - f32_right));
+                        return Ok(LiteralType::F32(f32_left - f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::Plus = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::F32(f32_left + f32_right));
+                        return Ok(LiteralType::F32(f32_left + f32_right));
                     }
                     (LiteralType::String(string_left), LiteralType::String(string_right)) => {
-                        return Some(LiteralType::String(format!(
+                        return Ok(LiteralType::String(format!(
                             "{}{}",
                             string_left, string_right
                         )));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be two numbers or two strings",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::Slash = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::F32(f32_left / f32_right));
+                        return Ok(LiteralType::F32(f32_left / f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::Star = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::F32(f32_left * f32_right));
+                        return Ok(LiteralType::F32(f32_left * f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::Greater = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::Bool(f32_left > f32_right));
+                        return Ok(LiteralType::Bool(f32_left > f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::GreaterEqual = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::Bool(f32_left >= f32_right));
+                        return Ok(LiteralType::Bool(f32_left >= f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::Less = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::Bool(f32_left < f32_right));
+                        return Ok(LiteralType::Bool(f32_left < f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::LessEqual = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::Bool(f32_left <= f32_right));
+                        return Ok(LiteralType::Bool(f32_left <= f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::BangEqual = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::Bool(f32_left != f32_right));
+                        return Ok(LiteralType::Bool(f32_left != f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else if let TokenType::EqualEqual = binary.operator.ttype {
                 match (left_literal_value, right_literal_value) {
                     (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Some(LiteralType::Bool(f32_left == f32_right));
+                        return Ok(LiteralType::Bool(f32_left == f32_right));
                     }
                     _ => {
-                        return None;
+                        return Err(RuntimeError {
+                            message: "Operands must be a number",
+                            token: binary.operator,
+                        })
                     }
                 }
             } else {
-                return None;
+                return Err(RuntimeError {
+                    message: "Invalid operator",
+                    token: binary.operator,
+                });
             }
         } else {
             panic!("visit_binary_expr must accept only binary as param");

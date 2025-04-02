@@ -1,10 +1,10 @@
-use crate::interpreter::RuntimeError;
 use crate::token_type::{Token, TokenType};
-use crate::{parser, scanner};
+use crate::{parser, scanner, interpreter};
 use std::{fs, io, io::Write, process, str::FromStr};
 
 use parser::Parser;
 use scanner::Scanner;
+use interpreter::Interpreter;
 use std::env;
 use std::sync::{LazyLock, Mutex, MutexGuard};
 #[derive(Default)]
@@ -60,7 +60,7 @@ impl Lox {
 
         match expr {
             Some(expr) => {
-                
+                Interpreter::interpret(expr);
             }
             None => {
                 return;
@@ -109,7 +109,7 @@ impl Lox {
             )
         }
     }
-    fn runtime_error(error: RuntimeError) -> () {
+    fn runtime_error(error: interpreter::RuntimeError) -> () {
         let message = format!("{}\n[line: {:?}]", error.message, error.token.line);
         eprintln!("{}", message);
     }

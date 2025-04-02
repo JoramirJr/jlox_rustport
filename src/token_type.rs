@@ -1,4 +1,4 @@
-use std::{fmt, ops::Neg};
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {

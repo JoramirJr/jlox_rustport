@@ -22,7 +22,7 @@ impl AstPrinter {
             }
         }
     }
-    fn parenthesize(name: &String, exprs: Vec<&Box<ExpressionType>>) -> String {
+    pub fn parenthesize(name: &String, exprs: Vec<&Box<ExpressionType>>) -> String {
         let mut builder = String::new();
 
         builder.push('(');

@@ -1,11 +1,10 @@
 use crate::token_type::{LiteralType, Token};
-use std::ops::Neg;
 
-trait ExpressionBehaviors {
-    fn interpret(&self) -> ();
-    fn resolve(&self) -> ();
-    fn analyze(&self) -> ();
-}
+// trait ExpressionBehaviors {
+//     fn interpret(&self) -> ();
+//     fn resolve(&self) -> ();
+//     fn analyze(&self) -> ();
+// }
 
 #[derive(Debug)]
 pub enum ExpressionType {
@@ -34,74 +33,68 @@ pub struct Unary {
     pub right: Box<ExpressionType>,
 }
 
-impl ExpressionBehaviors for Binary {
-    fn interpret(&self) -> () {
-        ()
-    }
-    fn resolve(&self) -> () {
-        ()
-    }
-    fn analyze(&self) -> () {
-        ()
-    }
-}
-impl ExpressionBehaviors for Grouping {
-    fn interpret(&self) -> () {
-        ()
-    }
-    fn resolve(&self) -> () {
-        ()
-    }
-    fn analyze(&self) -> () {
-        ()
-    }
-}
-impl ExpressionBehaviors for Literal {
-    fn interpret(&self) -> () {
-        ()
-    }
-    fn resolve(&self) -> () {
-        ()
-    }
-    fn analyze(&self) -> () {
-        ()
-    }
-}
-impl ExpressionBehaviors for Unary {
-    fn interpret(&self) -> () {
-        ()
-    }
-    fn resolve(&self) -> () {
-        ()
-    }
-    fn analyze(&self) -> () {
-        ()
-    }
-}
-impl Neg for Unary {
-    type Output = Self;
+// impl ExpressionBehaviors for Binary {
+//     fn interpret(&self) -> () {
+//         ()
+//     }
+//     fn resolve(&self) -> () {
+//         ()
+//     }
+//     fn analyze(&self) -> () {
+//         ()
+//     }
+// }
+// impl ExpressionBehaviors for Grouping {
+//     fn interpret(&self) -> () {
+//         ()
+//     }
+//     fn resolve(&self) -> () {
+//         ()
+//     }
+//     fn analyze(&self) -> () {
+//         ()
+//     }
+// }
+// impl ExpressionBehaviors for Literal {
+//     fn interpret(&self) -> () {
+//         ()
+//     }
+//     fn resolve(&self) -> () {
+//         ()
+//     }
+//     fn analyze(&self) -> () {
+//         ()
+//     }
+// }
+// impl ExpressionBehaviors for Unary {
+//     fn interpret(&self) -> () {
+//         ()
+//     }
+//     fn resolve(&self) -> () {
+//         ()
+//     }
+//     fn analyze(&self) -> () {
+//         ()
+//     }
+// }
 
-    fn neg(self) -> Self::Output {
-        -self
-    }
-}
-impl Binary {
-    fn accept(self) -> Binary {
-        self
-    }
-}
-impl Unary {
-    fn accept(self) -> Unary {
-        self
-    }
-}
-impl Grouping {
-    fn accept(self) -> Grouping {
-        self
-    }
-}
-impl Literal {
-    fn accept(self) -> Literal {
-        self
-    }
-}
+// impl Binary {
+//     fn accept(self) -> Binary {
+//         self
+//     }
+// }
+// impl Unary {
+//     fn accept(self) -> Unary {
+//         self
+//     }
+// }
+// impl Grouping {
+//     fn accept(self) -> Grouping {
+//         self
+//     }
+// }
+// impl Literal {
+//     fn accept(self) -> Literal {
+//         self
+//     }
+// }

@@ -1,68 +1,80 @@
-use std::{
-    ops::Neg,
-    sync::{LazyLock, Mutex},
-};
+use std::ops::Neg;
 
 use crate::{
+    ast_printer::AstPrinter,
     expr::{Binary, ExpressionType, Grouping, Literal, Unary},
     token_type::{LiteralType, Token, TokenType},
 };
 
 pub struct Interpreter();
 
-pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> =
-    LazyLock::new(|| Mutex::new(Interpreter {}));
+// pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> =
+//     LazyLock::new(|| Mutex::new(Interpreter {}));
 
 pub struct RuntimeError<'a> {
-    pub token: Token,
-    pub message: &'a str,
+     pub token: Token,
+     pub message: &'a str,
+}
+
+enum StringifyParamType {
+    Literal(LiteralType),
+    Expression(ExpressionType),
 }
 
 impl Interpreter {
-    fn interpret(expr: ExpressionType) -> () {
+    pub fn interpret(expr: ExpressionType) -> () {
         match expr {
             ExpressionType::BinaryExpr(binary) => {
                 let value = Self::visit_binary_expr(binary);
                 match value {
                     Ok(value) => {
-                        println!("{}", Self::stringify(value));
+                        println!("{}", Self::stringify(StringifyParamType::Literal(value)));
                     }
-                    Err(error) => {}
+                    Err(_) => {}
                 }
             }
             ExpressionType::GroupingExpr(grouping) => {
-                // let value = Self::visit_grouping_expr(ExpressionType::GroupingExpr(grouping));
-                // println!("{}", Self::stringify(value));
-                todo!();
+                let value = Self::visit_grouping_expr(grouping);
+                println!("{}", Self::stringify(StringifyParamType::Expression(value)));
             }
             ExpressionType::LiteralExpr(literal) => {
                 let value = Self::visit_literal_expr(literal);
-                println!("{}", Self::stringify(value));
+                println!("{}", Self::stringify(StringifyParamType::Literal(value)));
             }
             ExpressionType::UnaryExpr(unary) => {
                 let value = Self::visit_unary_expr(unary);
                 match value {
                     Ok(value) => {
-                        println!("{}", Self::stringify(value));
+                        println!("{}", Self::stringify(StringifyParamType::Literal(value)));
                     }
-                    Err(error) => {}
+                    Err(_) => {}
                 }
             }
         }
     }
-    fn stringify(value: LiteralType) -> String {
+    fn stringify(value: StringifyParamType) -> String {
         match value {
-            LiteralType::F32(f32_value) => {
-                let mut text = f32_value.to_string();
-                if text.ends_with(".0") {
-                    let decimal_offset = text.find(".0").unwrap_or(text.len());
-                    text = text.drain(..decimal_offset).collect();
+            StringifyParamType::Literal(literal) => match literal {
+                LiteralType::F32(f32_value) => {
+                    let mut text = f32_value.to_string();
+                    if text.ends_with(".0") {
+                        let decimal_offset = text.find(".0").unwrap_or(text.len());
+                        text = text.drain(..decimal_offset).collect();
+                    }
+                    text
+                }
+                LiteralType::Nil => "nil".to_string(),
+                LiteralType::Bool(bool_value) => bool_value.to_string(),
+                LiteralType::String(string_value) => string_value,
+            },
+            StringifyParamType::Expression(expression) => {
+                let mut text = String::new();
+                if let ExpressionType::GroupingExpr(grouping) = expression {
+                    text =
+                        AstPrinter::parenthesize(&"".to_string(), [&grouping.expression].to_vec());
                 }
                 text
             }
-            LiteralType::Nil => "nil".to_string(),
-            LiteralType::Bool(bool_value) => bool_value.to_string(),
-            LiteralType::String(string_value) => string_value,
         }
     }
     fn visit_literal_expr(literal: Literal) -> LiteralType {
@@ -100,6 +112,9 @@ impl Interpreter {
         let mut left_literal_value = LiteralType::Nil;
         let mut right_literal_value = LiteralType::Nil;
 
+        println!("left literal: {:?}, right literal: {:?}", left, right);
+
+
         if let ExpressionType::LiteralExpr(left_literal) = left {
             if let ExpressionType::LiteralExpr(right_literal) = right {
                 if let LiteralType::F32(f32_left_value) = left_literal.value {
@@ -116,6 +131,7 @@ impl Interpreter {
                 }
             }
         }
+
 
         if let TokenType::Minus = binary.operator.ttype {
             match (left_literal_value, right_literal_value) {

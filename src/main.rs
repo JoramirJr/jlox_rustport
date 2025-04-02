@@ -4,6 +4,7 @@ mod lox;
 mod parser;
 mod scanner;
 mod token_type;
+mod interpreter;
 
 use lox::Lox;
 

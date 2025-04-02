@@ -1,5 +1,5 @@
 use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
-use crate::lox::{Lox, LOX_SINGLETON};
+use crate::lox::LOX_SINGLETON;
 use crate::token_type::*;
 
 pub struct Parser {

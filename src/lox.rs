@@ -1,8 +1,8 @@
+use crate::interpreter::RuntimeError;
 use crate::token_type::{Token, TokenType};
-use crate::{ast_printer, expr, parser, scanner};
+use crate::{parser, scanner};
 use std::{fs, io, io::Write, process, str::FromStr};
 
-use expr::ExpressionType;
 use parser::Parser;
 use scanner::Scanner;
 use std::env;
@@ -11,12 +11,14 @@ use std::sync::{LazyLock, Mutex, MutexGuard};
 pub struct Lox {
     pub args: Vec<String>,
     pub had_error: bool,
+    pub had_runtime_error: bool,
 }
 
 pub static LOX_SINGLETON: LazyLock<Mutex<Lox>> = LazyLock::new(|| {
     Mutex::new(Lox {
         args: env::args().collect(),
         had_error: false,
+        had_runtime_error: false,
     })
 });
 
@@ -58,18 +60,7 @@ impl Lox {
 
         match expr {
             Some(expr) => {
-                if let ExpressionType::BinaryExpr(sub_type) = expr {
-                    println!(
-                        "Parsed Binary: {:?}",
-                        ast_printer::AstPrinter::print(&ExpressionType::BinaryExpr(sub_type))
-                    )
-                }
-                // if let ExpressionType::GroupingExpr(sub_type) = expr {
-                //     println!(
-                //         "Print: {:?}",
-                //         ast_printer::AstPrinter::print(&ExpressionType::GroupingExpr(sub_type))
-                //     )
-                // }
+                
             }
             None => {
                 return;
@@ -117,6 +108,10 @@ impl Lox {
                 singleton,
             )
         }
+    }
+    fn runtime_error(error: RuntimeError) -> () {
+        let message = format!("{}\n[line: {:?}]", error.message, error.token.line);
+        eprintln!("{}", message);
     }
     pub fn report(&self, line: &u32, location: String, message: &str, mut singleton: Lox) -> () {
         let report_message = format!("[line {}] Error {}: {}", line, location, message);

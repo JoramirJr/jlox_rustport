@@ -1,22 +1,46 @@
-use std::ops::Neg;
+use std::{
+    ops::Neg,
+    sync::{LazyLock, Mutex},
+};
 
 use crate::{
-    expr::ExpressionType,
+    expr::{Binary, ExpressionType, Grouping, Literal, Unary},
     token_type::{LiteralType, Token, TokenType},
 };
 
 pub struct Interpreter();
 
-struct RuntimeError<'a> {
-    token: Token,
-    message: &'a str,
+pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> =
+    LazyLock::new(|| Mutex::new(Interpreter {}));
+
+pub struct RuntimeError<'a> {
+    pub token: Token,
+    pub message: &'a str,
 }
 
 impl Interpreter {
     fn interpret(expr: ExpressionType) -> () {
         match expr {
-            ExpressionType::BinaryExpr(expr) => {
-                let value = Self::visit_binary_expr(expr);
+            ExpressionType::BinaryExpr(binary) => {
+                let value = Self::visit_binary_expr(binary);
+                match value {
+                    Ok(value) => {
+                        println!("{}", Self::stringify(value));
+                    }
+                    Err(error) => {}
+                }
+            }
+            ExpressionType::GroupingExpr(grouping) => {
+                // let value = Self::visit_grouping_expr(ExpressionType::GroupingExpr(grouping));
+                // println!("{}", Self::stringify(value));
+                todo!();
+            }
+            ExpressionType::LiteralExpr(literal) => {
+                let value = Self::visit_literal_expr(literal);
+                println!("{}", Self::stringify(value));
+            }
+            ExpressionType::UnaryExpr(unary) => {
+                let value = Self::visit_unary_expr(unary);
                 match value {
                     Ok(value) => {
                         println!("{}", Self::stringify(value));
@@ -41,205 +65,189 @@ impl Interpreter {
             LiteralType::String(string_value) => string_value,
         }
     }
-    fn visit_literal_expr(expr: ExpressionType) -> LiteralType {
-        if let ExpressionType::LiteralExpr(literal) = expr {
-            return literal.value;
-        } else {
-            panic!("visit_literal_expr must accept only literal as param");
-        }
+    fn visit_literal_expr(literal: Literal) -> LiteralType {
+        literal.value
     }
-    fn visit_grouping_expr(expr: ExpressionType) -> ExpressionType {
-        if let ExpressionType::GroupingExpr(grouping) = expr {
-            return *grouping.expression;
-        } else {
-            panic!("visit_grouping_expr must accept only grouping as param");
-        }
+    fn visit_grouping_expr(grouping: Grouping) -> ExpressionType {
+        *grouping.expression
     }
-    fn visit_unary_expr(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
-        if let ExpressionType::UnaryExpr(unary) = expr {
-            let right = *unary.right;
+    fn visit_unary_expr(unary: Unary) -> Result<LiteralType, RuntimeError<'static>> {
+        let right = *unary.right;
 
-            match unary.operator.ttype {
-                TokenType::Minus => {
-                    if let ExpressionType::LiteralExpr(literal) = right {
-                        if let LiteralType::F32(f32_value) = literal.value {
-                            return Ok(LiteralType::F32(f32_value.neg()));
-                        } else {
-                            return Err(RuntimeError {
-                                message: "Operand must be a number",
-                                token: unary.operator,
-                            });
-                        }
-                    }
-                }
-                TokenType::Bang => {
-                    return Ok(LiteralType::Bool(!Self::is_truthy(&right)));
-                }
-                _ => {}
-            }
-            return Ok(LiteralType::Nil);
-        } else {
-            panic!("visit_unary_expr must accept only unary as param");
-        }
-    }
-    fn visit_binary_expr(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
-        if let ExpressionType::BinaryExpr(binary) = expr {
-            let left = *binary.left;
-            let right = *binary.right;
-            let mut left_literal_value = LiteralType::Nil;
-            let mut right_literal_value = LiteralType::Nil;
-
-            if let ExpressionType::LiteralExpr(left_literal) = left {
-                if let ExpressionType::LiteralExpr(right_literal) = right {
-                    if let LiteralType::F32(f32_left_value) = left_literal.value {
-                        if let LiteralType::F32(f32_right_value) = right_literal.value {
-                            left_literal_value = LiteralType::F32(f32_left_value);
-                            right_literal_value = LiteralType::F32(f32_right_value);
-                        }
-                    }
-                    if let LiteralType::String(string_left_value) = left_literal.value {
-                        if let LiteralType::String(string_right_value) = right_literal.value {
-                            left_literal_value = LiteralType::String(string_left_value);
-                            right_literal_value = LiteralType::String(string_right_value);
-                        }
+        match unary.operator.ttype {
+            TokenType::Minus => {
+                if let ExpressionType::LiteralExpr(literal) = right {
+                    if let LiteralType::F32(f32_value) = literal.value {
+                        return Ok(LiteralType::F32(f32_value.neg()));
+                    } else {
+                        return Err(RuntimeError {
+                            message: "Operand must be a number",
+                            token: unary.operator,
+                        });
                     }
                 }
             }
+            TokenType::Bang => {
+                return Ok(LiteralType::Bool(!Self::is_truthy(&right)));
+            }
+            _ => {}
+        }
+        Ok(LiteralType::Nil)
+    }
+    fn visit_binary_expr(binary: Binary) -> Result<LiteralType, RuntimeError<'static>> {
+        let left = *binary.left;
+        let right = *binary.right;
+        let mut left_literal_value = LiteralType::Nil;
+        let mut right_literal_value = LiteralType::Nil;
 
-            if let TokenType::Minus = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::F32(f32_left - f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
+        if let ExpressionType::LiteralExpr(left_literal) = left {
+            if let ExpressionType::LiteralExpr(right_literal) = right {
+                if let LiteralType::F32(f32_left_value) = left_literal.value {
+                    if let LiteralType::F32(f32_right_value) = right_literal.value {
+                        left_literal_value = LiteralType::F32(f32_left_value);
+                        right_literal_value = LiteralType::F32(f32_right_value);
                     }
                 }
-            } else if let TokenType::Plus = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::F32(f32_left + f32_right));
-                    }
-                    (LiteralType::String(string_left), LiteralType::String(string_right)) => {
-                        return Ok(LiteralType::String(format!(
-                            "{}{}",
-                            string_left, string_right
-                        )));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be two numbers or two strings",
-                            token: binary.operator,
-                        })
+                if let LiteralType::String(string_left_value) = left_literal.value {
+                    if let LiteralType::String(string_right_value) = right_literal.value {
+                        left_literal_value = LiteralType::String(string_left_value);
+                        right_literal_value = LiteralType::String(string_right_value);
                     }
                 }
-            } else if let TokenType::Slash = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::F32(f32_left / f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+            }
+        }
+
+        if let TokenType::Minus = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::F32(f32_left - f32_right));
                 }
-            } else if let TokenType::Star = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::F32(f32_left * f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
                 }
-            } else if let TokenType::Greater = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::Bool(f32_left > f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+            }
+        } else if let TokenType::Plus = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::F32(f32_left + f32_right));
                 }
-            } else if let TokenType::GreaterEqual = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::Bool(f32_left >= f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+                (LiteralType::String(string_left), LiteralType::String(string_right)) => {
+                    return Ok(LiteralType::String(format!(
+                        "{}{}",
+                        string_left, string_right
+                    )));
                 }
-            } else if let TokenType::Less = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::Bool(f32_left < f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be two numbers or two strings",
+                        token: binary.operator,
+                    })
                 }
-            } else if let TokenType::LessEqual = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::Bool(f32_left <= f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+            }
+        } else if let TokenType::Slash = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::F32(f32_left / f32_right));
                 }
-            } else if let TokenType::BangEqual = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::Bool(f32_left != f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
                 }
-            } else if let TokenType::EqualEqual = binary.operator.ttype {
-                match (left_literal_value, right_literal_value) {
-                    (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                        return Ok(LiteralType::Bool(f32_left == f32_right));
-                    }
-                    _ => {
-                        return Err(RuntimeError {
-                            message: "Operands must be a number",
-                            token: binary.operator,
-                        })
-                    }
+            }
+        } else if let TokenType::Star = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::F32(f32_left * f32_right));
                 }
-            } else {
-                return Err(RuntimeError {
-                    message: "Invalid operator",
-                    token: binary.operator,
-                });
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
+                }
+            }
+        } else if let TokenType::Greater = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::Bool(f32_left > f32_right));
+                }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
+                }
+            }
+        } else if let TokenType::GreaterEqual = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::Bool(f32_left >= f32_right));
+                }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
+                }
+            }
+        } else if let TokenType::Less = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::Bool(f32_left < f32_right));
+                }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
+                }
+            }
+        } else if let TokenType::LessEqual = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::Bool(f32_left <= f32_right));
+                }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
+                }
+            }
+        } else if let TokenType::BangEqual = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::Bool(f32_left != f32_right));
+                }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
+                }
+            }
+        } else if let TokenType::EqualEqual = binary.operator.ttype {
+            match (left_literal_value, right_literal_value) {
+                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    return Ok(LiteralType::Bool(f32_left == f32_right));
+                }
+                _ => {
+                    return Err(RuntimeError {
+                        message: "Operands must be a number",
+                        token: binary.operator,
+                    })
+                }
             }
         } else {
-            panic!("visit_binary_expr must accept only binary as param");
+            return Err(RuntimeError {
+                message: "Invalid operator",
+                token: binary.operator,
+            });
         }
     }
     fn is_truthy(item: &ExpressionType) -> bool {

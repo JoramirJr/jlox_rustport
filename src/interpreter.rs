@@ -21,11 +21,26 @@ impl Interpreter {
                     Ok(value) => {
                         println!("{}", Self::stringify(value));
                     }
+                    Err(error) => {}
                 }
             }
         }
     }
-    fn stringify(value: LiteralType) -> String {}
+    fn stringify(value: LiteralType) -> String {
+        match value {
+            LiteralType::F32(f32_value) => {
+                let mut text = f32_value.to_string();
+                if text.ends_with(".0") {
+                    let decimal_offset = text.find(".0").unwrap_or(text.len());
+                    text = text.drain(..decimal_offset).collect();
+                }
+                text
+            }
+            LiteralType::Nil => "nil".to_string(),
+            LiteralType::Bool(bool_value) => bool_value.to_string(),
+            LiteralType::String(string_value) => string_value,
+        }
+    }
     fn visit_literal_expr(expr: ExpressionType) -> LiteralType {
         if let ExpressionType::LiteralExpr(literal) = expr {
             return literal.value;

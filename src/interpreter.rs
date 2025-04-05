@@ -1,7 +1,6 @@
 use std::ops::Neg;
 
 use crate::{
-    ast_printer::AstPrinter,
     expr::{Binary, ExpressionType, Grouping, Literal, Unary},
     token_type::{LiteralType, Token, TokenType},
 };
@@ -11,130 +10,112 @@ pub struct Interpreter();
 // pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> =
 //     LazyLock::new(|| Mutex::new(Interpreter {}));
 
+#[derive(Debug)]
 pub struct RuntimeError<'a> {
-     pub token: Token,
-     pub message: &'a str,
-}
-
-enum StringifyParamType {
-    Literal(LiteralType),
-    Expression(ExpressionType),
+    pub token: Token,
+    pub message: &'a str,
 }
 
 impl Interpreter {
     pub fn interpret(expr: ExpressionType) -> () {
-        match expr {
-            ExpressionType::BinaryExpr(binary) => {
-                let value = Self::visit_binary_expr(binary);
-                match value {
-                    Ok(value) => {
-                        println!("{}", Self::stringify(StringifyParamType::Literal(value)));
-                    }
-                    Err(_) => {}
-                }
+        let value = Self::evaluate(expr);
+
+        match value {
+            Ok(value) => {
+                println!("{}", Self::stringify(value));
             }
-            ExpressionType::GroupingExpr(grouping) => {
-                let value = Self::visit_grouping_expr(grouping);
-                println!("{}", Self::stringify(StringifyParamType::Expression(value)));
-            }
-            ExpressionType::LiteralExpr(literal) => {
-                let value = Self::visit_literal_expr(literal);
-                println!("{}", Self::stringify(StringifyParamType::Literal(value)));
-            }
-            ExpressionType::UnaryExpr(unary) => {
-                let value = Self::visit_unary_expr(unary);
-                match value {
-                    Ok(value) => {
-                        println!("{}", Self::stringify(StringifyParamType::Literal(value)));
-                    }
-                    Err(_) => {}
-                }
+            Err(error) => {
+                RuntimeError {
+                    message: error.message,
+                    token: error.token,
+                };
             }
         }
     }
-    fn stringify(value: StringifyParamType) -> String {
+    pub fn evaluate(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
+        match expr {
+            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary),
+            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping),
+            ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
+            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
+        }
+    }
+    pub fn stringify(value: LiteralType) -> String {
         match value {
-            StringifyParamType::Literal(literal) => match literal {
-                LiteralType::F32(f32_value) => {
-                    let mut text = f32_value.to_string();
-                    if text.ends_with(".0") {
-                        let decimal_offset = text.find(".0").unwrap_or(text.len());
-                        text = text.drain(..decimal_offset).collect();
-                    }
-                    text
-                }
-                LiteralType::Nil => "nil".to_string(),
-                LiteralType::Bool(bool_value) => bool_value.to_string(),
-                LiteralType::String(string_value) => string_value,
-            },
-            StringifyParamType::Expression(expression) => {
-                let mut text = String::new();
-                if let ExpressionType::GroupingExpr(grouping) = expression {
-                    text =
-                        AstPrinter::parenthesize(&"".to_string(), [&grouping.expression].to_vec());
+            LiteralType::F32(f32_value) => {
+                let mut text = f32_value.to_string();
+                if text.ends_with(".0") {
+                    let decimal_offset = text.find(".0").unwrap_or(text.len());
+                    text = text.drain(..decimal_offset).collect();
                 }
                 text
             }
+            LiteralType::Nil => "nil".to_string(),
+            LiteralType::Bool(bool_value) => bool_value.to_string(),
+            LiteralType::String(string_value) => string_value,
         }
     }
-    fn visit_literal_expr(literal: Literal) -> LiteralType {
-        literal.value
+    pub fn visit_literal_expr(literal: Literal) -> Result<LiteralType, RuntimeError<'static>> {
+        Ok(literal.value)
     }
-    fn visit_grouping_expr(grouping: Grouping) -> ExpressionType {
-        *grouping.expression
+    pub fn visit_grouping_expr(grouping: Grouping) -> Result<LiteralType, RuntimeError<'static>> {
+        Self::evaluate(*grouping.expression)
     }
-    fn visit_unary_expr(unary: Unary) -> Result<LiteralType, RuntimeError<'static>> {
-        let right = *unary.right;
+    pub fn visit_unary_expr(unary: Unary) -> Result<LiteralType, RuntimeError<'static>> {
+        let right_r_value = Self::evaluate(*unary.right);
+
+        if let Err(right_operand_error) = right_r_value {
+            return Err(RuntimeError {
+                message: right_operand_error.message,
+                token: right_operand_error.token,
+            });
+        }
+
+        let right_value = right_r_value.unwrap();
 
         match unary.operator.ttype {
             TokenType::Minus => {
-                if let ExpressionType::LiteralExpr(literal) = right {
-                    if let LiteralType::F32(f32_value) = literal.value {
-                        return Ok(LiteralType::F32(f32_value.neg()));
-                    } else {
-                        return Err(RuntimeError {
-                            message: "Operand must be a number",
-                            token: unary.operator,
-                        });
-                    }
+                if let LiteralType::F32(f32_value) = right_value {
+                    return Ok(LiteralType::F32(f32_value.neg()));
+                } else {
+                    return Err(RuntimeError {
+                        message: "Operand must be a number",
+                        token: unary.operator,
+                    });
                 }
             }
             TokenType::Bang => {
-                return Ok(LiteralType::Bool(!Self::is_truthy(&right)));
+                return Ok(LiteralType::Bool(!Self::is_truthy(right_value)));
             }
             _ => {}
         }
         Ok(LiteralType::Nil)
     }
-    fn visit_binary_expr(binary: Binary) -> Result<LiteralType, RuntimeError<'static>> {
+    pub fn visit_binary_expr(binary: Binary) -> Result<LiteralType, RuntimeError<'static>> {
         let left = *binary.left;
         let right = *binary.right;
-        let mut left_literal_value = LiteralType::Nil;
-        let mut right_literal_value = LiteralType::Nil;
+        let left_r_value = Self::evaluate(left);
+        let right_r_value = Self::evaluate(right);
 
-        println!("left literal: {:?}, right literal: {:?}", left, right);
-
-
-        if let ExpressionType::LiteralExpr(left_literal) = left {
-            if let ExpressionType::LiteralExpr(right_literal) = right {
-                if let LiteralType::F32(f32_left_value) = left_literal.value {
-                    if let LiteralType::F32(f32_right_value) = right_literal.value {
-                        left_literal_value = LiteralType::F32(f32_left_value);
-                        right_literal_value = LiteralType::F32(f32_right_value);
-                    }
-                }
-                if let LiteralType::String(string_left_value) = left_literal.value {
-                    if let LiteralType::String(string_right_value) = right_literal.value {
-                        left_literal_value = LiteralType::String(string_left_value);
-                        right_literal_value = LiteralType::String(string_right_value);
-                    }
-                }
-            }
+        if let Err(left_operand_error) = left_r_value {
+            return Err(RuntimeError {
+                message: left_operand_error.message,
+                token: left_operand_error.token,
+            });
         }
 
+        if let Err(right_operand_error) = right_r_value {
+            return Err(RuntimeError {
+                message: right_operand_error.message,
+                token: right_operand_error.token,
+            });
+        }
+
+        let left_value = left_r_value.unwrap();
+        let right_value = right_r_value.unwrap();
 
         if let TokenType::Minus = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::F32(f32_left - f32_right));
                 }
@@ -146,7 +127,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Plus = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::F32(f32_left + f32_right));
                 }
@@ -164,7 +145,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Slash = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::F32(f32_left / f32_right));
                 }
@@ -176,7 +157,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Star = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::F32(f32_left * f32_right));
                 }
@@ -188,7 +169,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Greater = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::Bool(f32_left > f32_right));
                 }
@@ -200,7 +181,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::GreaterEqual = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::Bool(f32_left >= f32_right));
                 }
@@ -212,7 +193,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Less = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::Bool(f32_left < f32_right));
                 }
@@ -224,7 +205,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::LessEqual = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::Bool(f32_left <= f32_right));
                 }
@@ -236,7 +217,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::BangEqual = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::Bool(f32_left != f32_right));
                 }
@@ -248,7 +229,7 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::EqualEqual = binary.operator.ttype {
-            match (left_literal_value, right_literal_value) {
+            match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
                     return Ok(LiteralType::Bool(f32_left == f32_right));
                 }
@@ -266,19 +247,14 @@ impl Interpreter {
             });
         }
     }
-    fn is_truthy(item: &ExpressionType) -> bool {
+    pub fn is_truthy(item: LiteralType) -> bool {
         match item {
-            ExpressionType::LiteralExpr(literal) => match literal.value {
-                LiteralType::Bool(bool_literal) => {
-                    return bool_literal;
-                }
-                LiteralType::Nil => {
-                    return false;
-                }
-                _ => {
-                    return true;
-                }
-            },
+            LiteralType::Bool(bool) => {
+                return bool;
+            }
+            LiteralType::Nil => {
+                return false;
+            }
             _ => {
                 return true;
             }

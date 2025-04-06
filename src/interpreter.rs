@@ -26,20 +26,7 @@ impl Interpreter {
                 println!("{}", Self::stringify(value));
             }
             Err(error) => {
-                let lox_singleton = LOX_SINGLETON.lock();
-
-                match lox_singleton {
-                    Ok(mut singleton) => {
-                        let owned_singleton = std::mem::take(&mut *singleton);
-                        Lox::runtime_error(RuntimeError {
-                            message: error.message,
-                            token: error.token,
-                        }, owned_singleton);
-                    }
-                    Err(err) => {
-                        panic!("Singleton lock unwrap failed; error: {:?}", err);
-                    }
-                }
+                Lox::runtime_error(error);
             }
         }
     }

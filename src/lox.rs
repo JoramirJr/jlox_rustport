@@ -89,11 +89,19 @@ impl Lox {
             let _ = std_out_handler.write_all(token.as_bytes());
         });
     }
-    pub fn runtime_error(error: interpreter::RuntimeError, mut singleton: Lox) -> () {
-        let message = format!("{}\n[line: {:?}]", error.message, error.token.line);
-        eprintln!("{}", message);
-        singleton.had_runtime_error = true;
-        std::mem::drop(singleton);
+    pub fn runtime_error(error: interpreter::RuntimeError) -> () {
+        let lox_singleton = LOX_SINGLETON.lock();
+        match lox_singleton {
+            Ok(mut singleton) => {
+                let message = format!("{}\n[line: {:?}]", error.message, error.token.line);
+                eprintln!("{}", message);
+                singleton.had_runtime_error = true;
+                std::mem::drop(singleton);
+            }
+            Err(err) => {
+                panic!("Singleton lock unwrap failed; error: {:?}", err);
+            }
+        }
     }
     pub fn error(token: Token, message: &str) -> () {
         if token.ttype == TokenType::Eof {

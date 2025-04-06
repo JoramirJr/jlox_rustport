@@ -1,5 +1,5 @@
 use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
-use crate::lox::LOX_SINGLETON;
+use crate::lox::{Lox, LOX_SINGLETON};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -301,16 +301,7 @@ impl Parser {
         self.tokens[self.current - 1].clone()
     }
     pub fn error(token: Token, message: &str) -> ParseError {
-        let lox_singleton = LOX_SINGLETON.lock();
-        match lox_singleton {
-            Ok(mut singleton) => {
-                let owned_singleton = std::mem::take(&mut *singleton);
-                singleton.error(token, message, owned_singleton);
-                ParseError("".to_string())
-            }
-            Err(err) => {
-                panic!("Singleton lock unwrap failed; error: {:?}", err);
-            }
-        }
+        Lox::error(token, message);
+        ParseError("".to_string())
     }
 }

@@ -1,10 +1,10 @@
 use crate::token_type::{Token, TokenType};
-use crate::{parser, scanner, interpreter};
+use crate::{interpreter, parser, scanner};
 use std::{fs, io, io::Write, process, str::FromStr};
 
+use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
-use interpreter::Interpreter;
 use std::env;
 use std::sync::{LazyLock, Mutex, MutexGuard};
 #[derive(Default)]
@@ -84,39 +84,36 @@ impl Lox {
             }
         }
     }
-
     pub fn run(source: &String, std_out_handler: &mut io::Stdout) {
         source.split(" ").for_each(|token| {
             let _ = std_out_handler.write_all(token.as_bytes());
         });
     }
-    pub fn error(&self, token: Token, message: &str, singleton: Lox) -> () {
-        if token.ttype == TokenType::Eof {
-            Self::report(
-                self,
-                &token.line,
-                String::from_str(" at end").unwrap(),
-                message,
-                singleton,
-            )
-        } else {
-            Self::report(
-                self,
-                &token.line,
-                format!(" at '{}'", token.lexeme),
-                message,
-                singleton,
-            )
-        }
-    }
-    fn runtime_error(error: interpreter::RuntimeError) -> () {
+    pub fn runtime_error(error: interpreter::RuntimeError, mut singleton: Lox) -> () {
         let message = format!("{}\n[line: {:?}]", error.message, error.token.line);
         eprintln!("{}", message);
-    }
-    pub fn report(&self, line: &u32, location: String, message: &str, mut singleton: Lox) -> () {
-        let report_message = format!("[line {}] Error {}: {}", line, location, message);
-        eprintln!("{}", report_message);
-        singleton.had_error = true;
+        singleton.had_runtime_error = true;
         std::mem::drop(singleton);
+    }
+    pub fn error(token: Token, message: &str) -> () {
+        if token.ttype == TokenType::Eof {
+            Self::report(&token.line, String::from_str(" at end").unwrap(), message)
+        } else {
+            Self::report(&token.line, format!(" at '{}'", token.lexeme), message)
+        }
+    }
+    pub fn report(line: &u32, location: String, message: &str) -> () {
+        let lox_singleton = LOX_SINGLETON.lock();
+        match lox_singleton {
+            Ok(mut singleton) => {
+                let report_message = format!("[line {}] Error {}: {}", line, location, message);
+                eprintln!("{}", report_message);
+                singleton.had_error = true;
+                std::mem::drop(singleton);
+            }
+            Err(err) => {
+                panic!("Singleton lock unwrap failed; error: {:?}", err);
+            }
+        }
     }
 }

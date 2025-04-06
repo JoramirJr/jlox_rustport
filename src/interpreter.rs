@@ -2,6 +2,7 @@ use std::ops::Neg;
 
 use crate::{
     expr::{Binary, ExpressionType, Grouping, Literal, Unary},
+    lox::{Lox, LOX_SINGLETON},
     token_type::{LiteralType, Token, TokenType},
 };
 
@@ -25,10 +26,20 @@ impl Interpreter {
                 println!("{}", Self::stringify(value));
             }
             Err(error) => {
-                RuntimeError {
-                    message: error.message,
-                    token: error.token,
-                };
+                let lox_singleton = LOX_SINGLETON.lock();
+
+                match lox_singleton {
+                    Ok(mut singleton) => {
+                        let owned_singleton = std::mem::take(&mut *singleton);
+                        Lox::runtime_error(RuntimeError {
+                            message: error.message,
+                            token: error.token,
+                        }, owned_singleton);
+                    }
+                    Err(err) => {
+                        panic!("Singleton lock unwrap failed; error: {:?}", err);
+                    }
+                }
             }
         }
     }

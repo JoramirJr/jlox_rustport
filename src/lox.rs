@@ -1,10 +1,10 @@
+use crate::interpreter;
+use crate::parser::PARSER_SINGLETON;
+use crate::scanner::{Scanner, SCANNER_SINGLETON};
 use crate::token_type::{Token, TokenType};
-use crate::{interpreter, parser, scanner};
-use std::{fs, io, io::Write, process, str::FromStr};
+use std::{fs, process, str::FromStr};
 
 use interpreter::Interpreter;
-use parser::Parser;
-use scanner::Scanner;
 use std::env;
 use std::sync::{LazyLock, Mutex, MutexGuard};
 #[derive(Default)]
@@ -27,67 +27,44 @@ impl Lox {
         let lox_singleton = LOX_SINGLETON.lock();
 
         match lox_singleton {
-            Ok(singleton) => {
-                let args_length = singleton.args.len();
+            Ok(lox) => {
+                let args_length = lox.args.len();
                 if args_length < 1 || args_length > 2 {
                     println!("Usage: jlox [script]");
                     process::exit(64);
                 } else if args_length == 2 {
-                    Self::run_file(singleton);
+                    Self::run_file(lox);
                 }
-                //  else if args_length == 2 {
-                //     Self::run_prompt(self);
-                // }
             }
             Err(err) => {
-                panic!("Singleton lock unwrap failed; error: {:?}", err);
+                panic!("Lox singleton lock unwrap failed; error: {:?}", err);
             }
         }
     }
-    pub fn run_file(singleton: MutexGuard<'_, Lox>) {
-        let file = fs::read_to_string(&singleton.args[1]).expect("File reading successful");
-        let scanner: Scanner = Scanner {
-            source: file,
-            tokens: Vec::new(),
-            start: 0,
-            current: 0,
-            line: 1,
-        };
-        std::mem::drop(singleton);
-        let scanned_tokens = scanner.scan_tokens();
-        let mut parser = Parser::new(scanned_tokens);
-        let expr = parser.parse();
+    pub fn run_file(lox: MutexGuard<'_, Lox>) {
 
-        match expr {
-            Some(expr) => {
-                Interpreter::interpret(expr);
-            }
-            None => {
-                return;
-            }
-        }
-    }
+        let file: String = fs::read_to_string(&lox.args[1]).expect("File reading successful");
+        std::mem::drop(lox);
 
-    pub fn run_prompt(mut self) -> io::Error {
-        let mut input = String::new();
-        let mut std_out_handler: io::Stdout = io::stdout();
+        let scanned_tokens = Scanner::scan_tokens(file);
 
-        loop {
-            let _ = std_out_handler.write_all("> ".as_bytes());
-            match io::stdin().read_line(&mut input) {
-                Ok(_) => {
-                    Self::run(&input, &mut std_out_handler);
-                    self.had_error = false;
+        match parser_singleton {
+            Ok(mut parser) => {
+                parser.tokens = scanned_tokens;
+                let expr: Option<crate::expr::ExpressionType> = parser.parse(scanned_tokens: Vec<Token>);
+                std::mem::drop(parser);
+
+                match expr {
+                    Some(expr) => {
+                        Interpreter::interpret(expr);
+                    }
+                    None => {
+                        return;
+                    }
                 }
-                //Not sure if ctrl+D, to exit the program, generates an error response
-                Err(error) => return error,
             }
+         
         }
-    }
-    pub fn run(source: &String, std_out_handler: &mut io::Stdout) {
-        source.split(" ").for_each(|token| {
-            let _ = std_out_handler.write_all(token.as_bytes());
-        });
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {
         let lox_singleton = LOX_SINGLETON.lock();

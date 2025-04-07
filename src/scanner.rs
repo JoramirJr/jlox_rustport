@@ -1,6 +1,9 @@
 use std::io;
 use std::io::Write;
 use std::str::FromStr;
+use std::sync::LazyLock;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
 
 use crate::token_type::LiteralType;
 use crate::token_type::Token;
@@ -14,8 +17,18 @@ pub struct Scanner {
     pub line: u32,
 }
 
+pub static SCANNER_SINGLETON: LazyLock<Mutex<Scanner>> = LazyLock::new(|| {
+    Mutex::new(Scanner {
+        source: String::new(),
+        tokens: Vec::new(),
+        start: 0,
+        current: 0,
+        line: 1,
+    })
+});
+
 impl Scanner {
-    pub fn report(line: &u32, location: String, message: &str) {
+    pub fn report(line: &u32, location: String, message: &str) -> () {
         let err_msg = format!("[line {}] Error {}: {}", line, location, message);
         let mut err_out_handler = io::stderr();
         let _ = err_out_handler.write_all(err_msg.as_bytes());
@@ -23,23 +36,36 @@ impl Scanner {
     pub fn error(line: &u32, message: &str) {
         Self::report(line, String::new(), message);
     }
-    pub fn scan_tokens(mut self) -> Vec<Token> {
-        while !Self::is_at_end(&self) {
-            self.start = self.current;
-            Self::scan_token(&mut self);
+    pub fn scan_tokens(source_file: String) -> Vec<Token> {
+        let scanner_singleton = SCANNER_SINGLETON.lock();
+
+        match scanner_singleton {
+            Ok(mut scanner) => {
+                scanner.source = source_file;
+        
+                while !Self::is_at_end(&scanner) {
+                    scanner.start = scanner.current;
+                    Self::scan_token(&mut scanner);
+                }
+        
+                let line = scanner.line;
+        
+                scanner.tokens.push(Token {
+                    ttype: TokenType::Eof,
+                    lexeme: String::new(),
+                    literal: LiteralType::Nil,
+                    line: line,
+                });
+                let tokens = scanner.tokens.clone();
+                std::mem::drop(scanner);
+                tokens
+            }
+            Err(err) => {
+                panic!("Scanner singleton lock unwrap failed; error: {:?}", err);
+            }
         }
-
-        let tokens = &mut self.tokens;
-
-        tokens.push(Token {
-            ttype: TokenType::Eof,
-            lexeme: String::new(),
-            literal: LiteralType::Nil,
-            line: self.line,
-        });
-        self.tokens
     }
-    fn scan_token(&mut self) {
+    pub fn scan_token(&mut self) -> () {
         let c: Option<char> = Self::advance(self);
 
         let mut call_add_token = |ttype: TokenType| {
@@ -80,15 +106,15 @@ impl Scanner {
             }
         }
     }
-    fn advance(&mut self) -> Option<char> {
+    pub fn advance(&mut self) -> Option<char> {
         //+1 and -1 implemented to not jump the first chars position
         self.current = self.current + 1;
         self.source.chars().nth(self.current - 1)
     }
-    fn is_alpha(c: char) -> bool {
+    pub fn is_alpha(c: char) -> bool {
         (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
     }
-    fn identifier(&mut self) {
+    pub fn identifier(&mut self) {
         while Self::is_alphanumeric(Self::peek(&self)) {
             Self::advance(self);
         }
@@ -120,13 +146,13 @@ impl Scanner {
             _ => Self::add_token(self, ttype, LiteralType::Nil),
         }
     }
-    fn is_digit(c: char) -> bool {
+    pub fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'
     }
-    fn is_alphanumeric(peeked_c: char) -> bool {
+    pub fn is_alphanumeric(peeked_c: char) -> bool {
         Self::is_alpha(peeked_c) || Self::is_digit(peeked_c)
     }
-    fn match_token(&mut self, expected: Option<char>) -> bool {
+    pub fn match_token(&mut self, expected: Option<char>) -> bool {
         if Self::is_at_end(&self) {
             return false;
         } else if self.source.chars().nth(self.current) != expected {
@@ -136,7 +162,7 @@ impl Scanner {
             return true;
         }
     }
-    fn match_token_sequence(&mut self, case: char, expected: Option<char>) {
+    pub fn match_token_sequence(&mut self, case: char, expected: Option<char>) {
         let match_sequence = Self::match_token(self, expected);
 
         if case == '!' {
@@ -177,7 +203,7 @@ impl Scanner {
             };
         }
     }
-    fn add_token(&mut self, ttype: TokenType, literal: LiteralType) {
+    pub fn add_token(&mut self, ttype: TokenType, literal: LiteralType) {
         let text = self.source.get(self.start..self.current);
 
         if text != None {
@@ -189,14 +215,14 @@ impl Scanner {
             });
         }
     }
-    fn peek(&self) -> char {
+    pub fn peek(&self) -> char {
         if Self::is_at_end(&self) {
             return '\0';
         } else {
             return self.source.chars().nth(self.current).unwrap();
         }
     }
-    fn number(&mut self) {
+    pub fn number(&mut self) {
         while Self::is_digit(Self::peek(&self)) {
             Self::advance(self);
         }
@@ -215,7 +241,7 @@ impl Scanner {
 
         Self::add_token(self, TokenType::Number, LiteralType::F32(float_number));
     }
-    fn string(&mut self) {
+    pub fn string(&mut self) {
         while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
             if Self::peek(&self) != '\n' {
                 self.line += 1;
@@ -235,15 +261,14 @@ impl Scanner {
             .to_string();
         Self::add_token(self, TokenType::String, LiteralType::String(value))
     }
-    fn peek_next(&self) -> char {
+    pub fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {
             '\0'
         } else {
             self.source.chars().nth(self.current + 1).unwrap()
         }
     }
-
-    fn is_at_end(&self) -> bool {
+    pub fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
 }

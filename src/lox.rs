@@ -1,6 +1,7 @@
+use crate::expr::ExpressionType;
 use crate::interpreter;
-use crate::parser::PARSER_SINGLETON;
-use crate::scanner::{Scanner, SCANNER_SINGLETON};
+use crate::parser::Parser;
+use crate::scanner::Scanner;
 use crate::token_type::{Token, TokenType};
 use std::{fs, process, str::FromStr};
 
@@ -42,28 +43,19 @@ impl Lox {
         }
     }
     pub fn run_file(lox: MutexGuard<'_, Lox>) {
-
         let file: String = fs::read_to_string(&lox.args[1]).expect("File reading successful");
         std::mem::drop(lox);
 
         let scanned_tokens = Scanner::scan_tokens(file);
+        let expr: Option<ExpressionType> = Parser::parse(scanned_tokens);
 
-        match parser_singleton {
-            Ok(mut parser) => {
-                parser.tokens = scanned_tokens;
-                let expr: Option<crate::expr::ExpressionType> = parser.parse(scanned_tokens: Vec<Token>);
-                std::mem::drop(parser);
-
-                match expr {
-                    Some(expr) => {
-                        Interpreter::interpret(expr);
-                    }
-                    None => {
-                        return;
-                    }
-                }
+        match expr {
+            Some(expr) => {
+                Interpreter::interpret(expr);
             }
-         
+            None => {
+                return;
+            }
         }
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {

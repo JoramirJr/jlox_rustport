@@ -2,7 +2,7 @@ use std::ops::Neg;
 
 use crate::{
     expr::{Binary, ExpressionType, Grouping, Literal, Unary},
-    lox::{Lox, LOX_SINGLETON},
+    lox::Lox,
     token_type::{LiteralType, Token, TokenType},
 };
 

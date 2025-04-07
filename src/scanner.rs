@@ -3,7 +3,6 @@ use std::io::Write;
 use std::str::FromStr;
 use std::sync::LazyLock;
 use std::sync::Mutex;
-use std::sync::MutexGuard;
 
 use crate::token_type::LiteralType;
 use crate::token_type::Token;
@@ -28,14 +27,6 @@ pub static SCANNER_SINGLETON: LazyLock<Mutex<Scanner>> = LazyLock::new(|| {
 });
 
 impl Scanner {
-    pub fn report(line: &u32, location: String, message: &str) -> () {
-        let err_msg = format!("[line {}] Error {}: {}", line, location, message);
-        let mut err_out_handler = io::stderr();
-        let _ = err_out_handler.write_all(err_msg.as_bytes());
-    }
-    pub fn error(line: &u32, message: &str) {
-        Self::report(line, String::new(), message);
-    }
     pub fn scan_tokens(source_file: String) -> Vec<Token> {
         let scanner_singleton = SCANNER_SINGLETON.lock();
 
@@ -64,6 +55,14 @@ impl Scanner {
                 panic!("Scanner singleton lock unwrap failed; error: {:?}", err);
             }
         }
+    }
+    pub fn report(line: &u32, location: String, message: &str) -> () {
+        let err_msg = format!("[line {}] Error {}: {}", line, location, message);
+        let mut err_out_handler = io::stderr();
+        let _ = err_out_handler.write_all(err_msg.as_bytes());
+    }
+    pub fn error(line: &u32, message: &str) {
+        Self::report(line, String::new(), message);
     }
     pub fn scan_token(&mut self) -> () {
         let c: Option<char> = Self::advance(self);

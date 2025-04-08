@@ -1,9 +1,9 @@
 use std::sync::{LazyLock, Mutex};
 
 use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
-use crate::lox::{Lox, LOX_SINGLETON};
-use crate::stmt::StmtType;
-use crate::{stmt, token_type::*};
+use crate::lox::Lox;
+use crate::stmt::{Print, StmtType};
+use crate::token_type::*;
 
 pub struct Parser {
     pub tokens: Vec<Token>,
@@ -26,26 +26,48 @@ impl Parser {
 
         match parser_singleton {
             Ok(mut parser) => {
-                let mut statements: Vec<()> = Vec::new();
+                 let mut statements: Vec<()> = Vec::new();
 
-                while !Self::is_at_end(&parser) {
-                    statements.push(Self::statement());
-                }
-                statements
+                 while !Self::is_at_end(&parser) {
+                    let stmt = Self::statement(&mut parser);
+
+                    match stmt {
+                        Result::Err(parse_error) => ParseError,
+                        Result::Ok(stmt) => {
+                            statements.push(stmt);
+                        },
+                    }
+                 }
+                 statements
+                
+                std::mem::drop(parser);
             }
             Err(err) => {
                 panic!("Parser singleton lock unwrap failed; error: {:?}", err);
             }
         }
     }
-    fn statement() -> StmtType {
-        if Self::match_expr(&mut self, &[TokenType::Print]) {
-            Self::printStatement()
-        }
-        Self::expressionStatement()
+    fn statement(&mut self) -> Result<StmtType, ParseError> {
+        return if Self::match_expr(self, &[TokenType::Print]) {
+            Self::printStatement(self)
+        } else {
+            Self::expressionStatement(self)
+        };
     }
-    fn printStatement() -> () {}
-    fn expressionStatement() -> () {}
+    fn printStatement(&mut self) -> Result<StmtType, ParseError> {
+        let value: ExpressionType = Self::expression(self)?;
+
+        Self::consume(self, &TokenType::Semicolon, "Expect ';' after value.")?;
+
+        Ok(StmtType::PrintExpr(Print { expression: value }))
+    }
+    fn expressionStatement(&mut self) -> Result<StmtType, ParseError> {
+        let expr: ExpressionType = Self::expression(self)?;
+
+        Self::consume(self, &TokenType::Semicolon, "Expect ';' after expression.")?;
+
+        Ok(StmtType::PrintExpr(Print { expression: expr }))
+    }
     pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
         Self::equality(self)
     }

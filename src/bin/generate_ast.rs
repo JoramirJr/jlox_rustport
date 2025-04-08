@@ -17,8 +17,8 @@ impl Main {
         Self::define_ast(
             "stmt",
             Vec::from([
-                "Expression: Box<StmtType> expression",
-                "Print: Box<StmtType> expression",
+                "Expression: ExpressionType expression",
+                "Print: ExpressionType expression",
             ]),
         );
     }
@@ -39,13 +39,15 @@ impl Main {
                     .as_bytes(),
             );
         } else {
+            let _ =
+                file_handler.write(["use crate::expr::ExpressionType;\n\n"].concat().as_bytes());
+
             let _ = file_handler.write(
                 ["#[derive(Debug)]\n", "pub enum StmtType {\n"]
                     .concat()
                     .as_bytes(),
             );
         }
-
         Self::define_expr_type(&mut file_handler, &types);
 
         for t in &types {

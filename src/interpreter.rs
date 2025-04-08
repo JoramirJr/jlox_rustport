@@ -1,9 +1,7 @@
 use std::ops::Neg;
 
 use crate::{
-    expr::{Binary, ExpressionType, Grouping, Literal, Unary},
-    lox::Lox,
-    token_type::{LiteralType, Token, TokenType},
+    expr::{Binary, ExpressionType, Grouping, Literal, Unary}, lox::Lox, stmt::StmtType, token_type::{LiteralType, Token, TokenType}
 };
 
 pub struct Interpreter();
@@ -18,8 +16,11 @@ pub struct RuntimeError<'a> {
 }
 
 impl Interpreter {
-    pub fn interpret(expr: ExpressionType) -> () {
-        let value = Self::evaluate(expr);
+    pub fn interpret(statements: Vec<StmtType>) -> () {
+        
+        for statement in statements {
+            Self::execute(statement);    
+        }
 
         match value {
             Ok(value) => {
@@ -36,6 +37,30 @@ impl Interpreter {
             ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping),
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
             ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
+        }
+    }
+    fn execute(stmt: StmtType) -> Result<(), RuntimeError<'static>> {
+        match stmt {
+            StmtType::ExpressionExpr(expr) => {
+                Self::visitExpressionStmt(expr);
+            },
+            StmtType::PrintExpr(print) => {
+
+            }
+    } 
+    fn visitExpressionStmt(expr: ExpressionType) -> () {
+        Self::evaluate(expr);
+    }
+    fn visitPrintStmt(expr: ExpressionType) -> () {
+        let value = Self::evaluate(expr);
+
+        match value {
+            Ok(literal) => {
+                println!("{:?}", Self::stringify(literal));
+            }
+            Err(error) => {
+                panic!("{:?}", error);
+            }
         }
     }
     pub fn stringify(value: LiteralType) -> String {

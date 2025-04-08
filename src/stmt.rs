@@ -1,3 +1,5 @@
+use crate::expr::ExpressionType;
+
 #[derive(Debug)]
 pub enum StmtType {
     ExpressionExpr(Expression),
@@ -6,9 +8,9 @@ pub enum StmtType {
 
 #[derive(Debug)]
 pub struct Expression {
-    pub expression: Box<StmtType>,
+    pub expression: ExpressionType,
 }
 #[derive(Debug)]
 pub struct Print {
-    pub expression: Box<StmtType>,
+    pub expression: ExpressionType,
 }

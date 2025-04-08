@@ -2,7 +2,8 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
 use crate::lox::{Lox, LOX_SINGLETON};
-use crate::token_type::*;
+use crate::stmt::StmtType;
+use crate::{stmt, token_type::*};
 
 pub struct Parser {
     pub tokens: Vec<Token>,
@@ -25,25 +26,26 @@ impl Parser {
 
         match parser_singleton {
             Ok(mut parser) => {
-                parser.tokens = scanned_tokens;
+                let mut statements: Vec<()> = Vec::new();
 
-                let response = Self::expression(&mut parser);
-                std::mem::drop(parser);
-                match response {
-                    Result::Err(_) => None,
-                    Result::Ok(ok_response) => Some(ok_response),
+                while !Self::is_at_end(&parser) {
+                    statements.push(Self::statement());
                 }
+                statements
             }
             Err(err) => {
                 panic!("Parser singleton lock unwrap failed; error: {:?}", err);
             }
         }
-        // let mut statements = Vec::new();
-
-        // while !Self::is_at_end(&self) {
-        //     statements.push(Self::statement());
-        // }
     }
+    fn statement() -> StmtType {
+        if Self::match_expr(&mut self, &[TokenType::Print]) {
+            Self::printStatement()
+        }
+        Self::expressionStatement()
+    }
+    fn printStatement() -> () {}
+    fn expressionStatement() -> () {}
     pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
         Self::equality(self)
     }

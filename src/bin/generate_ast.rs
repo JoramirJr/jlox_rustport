@@ -16,7 +16,10 @@ impl Main {
         );
         Self::define_ast(
             "stmt",
-            Vec::from(["Expression: Box<ExpressionType> expression", "Print: Box<ExpressionType> expression"]),
+            Vec::from([
+                "Expression: Box<StmtType> expression",
+                "Print: Box<StmtType> expression",
+            ]),
         );
     }
     fn define_ast(basename: &str, types: Vec<&str>) {
@@ -24,11 +27,24 @@ impl Main {
 
         let mut file_handler = File::create(&path).unwrap();
 
-        let _ = file_handler.write(
-            ["use crate::token_type::{LiteralType, Token};\n\n"]
-                .concat()
-                .as_bytes(),
-        );
+        if basename == "expr" {
+            let _ = file_handler.write(
+                ["use crate::token_type::{LiteralType, Token};\n\n"]
+                    .concat()
+                    .as_bytes(),
+            );
+            let _ = file_handler.write(
+                ["#[derive(Debug)]\n", "pub enum ExpressionType {\n"]
+                    .concat()
+                    .as_bytes(),
+            );
+        } else {
+            let _ = file_handler.write(
+                ["#[derive(Debug)]\n", "pub enum StmtType {\n"]
+                    .concat()
+                    .as_bytes(),
+            );
+        }
 
         Self::define_expr_type(&mut file_handler, &types);
 
@@ -38,12 +54,6 @@ impl Main {
         }
     }
     fn define_expr_type(file_handler: &mut File, field_list: &Vec<&str>) {
-        let _ = file_handler.write(
-            ["#[derive(Debug)]\n", "pub enum ExpressionType {\n"]
-                .concat()
-                .as_bytes(),
-        );
-
         for t in field_list {
             let (struct_name, _) = t.split_once(":").unwrap();
 

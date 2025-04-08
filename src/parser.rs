@@ -21,26 +21,26 @@ pub static PARSER_SINGLETON: LazyLock<Mutex<Parser>> = LazyLock::new(|| {
 });
 
 impl Parser {
-    pub fn parse(scanned_tokens: Vec<Token>) -> Option<ExpressionType> {
+    pub fn parse(scanned_tokens: Vec<Token>) -> Option<Vec<StmtType>> {
         let parser_singleton = PARSER_SINGLETON.lock();
 
         match parser_singleton {
             Ok(mut parser) => {
-                 let mut statements: Vec<()> = Vec::new();
+                 let mut statements: Vec<StmtType> = Vec::new();
 
                  while !Self::is_at_end(&parser) {
-                    let stmt = Self::statement(&mut parser);
+                    let stmt: Result<StmtType, ParseError> = Self::statement(&mut parser);
 
                     match stmt {
-                        Result::Err(parse_error) => ParseError,
+                        Result::Err(_) => None,
                         Result::Ok(stmt) => {
                             statements.push(stmt);
                         },
                     }
                  }
+                 std::mem::drop(parser);
                  statements
-                
-                std::mem::drop(parser);
+
             }
             Err(err) => {
                 panic!("Parser singleton lock unwrap failed; error: {:?}", err);

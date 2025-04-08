@@ -1,7 +1,10 @@
 use std::ops::Neg;
 
 use crate::{
-    expr::{Binary, ExpressionType, Grouping, Literal, Unary}, lox::Lox, stmt::StmtType, token_type::{LiteralType, Token, TokenType}
+    expr::{Binary, ExpressionType, Grouping, Literal, Unary},
+    lox::Lox,
+    stmt::StmtType,
+    token_type::{LiteralType, Token, TokenType},
 };
 
 pub struct Interpreter();
@@ -17,17 +20,11 @@ pub struct RuntimeError<'a> {
 
 impl Interpreter {
     pub fn interpret(statements: Vec<StmtType>) -> () {
-        
         for statement in statements {
-            Self::execute(statement);    
-        }
+            let execute_result = Self::execute(statement);
 
-        match value {
-            Ok(value) => {
-                println!("{}", Self::stringify(value));
-            }
-            Err(error) => {
-                Lox::runtime_error(error);
+            if let Err(runtime_error) = execute_result {
+                Lox::runtime_error(runtime_error);
             }
         }
     }
@@ -39,31 +36,27 @@ impl Interpreter {
             ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
         }
     }
-    fn execute(stmt: StmtType) -> Result<(), RuntimeError<'static>> {
+    fn execute(stmt: StmtType) -> Result<LiteralType, RuntimeError<'static>> {
         match stmt {
-            StmtType::ExpressionExpr(expr) => {
-                Self::visitExpressionStmt(expr);
-            },
-            StmtType::PrintExpr(print) => {
-
-            }
-    } 
-    fn visitExpressionStmt(expr: ExpressionType) -> () {
-        Self::evaluate(expr);
+            StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
+            StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
+        }
     }
-    fn visitPrintStmt(expr: ExpressionType) -> () {
+    fn visit_expression_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
+        Self::evaluate(expr)
+    }
+    fn visit_print_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
         let value = Self::evaluate(expr);
 
         match value {
             Ok(literal) => {
-                println!("{:?}", Self::stringify(literal));
+                println!("{:?}", Self::stringify(&literal));
+                Ok(literal)
             }
-            Err(error) => {
-                panic!("{:?}", error);
-            }
+            Err(error) => Err(error),
         }
     }
-    pub fn stringify(value: LiteralType) -> String {
+    pub fn stringify(value: &LiteralType) -> String {
         match value {
             LiteralType::F32(f32_value) => {
                 let mut text = f32_value.to_string();
@@ -75,7 +68,7 @@ impl Interpreter {
             }
             LiteralType::Nil => "nil".to_string(),
             LiteralType::Bool(bool_value) => bool_value.to_string(),
-            LiteralType::String(string_value) => string_value,
+            LiteralType::String(string_value) => string_value.clone(),
         }
     }
     pub fn visit_literal_expr(literal: Literal) -> Result<LiteralType, RuntimeError<'static>> {

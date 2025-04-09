@@ -11,6 +11,7 @@ impl Main {
                 "Binary: Box<ExpressionType> left, Token operator, Box<ExpressionType> right",
                 "Grouping: Box<ExpressionType> expression",
                 "Literal: LiteralType value",
+                "Variable: Token name",
                 "Unary: Token operator, Box<ExpressionType> right",
             ]),
         );
@@ -18,6 +19,7 @@ impl Main {
             "stmt",
             Vec::from([
                 "Expression: ExpressionType expression",
+                "Var: Token name, ExpressionType initializer",
                 "Print: ExpressionType expression",
             ]),
         );

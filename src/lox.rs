@@ -1,4 +1,3 @@
-use crate::expr::ExpressionType;
 use crate::interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
@@ -47,16 +46,9 @@ impl Lox {
         std::mem::drop(lox);
 
         let scanned_tokens = Scanner::scan_tokens(file);
-        let expr: Option<ExpressionType> = Parser::parse(scanned_tokens);
+        let statements = Parser::parse(scanned_tokens);
 
-        match expr {
-            Some(expr) => {
-                Interpreter::interpret(expr);
-            }
-            None => {
-                return;
-            }
-        }
+        Interpreter::interpret(statements);
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {
         let lox_singleton = LOX_SINGLETON.lock();

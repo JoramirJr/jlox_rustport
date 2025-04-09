@@ -1,1 +1,3 @@
-5 / (1 * 5)
+print "one";
+print true;
+print 1 + 2;

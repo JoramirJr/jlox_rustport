@@ -5,6 +5,7 @@ pub enum ExpressionType {
     BinaryExpr(Binary),
     GroupingExpr(Grouping),
     LiteralExpr(Literal),
+    VariableExpr(Variable),
     UnaryExpr(Unary),
 }
 
@@ -21,6 +22,10 @@ pub struct Grouping {
 #[derive(Debug)]
 pub struct Literal {
     pub value: LiteralType,
+}
+#[derive(Debug)]
+pub struct Variable {
+    pub name: Token,
 }
 #[derive(Debug)]
 pub struct Unary {

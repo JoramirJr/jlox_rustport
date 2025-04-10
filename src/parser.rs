@@ -1,6 +1,6 @@
 use std::sync::{LazyLock, Mutex};
 
-use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
+use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary, Variable};
 use crate::lox::Lox;
 use crate::stmt::{Print, StmtType, Var};
 use crate::token_type::*;
@@ -323,6 +323,10 @@ impl Parser {
                     return Err(err_response);
                 }
             }
+        }
+        if Self::match_expr(self, &[TokenType::Identifier]) {
+            let prev_token = Self::previous(&self);
+            return Ok(ExpressionType::VariableExpr(Variable { name: prev_token }));
         }
         Self::error(Self::peek(self), "Expect expression.");
 

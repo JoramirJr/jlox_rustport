@@ -34,12 +34,14 @@ impl Interpreter {
             ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping),
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
             ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
+            ExpressionType::VariableExpr(variable) => todo!(),
         }
     }
     fn execute(stmt: StmtType) -> Result<LiteralType, RuntimeError<'static>> {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
+            StmtType::VarExpr(var) => todo!(),
         }
     }
     fn visit_expression_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {

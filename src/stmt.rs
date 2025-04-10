@@ -1,4 +1,4 @@
-use crate::expr::ExpressionType;
+use crate::{expr::ExpressionType, token_type::Token};
 
 #[derive(Debug)]
 pub enum StmtType {
@@ -14,7 +14,7 @@ pub struct Expression {
 #[derive(Debug)]
 pub struct Var {
     pub name: Token,
-    pub initializer: ExpressionType,
+    pub initializer: Option<ExpressionType>,
 }
 #[derive(Debug)]
 pub struct Print {

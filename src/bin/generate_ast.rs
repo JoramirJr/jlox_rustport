@@ -19,7 +19,7 @@ impl Main {
             "stmt",
             Vec::from([
                 "Expression: ExpressionType expression",
-                "Var: Token name, ExpressionType initializer",
+                "Var: Token name, Option<ExpressionType> initializer",
                 "Print: ExpressionType expression",
             ]),
         );
@@ -42,7 +42,7 @@ impl Main {
             );
         } else {
             let _ =
-                file_handler.write(["use crate::expr::ExpressionType;\n\n"].concat().as_bytes());
+                file_handler.write(["use crate::{expr::ExpressionType, token_type::Token};\n\n"].concat().as_bytes());
 
             let _ = file_handler.write(
                 ["#[derive(Debug)]\n", "pub enum StmtType {\n"]

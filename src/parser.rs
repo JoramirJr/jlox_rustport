@@ -2,7 +2,7 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary};
 use crate::lox::Lox;
-use crate::stmt::{Print, StmtType};
+use crate::stmt::{Print, StmtType, Var};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -32,14 +32,8 @@ impl Parser {
                 while !Self::is_at_end(&parser) {
                     let stmt: Result<StmtType, ParseError> = Self::statement(&mut parser);
 
-                    match stmt {
-                        Result::Err(error) => {
-                            panic!("Parse error: {:?}", error);
-                        }
-                        Result::Ok(stmt) => {
-                            statements.push(stmt);
-                        }
-                    }
+                    statements.push(stmt);
+                    
                 }
                 std::mem::drop(parser);
                 statements
@@ -49,6 +43,42 @@ impl Parser {
             }
         }
     }
+    fn declaration() -> Option<StmtType> {
+        if Self::match_expr(&mut self, &[TokenType::Var]) {
+            return Self::var_declaration();
+        } 
+
+        let stmt = Self::statement(&mut self);
+        
+        match stmt {
+            Result::Err(error) => {
+                Self::synchronize(&mut self);
+                None
+            }
+            Result::Ok(stmt) => {
+                return Ok(stmt);
+            }
+        }
+    }
+    fn var_declaration() -> StmtType {
+        let name = Self::consume(&mut self, &TokenType::Identifier, "Expect variable name.");
+        let mut initializer: Option<ExpressionType> = None;
+
+        if Self::match_expr(&mut self, &[TokenType::Equal]) {
+            let expr = Self::expression(&mut self);
+
+            match expr {
+                Ok(expr) => {
+                    initializer = Some(expr);
+                },
+                Err(_) => {}
+            }
+        }
+
+        Self::consume(&mut self, &TokenType::Semicolon, "Expect ';' after variable declaration");
+
+        StmtType::VarExpr(Var { name: name, initializer: initializer })
+    }
     fn statement(&mut self) -> Result<StmtType, ParseError> {
         return if Self::match_expr(self, &[TokenType::Print]) {
             Self::printStatement(self)
@@ -56,14 +86,14 @@ impl Parser {
             Self::expressionStatement(self)
         };
     }
-    fn printStatement(&mut self) -> Result<StmtType, ParseError> {
+    fn print_statement(&mut self) -> Result<StmtType, ParseError> {
         let value: ExpressionType = Self::expression(self)?;
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after value.")?;
 
         Ok(StmtType::PrintExpr(Print { expression: value }))
     }
-    fn expressionStatement(&mut self) -> Result<StmtType, ParseError> {
+    fn expression_statement(&mut self) -> Result<StmtType, ParseError> {
         let expr: ExpressionType = Self::expression(self)?;
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after expression.")?;

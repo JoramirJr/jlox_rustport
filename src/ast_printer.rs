@@ -19,7 +19,8 @@ impl AstPrinter {
             },
             ExpressionType::UnaryExpr(expr) => {
                 Self::parenthesize(&expr.operator.lexeme, [&expr.right].to_vec())
-            }
+            },
+            ExpressionType::VariableExpr(var) => todo!()
         }
     }
     pub fn parenthesize(name: &String, exprs: Vec<&Box<ExpressionType>>) -> String {

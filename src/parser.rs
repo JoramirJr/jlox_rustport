@@ -30,10 +30,11 @@ impl Parser {
                 let mut statements: Vec<StmtType> = Vec::new();
 
                 while !Self::is_at_end(&parser) {
-                    let stmt: Result<StmtType, ParseError> = Self::statement(&mut parser);
+                    let declaration = Self::declaration(&mut parser);
 
-                    statements.push(stmt);
-                    
+                    if let Some(value) = declaration {
+                        statements.push(value);
+                    }
                 }
                 std::mem::drop(parser);
                 statements
@@ -43,47 +44,57 @@ impl Parser {
             }
         }
     }
-    fn declaration() -> Option<StmtType> {
-        if Self::match_expr(&mut self, &[TokenType::Var]) {
-            return Self::var_declaration();
-        } 
+    fn declaration(&mut self) -> Option<StmtType> {
+        if Self::match_expr(self, &[TokenType::Var]) {
+            let var_declaration = Self::var_declaration(self);
 
-        let stmt = Self::statement(&mut self);
-        
+            match var_declaration {
+                Ok(value) => return Some(value),
+                Err(_) => {
+                    Self::synchronize(self);
+                    return None;
+                }
+            }
+        }
+
+        let stmt = Self::statement(self);
+
         match stmt {
-            Result::Err(error) => {
-                Self::synchronize(&mut self);
+            Err(_) => {
+                Self::synchronize(self);
                 None
             }
-            Result::Ok(stmt) => {
-                return Ok(stmt);
+            Ok(stmt) => {
+                return Some(stmt);
             }
         }
     }
-    fn var_declaration() -> StmtType {
-        let name = Self::consume(&mut self, &TokenType::Identifier, "Expect variable name.");
+    fn var_declaration(&mut self) -> Result<StmtType, ParseError> {
+        let name = Self::consume(self, &TokenType::Identifier, "Expect variable name.")?;
+
         let mut initializer: Option<ExpressionType> = None;
 
-        if Self::match_expr(&mut self, &[TokenType::Equal]) {
-            let expr = Self::expression(&mut self);
-
-            match expr {
-                Ok(expr) => {
-                    initializer = Some(expr);
-                },
-                Err(_) => {}
-            }
+        if Self::match_expr(self, &[TokenType::Equal]) {
+            let expr = Self::expression(self)?;
+            initializer = Some(expr);
         }
 
-        Self::consume(&mut self, &TokenType::Semicolon, "Expect ';' after variable declaration");
+        Self::consume(
+            self,
+            &TokenType::Semicolon,
+            "Expect ';' after variable declaration",
+        )?;
 
-        StmtType::VarExpr(Var { name: name, initializer: initializer })
+        Ok(StmtType::VarExpr(Var {
+            name: name,
+            initializer: initializer,
+        }))
     }
     fn statement(&mut self) -> Result<StmtType, ParseError> {
         return if Self::match_expr(self, &[TokenType::Print]) {
-            Self::printStatement(self)
+            Self::print_statement(self)
         } else {
-            Self::expressionStatement(self)
+            Self::expression_statement(self)
         };
     }
     fn print_statement(&mut self) -> Result<StmtType, ParseError> {

@@ -62,9 +62,3 @@ pub struct Token {
     pub literal: LiteralType,
     pub line: u32,
 }
-
-impl fmt::Display for LiteralType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}

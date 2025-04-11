@@ -1,7 +1,13 @@
 use std::collections::HashMap;
 
-use crate::expr::ExpressionType;
+use crate::token_type::LiteralType;
 
 struct Environment {
-    map: HashMap<String, ExpressionType>,
+    map: HashMap<String, Option<LiteralType>>,
+}
+
+impl Environment {
+    fn define(&mut self, name: String, value: Option<LiteralType>) -> () {
+        self.map.insert(name, value);
+    }
 }

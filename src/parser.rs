@@ -1,6 +1,6 @@
 use std::sync::{LazyLock, Mutex};
 
-use crate::expr::{Binary, ExpressionType, Grouping, Literal, Unary, Variable};
+use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable};
 use crate::lox::Lox;
 use crate::stmt::{Print, StmtType, Var};
 use crate::token_type::*;
@@ -111,8 +111,28 @@ impl Parser {
 
         Ok(StmtType::PrintExpr(Print { expression: expr }))
     }
+    fn assigment(&mut self) -> Result<ExpressionType, ParseError> {
+        let expr = Self::equality(self)?;
+
+        if Self::match_expr(self, &[TokenType::Equal]) {
+            let equals = Self::previous(&self);
+            let value = Self::assigment(self)?;
+
+            if let ExpressionType::VariableExpr(variable) = expr {
+                let name = variable.name;
+                return Ok(ExpressionType::AssignExpr(Assign {
+                    name: name,
+                    value: value,
+                }));
+            }
+
+            Err(ParseError(format!("{:?} Invalid assigment target", equals)))
+        } else {
+            return Ok(expr);
+        }
+    }
     pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
-        Self::equality(self)
+        Self::assigment(self)
     }
     pub fn equality(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::comparison(self);

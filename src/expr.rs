@@ -2,6 +2,7 @@ use crate::token_type::{LiteralType, Token};
 
 #[derive(Debug)]
 pub enum ExpressionType {
+    AssignExpr(Assign),
     BinaryExpr(Binary),
     GroupingExpr(Grouping),
     LiteralExpr(Literal),
@@ -9,6 +10,11 @@ pub enum ExpressionType {
     UnaryExpr(Unary),
 }
 
+#[derive(Debug)]
+pub struct Assign {
+    pub name: Token,
+    pub value: Box<ExpressionType>,
+}
 #[derive(Debug)]
 pub struct Binary {
     pub left: Box<ExpressionType>,

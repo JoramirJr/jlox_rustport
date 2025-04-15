@@ -6,9 +6,9 @@ use std::{
 
 use crate::{
     environment::Environment,
-    expr::{Binary, ExpressionType, Grouping, Literal, Unary, Variable},
+    expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable},
     lox::Lox,
-    stmt::{self, StmtType, Var},
+    stmt::{StmtType, Var},
     token_type::{LiteralType, Token, TokenType},
 };
 
@@ -30,6 +30,8 @@ pub struct RuntimeError {
     pub message: String,
 }
 
+type DefaultResult = Result<LiteralType, RuntimeError>;
+
 impl Interpreter {
     pub fn interpret(statements: Vec<StmtType>) -> () {
         for statement in statements {
@@ -40,26 +42,27 @@ impl Interpreter {
             }
         }
     }
-    pub fn evaluate(expr: ExpressionType) -> Result<Option<LiteralType>, RuntimeError> {
+    pub fn evaluate(expr: ExpressionType) -> DefaultResult {
         match expr {
-            ExpressionType::BinaryExpr(binary) => Some(Self::visit_binary_expr(binary)),
-            ExpressionType::GroupingExpr(grouping) => Some(Self::visit_grouping_expr(grouping)),
-            ExpressionType::LiteralExpr(literal) => Some(Self::visit_literal_expr(literal)),
-            ExpressionType::UnaryExpr(unary) => Some(Self::visit_unary_expr(unary)),
+            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary),
+            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping),
+            ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
+            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
             ExpressionType::VariableExpr(variable) => Self::visit_variable_expr(variable),
+            ExpressionType::AssignExpr(assignment) => Self::visit_assign_expr(assignment),
         }
     }
-    fn execute(stmt: StmtType) -> Result<LiteralType, RuntimeError> {
+    fn execute(stmt: StmtType) -> DefaultResult {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
             StmtType::VarExpr(var) => Self::visit_var_stmt(var),
         }
     }
-    fn visit_expression_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
+    fn visit_expression_stmt(expr: ExpressionType) -> DefaultResult {
         Self::evaluate(expr)
     }
-    fn visit_print_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
+    fn visit_print_stmt(expr: ExpressionType) -> DefaultResult {
         let value = Self::evaluate(expr);
 
         match value {
@@ -70,23 +73,23 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    fn visit_var_stmt(stmt: Var) -> Result<LiteralType, RuntimeError> {
+    fn visit_var_stmt(stmt: Var) -> DefaultResult {
         let interpreter_singleton = INTERPRETER_SINGLETON.lock();
 
-        let mut value: Option<LiteralType> = None;
+        let mut value: LiteralType = LiteralType::Nil;
 
         match interpreter_singleton {
             Ok(mut interpreter) => {
                 if let Some(expr_initializer) = stmt.initializer {
                     let literal = Ok(Self::evaluate(expr_initializer))?;
-                    value = Some(literal.unwrap());
+                    value = literal.unwrap();
                 }
                 interpreter
                     .environment
                     .define(stmt.name.lexeme, value.clone());
 
                 std::mem::drop(interpreter);
-                return Ok(value.unwrap());
+                return Ok(value);
             }
             Err(err) => {
                 panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
@@ -108,13 +111,13 @@ impl Interpreter {
             LiteralType::String(string_value) => string_value.clone(),
         }
     }
-    pub fn visit_literal_expr(literal: Literal) -> Result<Option<LiteralType>, RuntimeError> {
-        Ok(Some(literal.value))
+    pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
+        Ok(literal.value)
     }
-    pub fn visit_grouping_expr(grouping: Grouping) -> Result<Option<LiteralType>, RuntimeError> {
+    pub fn visit_grouping_expr(grouping: Grouping) -> DefaultResult {
         Self::evaluate(*grouping.expression)
     }
-    pub fn visit_unary_expr(unary: Unary) -> Result<Option<LiteralType>, RuntimeError> {
+    pub fn visit_unary_expr(unary: Unary) -> DefaultResult {
         let right_r_value = Self::evaluate(*unary.right);
 
         if let Err(right_operand_error) = right_r_value {
@@ -144,17 +147,37 @@ impl Interpreter {
         }
         Ok(LiteralType::Nil)
     }
-    pub fn visit_variable_expr(expr: Variable) -> Result<Option<LiteralType>, RuntimeError> {
+    pub fn visit_variable_expr(expr: Variable) -> DefaultResult {
         let interpreter_singleton = INTERPRETER_SINGLETON.lock();
 
         match interpreter_singleton {
-            Ok(interpreter) => interpreter.environment.get(&expr.name),
+            Ok(interpreter) => {
+                let get_result = interpreter.environment.get(&expr.name);
+                std::mem::drop(interpreter);
+                return get_result;
+            }
             Err(err) => {
                 panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
             }
         }
     }
-    pub fn visit_binary_expr(binary: Binary) -> Result<Option<LiteralType>, RuntimeError> {
+    pub fn visit_assign_expr(expr: Assign) -> DefaultResult {
+        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
+
+        match interpreter_singleton {
+            Ok(mut interpreter) => {
+                let value = Self::evaluate(*expr.value)?;
+
+                let get_result = interpreter.environment.assign(expr.name, value);
+                std::mem::drop(interpreter);
+                return get_result;
+            }
+            Err(err) => {
+                panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
+            }
+        }
+    }
+    pub fn visit_binary_expr(binary: Binary) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
         let left_r_value = Self::evaluate(left);

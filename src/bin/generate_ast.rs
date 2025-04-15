@@ -8,6 +8,7 @@ impl Main {
         Self::define_ast(
             "expr",
             Vec::from([
+                "Assign: Token name, Box<ExpressionType> value",
                 "Binary: Box<ExpressionType> left, Token operator, Box<ExpressionType> right",
                 "Grouping: Box<ExpressionType> expression",
                 "Literal: LiteralType value",

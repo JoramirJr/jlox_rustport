@@ -1,21 +1,33 @@
-use std::ops::Neg;
+use std::{
+    collections::HashMap,
+    ops::Neg,
+    sync::{LazyLock, Mutex},
+};
 
 use crate::{
+    environment::Environment,
     expr::{Binary, ExpressionType, Grouping, Literal, Unary},
     lox::Lox,
-    stmt::StmtType,
+    stmt::{self, StmtType, Var},
     token_type::{LiteralType, Token, TokenType},
 };
 
-pub struct Interpreter();
+pub struct Interpreter {
+    environment: Environment,
+}
 
-// pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> =
-//     LazyLock::new(|| Mutex::new(Interpreter {}));
+pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> = LazyLock::new(|| {
+    Mutex::new(Interpreter {
+        environment: Environment {
+            values: HashMap::new(),
+        },
+    })
+});
 
 #[derive(Debug)]
-pub struct RuntimeError<'a> {
+pub struct RuntimeError {
     pub token: Token,
-    pub message: &'a str,
+    pub message: String,
 }
 
 impl Interpreter {
@@ -28,26 +40,26 @@ impl Interpreter {
             }
         }
     }
-    pub fn evaluate(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
+    pub fn evaluate(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
         match expr {
             ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary),
             ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping),
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
             ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
-            ExpressionType::VariableExpr(variable) => todo!(),
+            ExpressionType::VariableExpr(variable) => Self::visit_var_stmt(var),
         }
     }
-    fn execute(stmt: StmtType) -> Result<LiteralType, RuntimeError<'static>> {
+    fn execute(stmt: StmtType) -> Result<LiteralType, RuntimeError> {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
             StmtType::VarExpr(var) => todo!(),
         }
     }
-    fn visit_expression_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
+    fn visit_expression_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
         Self::evaluate(expr)
     }
-    fn visit_print_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError<'static>> {
+    fn visit_print_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
         let value = Self::evaluate(expr);
 
         match value {
@@ -56,6 +68,30 @@ impl Interpreter {
                 Ok(literal)
             }
             Err(error) => Err(error),
+        }
+    }
+    fn visit_var_stmt(stmt: Var) -> Result<LiteralType, RuntimeError> {
+        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
+
+        let mut value: Result<LiteralType, RuntimeError>;
+
+        match interpreter_singleton {
+            Ok(mut interpreter) => {
+                if let Some(expr_initializer) = stmt.initializer {
+                    value = Ok(Self::evaluate(expr_initializer))?;
+                }
+                if let Ok(literal) = value {
+                    interpreter
+                        .environment
+                        .define(stmt.name.lexeme, Some(literal));
+                } else {
+                    interpreter.environment.define(stmt.name.lexeme, None);
+                }
+                Ok(value.unwrap())
+            }
+            Err(err) => {
+                panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
+            }
         }
     }
     pub fn stringify(value: &LiteralType) -> String {
@@ -73,13 +109,13 @@ impl Interpreter {
             LiteralType::String(string_value) => string_value.clone(),
         }
     }
-    pub fn visit_literal_expr(literal: Literal) -> Result<LiteralType, RuntimeError<'static>> {
+    pub fn visit_literal_expr(literal: Literal) -> Result<LiteralType, RuntimeError> {
         Ok(literal.value)
     }
-    pub fn visit_grouping_expr(grouping: Grouping) -> Result<LiteralType, RuntimeError<'static>> {
+    pub fn visit_grouping_expr(grouping: Grouping) -> Result<LiteralType, RuntimeError> {
         Self::evaluate(*grouping.expression)
     }
-    pub fn visit_unary_expr(unary: Unary) -> Result<LiteralType, RuntimeError<'static>> {
+    pub fn visit_unary_expr(unary: Unary) -> Result<LiteralType, RuntimeError> {
         let right_r_value = Self::evaluate(*unary.right);
 
         if let Err(right_operand_error) = right_r_value {
@@ -97,7 +133,7 @@ impl Interpreter {
                     return Ok(LiteralType::F32(f32_value.neg()));
                 } else {
                     return Err(RuntimeError {
-                        message: "Operand must be a number",
+                        message: String::from("Operand must be a number"),
                         token: unary.operator,
                     });
                 }
@@ -109,7 +145,7 @@ impl Interpreter {
         }
         Ok(LiteralType::Nil)
     }
-    pub fn visit_binary_expr(binary: Binary) -> Result<LiteralType, RuntimeError<'static>> {
+    pub fn visit_binary_expr(binary: Binary) -> Result<LiteralType, RuntimeError> {
         let left = *binary.left;
         let right = *binary.right;
         let left_r_value = Self::evaluate(left);
@@ -139,7 +175,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -157,7 +193,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be two numbers or two strings",
+                        message: String::from("Operands must be two numbers or two strings"),
                         token: binary.operator,
                     })
                 }
@@ -169,7 +205,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -181,7 +217,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -193,7 +229,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -205,7 +241,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -217,7 +253,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -229,7 +265,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -241,7 +277,7 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
@@ -253,14 +289,14 @@ impl Interpreter {
                 }
                 _ => {
                     return Err(RuntimeError {
-                        message: "Operands must be a number",
+                        message: String::from("Operands must be a number"),
                         token: binary.operator,
                     })
                 }
             }
         } else {
             return Err(RuntimeError {
-                message: "Invalid operator",
+                message: String::from("Invalid operator"),
                 token: binary.operator,
             });
         }

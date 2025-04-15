@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     environment::Environment,
-    expr::{Binary, ExpressionType, Grouping, Literal, Unary},
+    expr::{Binary, ExpressionType, Grouping, Literal, Unary, Variable},
     lox::Lox,
     stmt::{self, StmtType, Var},
     token_type::{LiteralType, Token, TokenType},
@@ -40,20 +40,20 @@ impl Interpreter {
             }
         }
     }
-    pub fn evaluate(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
+    pub fn evaluate(expr: ExpressionType) -> Result<Option<LiteralType>, RuntimeError> {
         match expr {
-            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary),
-            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping),
-            ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
-            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
-            ExpressionType::VariableExpr(variable) => Self::visit_var_stmt(var),
+            ExpressionType::BinaryExpr(binary) => Some(Self::visit_binary_expr(binary)),
+            ExpressionType::GroupingExpr(grouping) => Some(Self::visit_grouping_expr(grouping)),
+            ExpressionType::LiteralExpr(literal) => Some(Self::visit_literal_expr(literal)),
+            ExpressionType::UnaryExpr(unary) => Some(Self::visit_unary_expr(unary)),
+            ExpressionType::VariableExpr(variable) => Self::visit_variable_expr(variable),
         }
     }
     fn execute(stmt: StmtType) -> Result<LiteralType, RuntimeError> {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
-            StmtType::VarExpr(var) => todo!(),
+            StmtType::VarExpr(var) => Self::visit_var_stmt(var),
         }
     }
     fn visit_expression_stmt(expr: ExpressionType) -> Result<LiteralType, RuntimeError> {
@@ -73,21 +73,20 @@ impl Interpreter {
     fn visit_var_stmt(stmt: Var) -> Result<LiteralType, RuntimeError> {
         let interpreter_singleton = INTERPRETER_SINGLETON.lock();
 
-        let mut value: Result<LiteralType, RuntimeError>;
+        let mut value: Option<LiteralType> = None;
 
         match interpreter_singleton {
             Ok(mut interpreter) => {
                 if let Some(expr_initializer) = stmt.initializer {
-                    value = Ok(Self::evaluate(expr_initializer))?;
+                    let literal = Ok(Self::evaluate(expr_initializer))?;
+                    value = Some(literal.unwrap());
                 }
-                if let Ok(literal) = value {
-                    interpreter
-                        .environment
-                        .define(stmt.name.lexeme, Some(literal));
-                } else {
-                    interpreter.environment.define(stmt.name.lexeme, None);
-                }
-                Ok(value.unwrap())
+                interpreter
+                    .environment
+                    .define(stmt.name.lexeme, value.clone());
+
+                std::mem::drop(interpreter);
+                return Ok(value.unwrap());
             }
             Err(err) => {
                 panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
@@ -109,13 +108,13 @@ impl Interpreter {
             LiteralType::String(string_value) => string_value.clone(),
         }
     }
-    pub fn visit_literal_expr(literal: Literal) -> Result<LiteralType, RuntimeError> {
-        Ok(literal.value)
+    pub fn visit_literal_expr(literal: Literal) -> Result<Option<LiteralType>, RuntimeError> {
+        Ok(Some(literal.value))
     }
-    pub fn visit_grouping_expr(grouping: Grouping) -> Result<LiteralType, RuntimeError> {
+    pub fn visit_grouping_expr(grouping: Grouping) -> Result<Option<LiteralType>, RuntimeError> {
         Self::evaluate(*grouping.expression)
     }
-    pub fn visit_unary_expr(unary: Unary) -> Result<LiteralType, RuntimeError> {
+    pub fn visit_unary_expr(unary: Unary) -> Result<Option<LiteralType>, RuntimeError> {
         let right_r_value = Self::evaluate(*unary.right);
 
         if let Err(right_operand_error) = right_r_value {
@@ -145,7 +144,17 @@ impl Interpreter {
         }
         Ok(LiteralType::Nil)
     }
-    pub fn visit_binary_expr(binary: Binary) -> Result<LiteralType, RuntimeError> {
+    pub fn visit_variable_expr(expr: Variable) -> Result<Option<LiteralType>, RuntimeError> {
+        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
+
+        match interpreter_singleton {
+            Ok(interpreter) => interpreter.environment.get(&expr.name),
+            Err(err) => {
+                panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
+            }
+        }
+    }
+    pub fn visit_binary_expr(binary: Binary) -> Result<Option<LiteralType>, RuntimeError> {
         let left = *binary.left;
         let right = *binary.right;
         let left_r_value = Self::evaluate(left);

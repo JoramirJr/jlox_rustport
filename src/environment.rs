@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub struct Environment {
-    pub enclosing: Box<Environment>,
+    pub enclosing: Option<Box<Environment>>,
     pub values: HashMap<String, LiteralType>,
 }
 
@@ -17,7 +17,12 @@ impl Environment {
         self.values.insert(name, value);
     }
     pub fn get(&self, name: &Token) -> DefaultResult {
+        let enclosing_env_option = self.enclosing;
         let map_value = self.values.get(name.lexeme.as_str()).unwrap();
+
+        if let Some(enclosing_env) = enclosing_env_option {
+            return enclosing_env.get(name);
+        }
 
         if let &LiteralType::Nil = map_value {
             return Err(RuntimeError {

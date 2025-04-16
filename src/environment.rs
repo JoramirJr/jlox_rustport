@@ -6,6 +6,7 @@ use crate::{
 };
 
 pub struct Environment {
+    pub enclosing: Box<Environment>,
     pub values: HashMap<String, LiteralType>,
 }
 

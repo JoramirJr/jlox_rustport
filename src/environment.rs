@@ -17,20 +17,19 @@ impl Environment {
         self.values.insert(name, value);
     }
     pub fn get(&self, name: &Token) -> DefaultResult {
-        let enclosing_env_option = self.enclosing;
-        let map_value = self.values.get(name.lexeme.as_str()).unwrap();
+        let map_value = self.values.get(name.lexeme.as_str());
 
-        if let Some(enclosing_env) = enclosing_env_option {
-            return enclosing_env.get(name);
-        }
-
-        if let &LiteralType::Nil = map_value {
-            return Err(RuntimeError {
-                token: name.clone(),
-                message: format!("Undefined variable '{}'.", &name.lexeme),
-            });
+        if let Some(literal_value) = map_value {
+            return Ok(literal_value.clone());
         } else {
-            return Ok(map_value.clone());
+            if let Some(enclosing_env) = &self.enclosing {
+                return enclosing_env.get(name);
+            } else {
+                return Err(RuntimeError {
+                    token: name.clone(),
+                    message: format!("Undefined variable '{}'.", &name.lexeme),
+                });
+            }
         }
     }
     pub fn assign(&mut self, name: Token, value: LiteralType) -> DefaultResult {

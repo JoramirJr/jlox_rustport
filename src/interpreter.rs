@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    environment::Environment,
+    environment::{self, Environment},
     expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable},
     lox::Lox,
     stmt::{StmtType, Var},
@@ -20,6 +20,7 @@ pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> = LazyLock::new(|
     Mutex::new(Interpreter {
         environment: Environment {
             values: HashMap::new(),
+            enclosing: None
         },
     })
 });
@@ -57,8 +58,24 @@ impl Interpreter {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
             StmtType::VarExpr(var) => Self::visit_var_stmt(var),
+            StmtType::BlockExpr(block) => {
+                let interpreter_singleton = INTERPRETER_SINGLETON.lock();
+            
+                match interpreter_singleton {
+                    Ok(mut interpreter) => {
+                        Self::execute_block(block.statements, Environment { enclosing: interpreter.environment, values: HashMap::new() });
+                        todo!()
+                    }
+                    Err(err) => {
+                        panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
+                    }
+                }
+            },
         }
     }
+    fn execute_block(statements: Vec<StmtType>, environment: Environment) -> DefaultResult {
+        todo!()
+    } 
     fn visit_expression_stmt(expr: ExpressionType) -> DefaultResult {
         Self::evaluate(expr)
     }

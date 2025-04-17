@@ -2,7 +2,7 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable};
 use crate::lox::Lox;
-use crate::stmt::{Print, StmtType, Var};
+use crate::stmt::{Block, Print, StmtType, Var};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -60,12 +60,12 @@ impl Parser {
         let stmt = Self::statement(self);
 
         match stmt {
+            Ok(stmt) => {
+                return Some(stmt);
+            }
             Err(_) => {
                 Self::synchronize(self);
                 None
-            }
-            Ok(stmt) => {
-                return Some(stmt);
             }
         }
     }
@@ -94,7 +94,8 @@ impl Parser {
         return if Self::match_expr(self, &[TokenType::Print]) {
             Self::print_statement(self)
         } else if Self::match_expr(self, &[TokenType::LeftBrace]) {
-            Self::block(self);
+            let statements = Self::block(self)?;
+            Ok(StmtType::BlockExpr(Block { statements }))
         } else {
             Self::expression_statement(self)
         };
@@ -113,18 +114,18 @@ impl Parser {
 
         Ok(StmtType::PrintExpr(Print { expression: expr }))
     }
-    fn block(&mut self) -> Vec<StmtType> {
-        let statements = Vec::new();
+    fn block(&mut self) -> Result<Vec<StmtType>, ParseError> {
+        let mut statements = Vec::new();
 
         while !Self::check(&self, &TokenType::RightBrace) && !Self::is_at_end(&self) {
             let declaration = Self::declaration(self);
-            if let Some(decl) = declaration {
-                statements.insert(index, element);
-            }
 
-            Self::consume(self, &TokenType::RightBrace, "Expect '}' after block.");
-            return statements;
+            if let Some(decl) = declaration {
+                statements.push(decl);
+            }
         }
+        Self::consume(self, &TokenType::RightBrace, "Expect '}' after block.")?;
+        return Ok(statements);
     }
     fn assigment(&mut self) -> Result<ExpressionType, ParseError> {
         let expr = Self::equality(self)?;
@@ -137,7 +138,7 @@ impl Parser {
                 let name = variable.name;
                 return Ok(ExpressionType::AssignExpr(Assign {
                     name: name,
-                    value: value,
+                    value: Box::new(value),
                 }));
             }
 

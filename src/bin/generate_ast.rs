@@ -20,6 +20,7 @@ impl Main {
             "stmt",
             Vec::from([
                 "Expression: ExpressionType expression",
+                "Block: Vec<StmtType> statements",
                 "Var: Token name, Option<ExpressionType> initializer",
                 "Print: ExpressionType expression",
             ]),

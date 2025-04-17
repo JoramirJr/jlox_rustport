@@ -40,10 +40,14 @@ impl Environment {
                 None => Ok(LiteralType::Nil),
             }
         } else {
-            Err(RuntimeError {
-                message: format!("Undefined variable '{}'.", &name.lexeme),
-                token: name,
-            })
+            if let Some(enclosing_env) = &mut self.enclosing {
+                return enclosing_env.assign(name, value);
+            } else {
+                return Err(RuntimeError {
+                    token: name.clone(),
+                    message: format!("Undefined variable '{}'.", &name.lexeme),
+                });
+            }
         }
     }
 }

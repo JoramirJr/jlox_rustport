@@ -1,14 +1,14 @@
 use std::{
     collections::HashMap,
     ops::Neg,
-    sync::{LazyLock, Mutex},
+    sync::{LazyLock, Mutex, MutexGuard},
 };
 
 use crate::{
-    environment::{self, Environment},
+    environment::Environment,
     expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable},
     lox::Lox,
-    stmt::{StmtType, Var},
+    stmt::{Block, StmtType, Var},
     token_type::{LiteralType, Token, TokenType},
 };
 
@@ -20,7 +20,7 @@ pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> = LazyLock::new(|
     Mutex::new(Interpreter {
         environment: Environment {
             values: HashMap::new(),
-            enclosing: None
+            enclosing: None,
         },
     })
 });
@@ -35,11 +35,20 @@ type DefaultResult = Result<LiteralType, RuntimeError>;
 
 impl Interpreter {
     pub fn interpret(statements: Vec<StmtType>) -> () {
-        for statement in statements {
-            let execute_result = Self::execute(statement);
+        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
 
-            if let Err(runtime_error) = execute_result {
-                Lox::runtime_error(runtime_error);
+        match interpreter_singleton {
+            Ok(mut interpreter) => {
+                for statement in statements {
+                    let execute_result = Self::execute(statement, &mut interpreter);
+
+                    if let Err(runtime_error) = execute_result {
+                        Lox::runtime_error(runtime_error);
+                    }
+                }
+            }
+            Err(err) => {
+                panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
             }
         }
     }
@@ -53,29 +62,51 @@ impl Interpreter {
             ExpressionType::AssignExpr(assignment) => Self::visit_assign_expr(assignment),
         }
     }
-    fn execute(stmt: StmtType) -> DefaultResult {
+    fn execute(stmt: StmtType, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
             StmtType::VarExpr(var) => Self::visit_var_stmt(var),
-            StmtType::BlockExpr(block) => {
-                let interpreter_singleton = INTERPRETER_SINGLETON.lock();
-            
-                match interpreter_singleton {
-                    Ok(mut interpreter) => {
-                        Self::execute_block(block.statements, Environment { enclosing: interpreter.environment, values: HashMap::new() });
-                        todo!()
-                    }
-                    Err(err) => {
-                        panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
-                    }
-                }
-            },
+            StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter),
         }
     }
-    fn execute_block(statements: Vec<StmtType>, environment: Environment) -> DefaultResult {
-        todo!()
-    } 
+    fn visit_block_stmt(
+        stmt: Block,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
+        Self::execute_block(
+            stmt.statements,
+            Environment {
+                enclosing: Some(Box::new(interpreter.environment.clone())),
+                values: HashMap::new(),
+            },
+            interpreter,
+        )
+    }
+    fn execute_block(
+        statements: Vec<StmtType>,
+        environment: Environment,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
+        let previous: Environment = interpreter.environment.clone();
+        interpreter.environment = environment;
+        let mut curr_execute_result: LiteralType = LiteralType::Nil;
+
+        for statement in statements {
+            let execute_result = Self::execute(statement, interpreter);
+
+            match execute_result {
+                Ok(literal_type) => {
+                    curr_execute_result = literal_type;
+                }
+                Err(err) => {
+                    interpreter.environment = previous;
+                    return Err(err);
+                }
+            };
+        }
+        Ok(curr_execute_result)
+    }
     fn visit_expression_stmt(expr: ExpressionType) -> DefaultResult {
         Self::evaluate(expr)
     }

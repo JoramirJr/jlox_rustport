@@ -47,7 +47,6 @@ impl Lox {
 
         let scanned_tokens = Scanner::scan_tokens(file);
         let statements = Parser::parse(scanned_tokens);
-
         Interpreter::interpret(statements);
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {

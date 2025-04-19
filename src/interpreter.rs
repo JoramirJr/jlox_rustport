@@ -46,27 +46,38 @@ impl Interpreter {
                         Lox::runtime_error(runtime_error);
                     }
                 }
+                std::mem::drop(interpreter);
             }
             Err(err) => {
                 panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
             }
         }
     }
-    pub fn evaluate(expr: ExpressionType) -> DefaultResult {
+    pub fn evaluate(
+        expr: ExpressionType,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
         match expr {
-            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary),
-            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping),
+            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary, interpreter),
+            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping, interpreter),
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
-            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary),
-            ExpressionType::VariableExpr(variable) => Self::visit_variable_expr(variable),
-            ExpressionType::AssignExpr(assignment) => Self::visit_assign_expr(assignment),
+            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary, interpreter),
+            ExpressionType::VariableExpr(variable) => {
+                Self::visit_variable_expr(variable, interpreter)
+            }
+            ExpressionType::AssignExpr(assignment) => {
+                Self::visit_assign_expr(assignment, interpreter)
+            }
         }
     }
     fn execute(stmt: StmtType, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+        // println!("statement: {:?}", stmt);
         match stmt {
-            StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
-            StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression),
-            StmtType::VarExpr(var) => Self::visit_var_stmt(var),
+            StmtType::ExpressionExpr(expr) => {
+                Self::visit_expression_stmt(expr.expression, interpreter)
+            }
+            StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression, interpreter),
+            StmtType::VarExpr(var) => Self::visit_var_stmt(var, interpreter),
             StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter),
         }
     }
@@ -107,11 +118,15 @@ impl Interpreter {
         }
         Ok(curr_execute_result)
     }
-    fn visit_expression_stmt(expr: ExpressionType) -> DefaultResult {
-        Self::evaluate(expr)
+    fn visit_expression_stmt(
+        expr: ExpressionType,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
+        Self::evaluate(expr, interpreter)
     }
-    fn visit_print_stmt(expr: ExpressionType) -> DefaultResult {
-        let value = Self::evaluate(expr);
+    fn visit_print_stmt(expr: ExpressionType,         interpreter: &mut MutexGuard<'_, Interpreter>,
+) -> DefaultResult {
+        let value = Self::evaluate(expr, interpreter);
 
         match value {
             Ok(literal) => {
@@ -121,28 +136,18 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    fn visit_var_stmt(stmt: Var) -> DefaultResult {
-        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
-
+    fn visit_var_stmt(stmt: Var, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
         let mut value: LiteralType = LiteralType::Nil;
 
-        match interpreter_singleton {
-            Ok(mut interpreter) => {
-                if let Some(expr_initializer) = stmt.initializer {
-                    let literal = Ok(Self::evaluate(expr_initializer))?;
-                    value = literal.unwrap();
-                }
-                interpreter
-                    .environment
-                    .define(stmt.name.lexeme, value.clone());
-
-                std::mem::drop(interpreter);
-                return Ok(value);
-            }
-            Err(err) => {
-                panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
-            }
+        if let Some(expr_initializer) = stmt.initializer {
+            let literal = Ok(Self::evaluate(expr_initializer, interpreter))?;
+            value = literal.unwrap();
         }
+        interpreter
+            .environment
+            .define(stmt.name.lexeme, value.clone());
+
+        return Ok(value);
     }
     pub fn stringify(value: &LiteralType) -> String {
         match value {
@@ -162,11 +167,11 @@ impl Interpreter {
     pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
         Ok(literal.value)
     }
-    pub fn visit_grouping_expr(grouping: Grouping) -> DefaultResult {
-        Self::evaluate(*grouping.expression)
+    pub fn visit_grouping_expr(grouping: Grouping, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+        Self::evaluate(*grouping.expression, interpreter)
     }
-    pub fn visit_unary_expr(unary: Unary) -> DefaultResult {
-        let right_r_value = Self::evaluate(*unary.right);
+    pub fn visit_unary_expr(unary: Unary, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+        let right_r_value = Self::evaluate(*unary.right, interpreter);
 
         if let Err(right_operand_error) = right_r_value {
             return Err(RuntimeError {
@@ -195,41 +200,27 @@ impl Interpreter {
         }
         Ok(LiteralType::Nil)
     }
-    pub fn visit_variable_expr(expr: Variable) -> DefaultResult {
-        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
-
-        match interpreter_singleton {
-            Ok(interpreter) => {
-                let get_result = interpreter.environment.get(&expr.name);
-                std::mem::drop(interpreter);
-                return get_result;
-            }
-            Err(err) => {
-                panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
-            }
-        }
+    pub fn visit_variable_expr(
+        expr: Variable,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
+        let get_result = interpreter.environment.get(&expr.name);
+        return get_result;
     }
-    pub fn visit_assign_expr(expr: Assign) -> DefaultResult {
-        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
+    pub fn visit_assign_expr(
+        expr: Assign,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
+        let value = Self::evaluate(*expr.value, interpreter)?;
 
-        match interpreter_singleton {
-            Ok(mut interpreter) => {
-                let value = Self::evaluate(*expr.value)?;
-
-                let get_result = interpreter.environment.assign(expr.name, value);
-                std::mem::drop(interpreter);
-                return get_result;
-            }
-            Err(err) => {
-                panic!("Interpreter singleton lock unwrap failed; error: {:?}", err);
-            }
-        }
+        let get_result = interpreter.environment.assign(expr.name, value);
+        return get_result;
     }
-    pub fn visit_binary_expr(binary: Binary) -> DefaultResult {
+    pub fn visit_binary_expr(binary: Binary, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
-        let left_r_value = Self::evaluate(left);
-        let right_r_value = Self::evaluate(right);
+        let left_r_value = Self::evaluate(left, interpreter);
+        let right_r_value = Self::evaluate(right, interpreter);
 
         if let Err(left_operand_error) = left_r_value {
             return Err(RuntimeError {

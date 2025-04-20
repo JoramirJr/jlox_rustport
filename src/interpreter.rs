@@ -59,7 +59,9 @@ impl Interpreter {
     ) -> DefaultResult {
         match expr {
             ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary, interpreter),
-            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping, interpreter),
+            ExpressionType::GroupingExpr(grouping) => {
+                Self::visit_grouping_expr(grouping, interpreter)
+            }
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
             ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary, interpreter),
             ExpressionType::VariableExpr(variable) => {
@@ -100,6 +102,7 @@ impl Interpreter {
     ) -> DefaultResult {
         let previous: Environment = interpreter.environment.clone();
         interpreter.environment = environment;
+        println!("curr env: {:?}\n", interpreter.environment);
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
 
         for statement in statements {
@@ -123,8 +126,10 @@ impl Interpreter {
     ) -> DefaultResult {
         Self::evaluate(expr, interpreter)
     }
-    fn visit_print_stmt(expr: ExpressionType,         interpreter: &mut MutexGuard<'_, Interpreter>,
-) -> DefaultResult {
+    fn visit_print_stmt(
+        expr: ExpressionType,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
         let value = Self::evaluate(expr, interpreter);
 
         match value {
@@ -166,10 +171,16 @@ impl Interpreter {
     pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
         Ok(literal.value)
     }
-    pub fn visit_grouping_expr(grouping: Grouping, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+    pub fn visit_grouping_expr(
+        grouping: Grouping,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
         Self::evaluate(*grouping.expression, interpreter)
     }
-    pub fn visit_unary_expr(unary: Unary, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+    pub fn visit_unary_expr(
+        unary: Unary,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
         let right_r_value = Self::evaluate(*unary.right, interpreter);
 
         if let Err(right_operand_error) = right_r_value {
@@ -215,7 +226,10 @@ impl Interpreter {
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;
     }
-    pub fn visit_binary_expr(binary: Binary, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+    pub fn visit_binary_expr(
+        binary: Binary,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
         let left_r_value = Self::evaluate(left, interpreter);

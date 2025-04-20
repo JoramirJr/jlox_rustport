@@ -5,7 +5,7 @@ use crate::{
     token_type::{LiteralType, Token},
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Environment {
     pub enclosing: Option<Box<Environment>>,
     pub values: HashMap<String, LiteralType>,

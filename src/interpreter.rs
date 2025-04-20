@@ -71,7 +71,6 @@ impl Interpreter {
         }
     }
     fn execute(stmt: StmtType, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
-        // println!("statement: {:?}", stmt);
         match stmt {
             StmtType::ExpressionExpr(expr) => {
                 Self::visit_expression_stmt(expr.expression, interpreter)

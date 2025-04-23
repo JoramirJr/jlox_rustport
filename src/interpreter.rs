@@ -40,6 +40,7 @@ impl Interpreter {
         match interpreter_singleton {
             Ok(mut interpreter) => {
                 for statement in statements {
+                    println!("statement: {:?}\n", statement);
                     let execute_result = Self::execute(statement, &mut interpreter);
 
                     if let Err(runtime_error) = execute_result {
@@ -102,11 +103,10 @@ impl Interpreter {
     ) -> DefaultResult {
         let previous: Environment = interpreter.environment.clone();
         interpreter.environment = environment;
-        println!("curr env: {:?}\n", interpreter.environment);
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
-
+        
         for statement in statements {
-            let execute_result = Self::execute(statement, interpreter);
+            let execute_result: Result<LiteralType, RuntimeError> = Self::execute(statement, interpreter);
 
             match execute_result {
                 Ok(literal_type) => {

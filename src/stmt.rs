@@ -15,9 +15,9 @@ pub struct Expression {
 }
 #[derive(Debug)]
 pub struct If {
-    pub condition: ExpressionType,
-    pub then_branch: Box<StmtType>,
-    pub else_branch: Box<StmtType>,
+    pub condition: Box<ExpressionType>,
+    pub then_branch: Block,
+    pub else_branch: Option<Block>,
 }
 #[derive(Debug)]
 pub struct Block {

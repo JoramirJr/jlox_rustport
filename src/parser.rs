@@ -2,7 +2,7 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable};
 use crate::lox::Lox;
-use crate::stmt::{Block, Print, StmtType, Var};
+use crate::stmt::{Block, If, Print, StmtType, Var};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -96,9 +96,36 @@ impl Parser {
         } else if Self::match_expr(self, &[TokenType::LeftBrace]) {
             let statements = Self::block(self)?;
             Ok(StmtType::BlockExpr(Block { statements }))
+        } else if Self::match_expr(self, &[TokenType::If]) {
+            Self::if_statement(self)
         } else {
             Self::expression_statement(self)
         };
+    }
+    fn if_statement(&mut self) -> Result<If, ParseError> {
+        Self::consume(self, &TokenType::LeftParen, "Expect '(' after if.");
+        let condition = Self::expression(self)?;
+        Self::consume(
+            self,
+            &TokenType::RightParen,
+            "Expect ')' after if condition.",
+        );
+
+        let then_branch = Self::statement(self)?;
+        let mut else_branch: Option<Block> = None;
+
+        if Self::match_expr(self, &[TokenType::Else]) {
+            let stmt_result = Self::statement(self)?;
+
+            if let StmtType::BlockExpr(block) = stmt_result {
+                else_branch = Some(block);
+            }
+        }
+        Ok(If {
+            condition: Box::new(condition),
+            then_branch: Some(then_branch),
+            else_branch,
+        })
     }
     fn print_statement(&mut self) -> Result<StmtType, ParseError> {
         let value: ExpressionType = Self::expression(self)?;

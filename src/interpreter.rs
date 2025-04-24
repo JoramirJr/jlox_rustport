@@ -40,7 +40,7 @@ impl Interpreter {
         match interpreter_singleton {
             Ok(mut interpreter) => {
                 for statement in statements {
-                    println!("statement: {:?}\n", statement);
+                    // println!("statement: {:?}\n", statement);
                     let execute_result = Self::execute(statement, &mut interpreter);
 
                     if let Err(runtime_error) = execute_result {
@@ -104,20 +104,22 @@ impl Interpreter {
         let previous: Environment = interpreter.environment.clone();
         interpreter.environment = environment;
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
-        
+
         for statement in statements {
-            let execute_result: Result<LiteralType, RuntimeError> = Self::execute(statement, interpreter);
+            let execute_result: Result<LiteralType, RuntimeError> =
+                Self::execute(statement, interpreter);
 
             match execute_result {
                 Ok(literal_type) => {
                     curr_execute_result = literal_type;
                 }
                 Err(err) => {
-                    interpreter.environment = previous;
+                    interpreter.environment = previous.clone();
                     return Err(err);
                 }
             };
         }
+        interpreter.environment = previous.clone();
         Ok(curr_execute_result)
     }
     fn visit_expression_stmt(
@@ -222,7 +224,6 @@ impl Interpreter {
         interpreter: &mut MutexGuard<'_, Interpreter>,
     ) -> DefaultResult {
         let value = Self::evaluate(*expr.value, interpreter)?;
-
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;
     }

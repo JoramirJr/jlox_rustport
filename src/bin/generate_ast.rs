@@ -20,6 +20,7 @@ impl Main {
             "stmt",
             Vec::from([
                 "Expression: ExpressionType expression",
+                "If: ExpressionType condition, Box<StmtType> then_branch, Box<StmtType> else_branch",
                 "Block: Vec<StmtType> statements",
                 "Var: Token name, Option<ExpressionType> initializer",
                 "Print: ExpressionType expression",

@@ -22,6 +22,7 @@ impl AstPrinter {
             }
             ExpressionType::VariableExpr(_) => todo!(),
             ExpressionType::AssignExpr(_) => todo!(),
+            ExpressionType::LogicalExpr(_) => todo!(),
         }
     }
     pub fn parenthesize(name: &String, exprs: Vec<&Box<ExpressionType>>) -> String {

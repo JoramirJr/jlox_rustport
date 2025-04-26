@@ -6,9 +6,9 @@ use std::{
 
 use crate::{
     environment::Environment,
-    expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable},
+    expr::{Assign, Binary, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
     lox::Lox,
-    stmt::{Block, StmtType, Var},
+    stmt::{Block, If, StmtType, Var},
     token_type::{LiteralType, Token, TokenType},
 };
 
@@ -71,6 +71,7 @@ impl Interpreter {
             ExpressionType::AssignExpr(assignment) => {
                 Self::visit_assign_expr(assignment, interpreter)
             }
+            ExpressionType::LogicalExpr(_) => todo!(),
         }
     }
     fn execute(stmt: StmtType, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
@@ -81,6 +82,7 @@ impl Interpreter {
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression, interpreter),
             StmtType::VarExpr(var) => Self::visit_var_stmt(var, interpreter),
             StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter),
+            StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter),
         }
     }
     fn visit_block_stmt(
@@ -128,6 +130,16 @@ impl Interpreter {
     ) -> DefaultResult {
         Self::evaluate(expr, interpreter)
     }
+    fn visit_if_stmt(stmt: If, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+        let evaluate_result = Self::evaluate(*stmt.condition, interpreter)?;
+        if Self::is_truthy(evaluate_result) {
+            Self::execute(StmtType::BlockExpr(stmt.then_branch), interpreter)
+        } else if let Some(else_branch) = stmt.else_branch {
+            Self::execute(StmtType::BlockExpr(else_branch), interpreter)
+        } else {
+            Ok(LiteralType::Nil)
+        }
+    }
     fn visit_print_stmt(
         expr: ExpressionType,
         interpreter: &mut MutexGuard<'_, Interpreter>,
@@ -172,6 +184,9 @@ impl Interpreter {
     }
     pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
         Ok(literal.value)
+    }
+    pub fn visit_logical_expr(logical: Logical) -> DefaultResult {
+        todo!()
     }
     pub fn visit_grouping_expr(
         grouping: Grouping,

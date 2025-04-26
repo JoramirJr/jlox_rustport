@@ -13,6 +13,7 @@ impl Main {
                 "Grouping: Box<ExpressionType> expression",
                 "Literal: LiteralType value",
                 "Variable: Token name",
+                "Logical: Box<ExpressionType> left, Token operator, Box<ExpressionType> right",
                 "Unary: Token operator, Box<ExpressionType> right",
             ]),
         );

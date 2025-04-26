@@ -1,6 +1,6 @@
 use std::sync::{LazyLock, Mutex};
 
-use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Unary, Variable};
+use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Logical, Unary, Variable};
 use crate::lox::Lox;
 use crate::stmt::{Block, If, Print, StmtType, Var};
 use crate::token_type::*;
@@ -102,30 +102,41 @@ impl Parser {
             Self::expression_statement(self)
         };
     }
-    fn if_statement(&mut self) -> Result<If, ParseError> {
+    fn if_statement(&mut self) -> Result<StmtType, ParseError> {
         Self::consume(self, &TokenType::LeftParen, "Expect '(' after if.");
         let condition = Self::expression(self)?;
         Self::consume(
             self,
             &TokenType::RightParen,
             "Expect ')' after if condition.",
-        );
+        )?;
 
         let then_branch = Self::statement(self)?;
-        let mut else_branch: Option<Block> = None;
 
-        if Self::match_expr(self, &[TokenType::Else]) {
-            let stmt_result = Self::statement(self)?;
+        if let StmtType::BlockExpr(then_block) = then_branch {
+            let mut else_branch: Option<Block> = None;
 
-            if let StmtType::BlockExpr(block) = stmt_result {
-                else_branch = Some(block);
+            if Self::match_expr(self, &[TokenType::Else]) {
+                let stmt_result = Self::statement(self)?;
+
+                if let StmtType::BlockExpr(block) = stmt_result {
+                    else_branch = Some(block);
+                } else {
+                    return Err(ParseError(
+                        "Expect '{' after else condition's parens.".to_string(),
+                    ));
+                }
             }
+            Ok(StmtType::IfExpr(If {
+                condition: Box::new(condition),
+                then_branch: then_block,
+                else_branch,
+            }))
+        } else {
+            Err(ParseError(
+                "Expect '{' after if condition's parens.".to_string(),
+            ))
         }
-        Ok(If {
-            condition: Box::new(condition),
-            then_branch: Some(then_branch),
-            else_branch,
-        })
     }
     fn print_statement(&mut self) -> Result<StmtType, ParseError> {
         let value: ExpressionType = Self::expression(self)?;
@@ -155,7 +166,7 @@ impl Parser {
         return Ok(statements);
     }
     fn assigment(&mut self) -> Result<ExpressionType, ParseError> {
-        let expr = Self::equality(self)?;
+        let expr = Self::or(self)?;
 
         if Self::match_expr(self, &[TokenType::Equal]) {
             let equals = Self::previous(&self);
@@ -173,6 +184,34 @@ impl Parser {
         } else {
             return Ok(expr);
         }
+    }
+    pub fn or(&mut self) -> Result<ExpressionType, ParseError> {
+        let mut expr = Self::and(self)?;
+
+        while Self::match_expr(self, &[TokenType::Or]) {
+            let operator = Self::previous(self);
+            let right = Self::and(self)?;
+            expr = ExpressionType::LogicalExpr(Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            })
+        }
+        Ok(expr)
+    }
+    pub fn and(&mut self) -> Result<ExpressionType, ParseError> {
+        let mut expr = Self::equality(self)?;
+
+        while Self::match_expr(self, &[TokenType::And]) {
+            let operator = Self::previous(self);
+            let right = Self::equality(self)?;
+            expr = ExpressionType::LogicalExpr(Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            })
+        }
+        Ok(expr)
     }
     pub fn expression(&mut self) -> Result<ExpressionType, ParseError> {
         Self::assigment(self)

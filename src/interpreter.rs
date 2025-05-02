@@ -25,7 +25,7 @@ pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> = LazyLock::new(|
     })
 });
 
-pub type MutableRefInterpreterMutex<'a> = &'a mut MutexGuard<'a, Interpreter>;
+pub type InterpreterMutex<'a> = MutexGuard<'a, Interpreter>;
 
 #[derive(Debug)]
 pub struct RuntimeError {
@@ -37,7 +37,7 @@ type DefaultResult = Result<LiteralType, RuntimeError>;
 
 impl Interpreter {
     pub fn interpret(statements: Vec<StmtType>) -> () {
-        let interpreter_singleton = INTERPRETER_SINGLETON.lock();
+        let interpreter_singleton: Result<InterpreterMutex, std::sync::PoisonError<InterpreterMutex>> = INTERPRETER_SINGLETON.lock();
 
         match interpreter_singleton {
             Ok(mut interpreter) => {
@@ -57,27 +57,27 @@ impl Interpreter {
     }
     pub fn evaluate(
         expr: ExpressionType,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         match expr {
-            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary, interpreter),
+            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary, None),
             ExpressionType::GroupingExpr(grouping) => {
-                Self::visit_grouping_expr(grouping, interpreter)
+                Self::visit_grouping_expr(grouping, None)
             }
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
-            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary, interpreter),
+            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary, None),
             ExpressionType::VariableExpr(variable) => {
                 Self::visit_variable_expr(variable, interpreter.unwrap())
             }
             ExpressionType::AssignExpr(assignment) => {
                 Self::visit_assign_expr(assignment, interpreter.unwrap())
             }
-            ExpressionType::LogicalExpr(logical) => Self::visit_logical_expr(logical, interpreter),
+            ExpressionType::LogicalExpr(logical) => Self::visit_logical_expr(logical, None),
         }
     }
     fn execute(
         stmt: StmtType,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
@@ -89,7 +89,7 @@ impl Interpreter {
     }
     fn visit_block_stmt(
         stmt: Block,
-        interpreter: MutableRefInterpreterMutex,
+        interpreter: &mut InterpreterMutex,
     ) -> DefaultResult {
         Self::execute_block(
             stmt.statements,
@@ -103,7 +103,7 @@ impl Interpreter {
     fn execute_block(
         statements: Vec<StmtType>,
         environment: Environment,
-        interpreter: MutableRefInterpreterMutex,
+        interpreter: &mut InterpreterMutex,
     ) -> DefaultResult {
         let previous: Environment = interpreter.environment.clone();
         interpreter.environment = environment;
@@ -131,7 +131,7 @@ impl Interpreter {
     }
     fn visit_if_stmt(
         stmt: If,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         let evaluate_result = Self::evaluate(*stmt.condition, interpreter)?;
         if Self::is_truthy(&evaluate_result) {
@@ -144,7 +144,7 @@ impl Interpreter {
     }
     fn visit_print_stmt(
         expr: ExpressionType,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         let value = Self::evaluate(expr, interpreter);
 
@@ -156,7 +156,7 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    fn visit_var_stmt(stmt: Var, interpreter: MutableRefInterpreterMutex) -> DefaultResult {
+    fn visit_var_stmt(stmt: Var, interpreter: &mut InterpreterMutex) -> DefaultResult {
         let mut value: LiteralType = LiteralType::Nil;
 
         if let Some(expr_initializer) = stmt.initializer {
@@ -189,7 +189,7 @@ impl Interpreter {
     }
     pub fn visit_logical_expr(
         logical: Logical,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         let left = Self::evaluate(*logical.left, interpreter)?;
 
@@ -207,13 +207,13 @@ impl Interpreter {
     }
     pub fn visit_grouping_expr(
         grouping: Grouping,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         Self::evaluate(*grouping.expression, interpreter)
     }
     pub fn visit_unary_expr(
         unary: Unary,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         let right_r_value = Self::evaluate(*unary.right, interpreter);
 
@@ -246,14 +246,14 @@ impl Interpreter {
     }
     pub fn visit_variable_expr(
         expr: Variable,
-        interpreter: MutableRefInterpreterMutex,
+        interpreter: &mut InterpreterMutex,
     ) -> DefaultResult {
         let get_result = interpreter.environment.get(&expr.name);
         return get_result;
     }
     pub fn visit_assign_expr(
         expr: Assign,
-        interpreter: MutableRefInterpreterMutex,
+        interpreter: &mut InterpreterMutex,
     ) -> DefaultResult {
         let value = Self::evaluate(*expr.value, None)?;
         let get_result = interpreter.environment.assign(expr.name, value);
@@ -261,7 +261,7 @@ impl Interpreter {
     }
     pub fn visit_binary_expr(
         binary: Binary,
-        interpreter: Option<MutableRefInterpreterMutex>,
+        interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;

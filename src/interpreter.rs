@@ -132,7 +132,7 @@ impl Interpreter {
     }
     fn visit_if_stmt(stmt: If, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
         let evaluate_result = Self::evaluate(*stmt.condition, interpreter)?;
-        if Self::is_truthy(evaluate_result) {
+        if Self::is_truthy(&evaluate_result) {
             Self::execute(StmtType::BlockExpr(stmt.then_branch), interpreter)
         } else if let Some(else_branch) = stmt.else_branch {
             Self::execute(StmtType::BlockExpr(else_branch), interpreter)
@@ -185,8 +185,23 @@ impl Interpreter {
     pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
         Ok(literal.value)
     }
-    pub fn visit_logical_expr(logical: Logical) -> DefaultResult {
-        todo!()
+    pub fn visit_logical_expr(
+        logical: Logical,
+        interpreter: &mut MutexGuard<'_, Interpreter>,
+    ) -> DefaultResult {
+        let left = Self::evaluate(*logical.left, interpreter)?;
+
+        if let TokenType::Or = logical.operator.ttype {
+            if Self::is_truthy(&left) {
+                return Ok(left);
+            }
+        } else {
+            if !Self::is_truthy(&left) {
+                return Ok(left);
+            }
+        }
+
+        return Self::evaluate(*logical.right, interpreter)
     }
     pub fn visit_grouping_expr(
         grouping: Grouping,
@@ -221,7 +236,7 @@ impl Interpreter {
                 }
             }
             TokenType::Bang => {
-                return Ok(LiteralType::Bool(!Self::is_truthy(right_value)));
+                return Ok(LiteralType::Bool(!Self::is_truthy(&right_value)));
             }
             _ => {}
         }
@@ -401,10 +416,10 @@ impl Interpreter {
             });
         }
     }
-    pub fn is_truthy(item: LiteralType) -> bool {
+    pub fn is_truthy(item: &LiteralType) -> bool {
         match item {
             LiteralType::Bool(bool) => {
-                return bool;
+                return *bool;
             }
             LiteralType::Nil => {
                 return false;

@@ -45,8 +45,11 @@ impl Main {
                     .as_bytes(),
             );
         } else {
-            let _ =
-                file_handler.write(["use crate::{expr::ExpressionType, token_type::Token};\n\n"].concat().as_bytes());
+            let _ = file_handler.write(
+                ["use crate::{expr::ExpressionType, token_type::Token};\n\n"]
+                    .concat()
+                    .as_bytes(),
+            );
 
             let _ = file_handler.write(
                 ["#[derive(Debug)]\n", "pub enum StmtType {\n"]

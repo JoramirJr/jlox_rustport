@@ -15,10 +15,16 @@ type DefaultResult = Result<LiteralType, RuntimeError>;
 
 impl Environment {
     pub fn define(&mut self, name: String, value: LiteralType) -> () {
-        println!("ENV Values:{:?}\nENV Enclosing:{:?}\nK:{:?}, V:{:?}\n", self.values, self.enclosing, name, value);
+        println!(
+            "ENV Values:{:?}\nENV Enclosing:{:?}\nK:{:?}, V:{:?}\n",
+            self.values, self.enclosing, name, value
+        );
         self.values.insert(name.clone(), value);
         let manipulated_value = self.values.get(name.clone().as_str()).unwrap();
-        println!("ENV Values:{:?}\nENV Enclosing:{:?}\nManipulated Value:{:?}\n\n", self.values, self.enclosing, manipulated_value);
+        println!(
+            "ENV Values:{:?}\nENV Enclosing:{:?}\nManipulated Value:{:?}\n\n",
+            self.values, self.enclosing, manipulated_value
+        );
     }
     pub fn get(&self, name: &Token) -> DefaultResult {
         let map_value = self.values.get(name.lexeme.as_str());

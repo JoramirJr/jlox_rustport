@@ -25,6 +25,8 @@ pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> = LazyLock::new(|
     })
 });
 
+pub type MutableRefInterpreterMutex<'a> = &'a mut MutexGuard<'a, Interpreter>;
+
 #[derive(Debug)]
 pub struct RuntimeError {
     pub token: Token,
@@ -40,8 +42,7 @@ impl Interpreter {
         match interpreter_singleton {
             Ok(mut interpreter) => {
                 for statement in statements {
-                    // println!("statement: {:?}\n", statement);
-                    let execute_result = Self::execute(statement, &mut interpreter);
+                    let execute_result = Self::execute(statement, Some(&mut interpreter));
 
                     if let Err(runtime_error) = execute_result {
                         Lox::runtime_error(runtime_error);
@@ -56,7 +57,7 @@ impl Interpreter {
     }
     pub fn evaluate(
         expr: ExpressionType,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: Option<MutableRefInterpreterMutex>,
     ) -> DefaultResult {
         match expr {
             ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary, interpreter),
@@ -66,28 +67,29 @@ impl Interpreter {
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
             ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary, interpreter),
             ExpressionType::VariableExpr(variable) => {
-                Self::visit_variable_expr(variable, interpreter)
+                Self::visit_variable_expr(variable, interpreter.unwrap())
             }
             ExpressionType::AssignExpr(assignment) => {
-                Self::visit_assign_expr(assignment, interpreter)
+                Self::visit_assign_expr(assignment, interpreter.unwrap())
             }
-            ExpressionType::LogicalExpr(_) => todo!(),
+            ExpressionType::LogicalExpr(logical) => Self::visit_logical_expr(logical, interpreter),
         }
     }
-    fn execute(stmt: StmtType, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+    fn execute(
+        stmt: StmtType,
+        interpreter: Option<MutableRefInterpreterMutex>,
+    ) -> DefaultResult {
         match stmt {
-            StmtType::ExpressionExpr(expr) => {
-                Self::visit_expression_stmt(expr.expression, interpreter)
-            }
-            StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression, interpreter),
-            StmtType::VarExpr(var) => Self::visit_var_stmt(var, interpreter),
-            StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter),
-            StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter),
+            StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
+            StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression, None),
+            StmtType::VarExpr(var) => Self::visit_var_stmt(var, interpreter.unwrap()),
+            StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
+            StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, None),
         }
     }
     fn visit_block_stmt(
         stmt: Block,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: MutableRefInterpreterMutex,
     ) -> DefaultResult {
         Self::execute_block(
             stmt.statements,
@@ -101,7 +103,7 @@ impl Interpreter {
     fn execute_block(
         statements: Vec<StmtType>,
         environment: Environment,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: MutableRefInterpreterMutex,
     ) -> DefaultResult {
         let previous: Environment = interpreter.environment.clone();
         interpreter.environment = environment;
@@ -109,7 +111,7 @@ impl Interpreter {
 
         for statement in statements {
             let execute_result: Result<LiteralType, RuntimeError> =
-                Self::execute(statement, interpreter);
+                Self::execute(statement, Some(interpreter));
 
             match execute_result {
                 Ok(literal_type) => {
@@ -124,25 +126,25 @@ impl Interpreter {
         interpreter.environment = previous.clone();
         Ok(curr_execute_result)
     }
-    fn visit_expression_stmt(
-        expr: ExpressionType,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
-    ) -> DefaultResult {
-        Self::evaluate(expr, interpreter)
+    fn visit_expression_stmt(expr: ExpressionType) -> DefaultResult {
+        Self::evaluate(expr, None)
     }
-    fn visit_if_stmt(stmt: If, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+    fn visit_if_stmt(
+        stmt: If,
+        interpreter: Option<MutableRefInterpreterMutex>,
+    ) -> DefaultResult {
         let evaluate_result = Self::evaluate(*stmt.condition, interpreter)?;
         if Self::is_truthy(&evaluate_result) {
-            Self::execute(StmtType::BlockExpr(stmt.then_branch), interpreter)
+            Self::execute(StmtType::BlockExpr(stmt.then_branch), None)
         } else if let Some(else_branch) = stmt.else_branch {
-            Self::execute(StmtType::BlockExpr(else_branch), interpreter)
+            Self::execute(StmtType::BlockExpr(else_branch), None)
         } else {
             Ok(LiteralType::Nil)
         }
     }
     fn visit_print_stmt(
         expr: ExpressionType,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: Option<MutableRefInterpreterMutex>,
     ) -> DefaultResult {
         let value = Self::evaluate(expr, interpreter);
 
@@ -154,11 +156,11 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    fn visit_var_stmt(stmt: Var, interpreter: &mut MutexGuard<'_, Interpreter>) -> DefaultResult {
+    fn visit_var_stmt(stmt: Var, interpreter: MutableRefInterpreterMutex) -> DefaultResult {
         let mut value: LiteralType = LiteralType::Nil;
 
         if let Some(expr_initializer) = stmt.initializer {
-            let literal = Ok(Self::evaluate(expr_initializer, interpreter))?;
+            let literal = Ok(Self::evaluate(expr_initializer, None))?;
             value = literal.unwrap();
         }
         interpreter
@@ -187,7 +189,7 @@ impl Interpreter {
     }
     pub fn visit_logical_expr(
         logical: Logical,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: Option<MutableRefInterpreterMutex>,
     ) -> DefaultResult {
         let left = Self::evaluate(*logical.left, interpreter)?;
 
@@ -201,17 +203,17 @@ impl Interpreter {
             }
         }
 
-        return Self::evaluate(*logical.right, interpreter)
+        return Self::evaluate(*logical.right, None);
     }
     pub fn visit_grouping_expr(
         grouping: Grouping,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: Option<MutableRefInterpreterMutex>,
     ) -> DefaultResult {
         Self::evaluate(*grouping.expression, interpreter)
     }
     pub fn visit_unary_expr(
         unary: Unary,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: Option<MutableRefInterpreterMutex>,
     ) -> DefaultResult {
         let right_r_value = Self::evaluate(*unary.right, interpreter);
 
@@ -244,27 +246,27 @@ impl Interpreter {
     }
     pub fn visit_variable_expr(
         expr: Variable,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: MutableRefInterpreterMutex,
     ) -> DefaultResult {
         let get_result = interpreter.environment.get(&expr.name);
         return get_result;
     }
     pub fn visit_assign_expr(
         expr: Assign,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: MutableRefInterpreterMutex,
     ) -> DefaultResult {
-        let value = Self::evaluate(*expr.value, interpreter)?;
+        let value = Self::evaluate(*expr.value, None)?;
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;
     }
     pub fn visit_binary_expr(
         binary: Binary,
-        interpreter: &mut MutexGuard<'_, Interpreter>,
+        interpreter: Option<MutableRefInterpreterMutex>,
     ) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
         let left_r_value = Self::evaluate(left, interpreter);
-        let right_r_value = Self::evaluate(right, interpreter);
+        let right_r_value = Self::evaluate(right, None);
 
         if let Err(left_operand_error) = left_r_value {
             return Err(RuntimeError {

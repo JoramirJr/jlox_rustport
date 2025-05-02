@@ -2,7 +2,7 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Logical, Unary, Variable};
 use crate::lox::Lox;
-use crate::stmt::{Block, If, Print, StmtType, Var};
+use crate::stmt::{Block, If, Print, StmtType, Var, While};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -19,6 +19,8 @@ pub static PARSER_SINGLETON: LazyLock<Mutex<Parser>> = LazyLock::new(|| {
         current: 0,
     })
 });
+
+type DefaultResult = Result<StmtType, ParseError>;
 
 impl Parser {
     pub fn parse(scanned_tokens: Vec<Token>) -> Vec<StmtType> {
@@ -69,7 +71,7 @@ impl Parser {
             }
         }
     }
-    fn var_declaration(&mut self) -> Result<StmtType, ParseError> {
+    fn var_declaration(&mut self) -> DefaultResult {
         let name = Self::consume(self, &TokenType::Identifier, "Expect variable name.")?;
 
         let mut initializer: Option<ExpressionType> = None;
@@ -90,7 +92,23 @@ impl Parser {
             initializer: initializer,
         }))
     }
-    fn statement(&mut self) -> Result<StmtType, ParseError> {
+    fn while_statement(&mut self) -> DefaultResult {
+        Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'while'.");
+        let condition = Self::expression(self)?;
+        Self::consume(
+            self,
+            &TokenType::RightParen,
+            "Expect ')' after 'while' condition.",
+        )?;
+
+        let body = Self::statement(self)?;
+
+        return Ok(StmtType::WhileExpr(While {
+            condition,
+            body: Box::new(body),
+        }));
+    }
+    fn statement(&mut self) -> DefaultResult {
         return if Self::match_expr(self, &[TokenType::Print]) {
             Self::print_statement(self)
         } else if Self::match_expr(self, &[TokenType::LeftBrace]) {
@@ -98,17 +116,19 @@ impl Parser {
             Ok(StmtType::BlockExpr(Block { statements }))
         } else if Self::match_expr(self, &[TokenType::If]) {
             Self::if_statement(self)
+        } else if Self::match_expr(self, &[TokenType::While]) {
+            Self::while_statement(self)
         } else {
             Self::expression_statement(self)
         };
     }
-    fn if_statement(&mut self) -> Result<StmtType, ParseError> {
-        Self::consume(self, &TokenType::LeftParen, "Expect '(' after if.");
+    fn if_statement(&mut self) -> DefaultResult {
+        Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'if'.");
         let condition = Self::expression(self)?;
         Self::consume(
             self,
             &TokenType::RightParen,
-            "Expect ')' after if condition.",
+            "Expect ')' after 'if' condition.",
         )?;
 
         let then_branch = Self::statement(self)?;
@@ -138,14 +158,14 @@ impl Parser {
             ))
         }
     }
-    fn print_statement(&mut self) -> Result<StmtType, ParseError> {
+    fn print_statement(&mut self) -> DefaultResult {
         let value: ExpressionType = Self::expression(self)?;
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after value.")?;
 
         Ok(StmtType::PrintExpr(Print { expression: value }))
     }
-    fn expression_statement(&mut self) -> Result<StmtType, ParseError> {
+    fn expression_statement(&mut self) -> DefaultResult {
         let expr: ExpressionType = Self::expression(self)?;
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after expression.")?;

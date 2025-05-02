@@ -25,6 +25,7 @@ impl Main {
                 "Block: Vec<StmtType> statements",
                 "Var: Token name, Option<ExpressionType> initializer",
                 "Print: ExpressionType expression",
+                "While: ExpressionType condition, Box<StmtType> body"
             ]),
         );
     }

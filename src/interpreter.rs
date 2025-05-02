@@ -8,7 +8,7 @@ use crate::{
     environment::Environment,
     expr::{Assign, Binary, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
     lox::Lox,
-    stmt::{Block, If, StmtType, Var},
+    stmt::{Block, If, StmtType, Var, While},
     token_type::{LiteralType, Token, TokenType},
 };
 
@@ -37,7 +37,10 @@ type DefaultResult = Result<LiteralType, RuntimeError>;
 
 impl Interpreter {
     pub fn interpret(statements: Vec<StmtType>) -> () {
-        let interpreter_singleton: Result<InterpreterMutex, std::sync::PoisonError<InterpreterMutex>> = INTERPRETER_SINGLETON.lock();
+        let interpreter_singleton: Result<
+            InterpreterMutex,
+            std::sync::PoisonError<InterpreterMutex>,
+        > = INTERPRETER_SINGLETON.lock();
 
         match interpreter_singleton {
             Ok(mut interpreter) => {
@@ -61,9 +64,7 @@ impl Interpreter {
     ) -> DefaultResult {
         match expr {
             ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary, None),
-            ExpressionType::GroupingExpr(grouping) => {
-                Self::visit_grouping_expr(grouping, None)
-            }
+            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping, None),
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
             ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary, None),
             ExpressionType::VariableExpr(variable) => {
@@ -75,22 +76,17 @@ impl Interpreter {
             ExpressionType::LogicalExpr(logical) => Self::visit_logical_expr(logical, None),
         }
     }
-    fn execute(
-        stmt: StmtType,
-        interpreter: Option<&mut InterpreterMutex>,
-    ) -> DefaultResult {
+    fn execute(stmt: &mut StmtType, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression, None),
             StmtType::VarExpr(var) => Self::visit_var_stmt(var, interpreter.unwrap()),
             StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
             StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, None),
+            StmtType::WhileExpr(while_stmt) => Self::visit_while_stmt(while_stmt, None),
         }
     }
-    fn visit_block_stmt(
-        stmt: Block,
-        interpreter: &mut InterpreterMutex,
-    ) -> DefaultResult {
+    fn visit_block_stmt(stmt: Block, interpreter: &mut InterpreterMutex) -> DefaultResult {
         Self::execute_block(
             stmt.statements,
             Environment {
@@ -129,10 +125,7 @@ impl Interpreter {
     fn visit_expression_stmt(expr: ExpressionType) -> DefaultResult {
         Self::evaluate(expr, None)
     }
-    fn visit_if_stmt(
-        stmt: If,
-        interpreter: Option<&mut InterpreterMutex>,
-    ) -> DefaultResult {
+    fn visit_if_stmt(stmt: If, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
         let evaluate_result = Self::evaluate(*stmt.condition, interpreter)?;
         if Self::is_truthy(&evaluate_result) {
             Self::execute(StmtType::BlockExpr(stmt.then_branch), None)
@@ -168,6 +161,13 @@ impl Interpreter {
             .define(stmt.name.lexeme, value.clone());
 
         return Ok(value);
+    }
+    fn visit_while_stmt(stmt: &mut While, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
+        let evaluated_condition = Self::evaluate(stmt.condition, interpreter)?;
+        while Self::is_truthy(&evaluated_condition) {
+            Self::execute(stmt.body, interpreter);
+        }
+        return Ok(LiteralType::Nil)
     }
     pub fn stringify(value: &LiteralType) -> String {
         match value {
@@ -251,10 +251,7 @@ impl Interpreter {
         let get_result = interpreter.environment.get(&expr.name);
         return get_result;
     }
-    pub fn visit_assign_expr(
-        expr: Assign,
-        interpreter: &mut InterpreterMutex,
-    ) -> DefaultResult {
+    pub fn visit_assign_expr(expr: Assign, interpreter: &mut InterpreterMutex) -> DefaultResult {
         let value = Self::evaluate(*expr.value, None)?;
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;

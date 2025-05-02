@@ -7,6 +7,7 @@ pub enum StmtType {
     BlockExpr(Block),
     VarExpr(Var),
     PrintExpr(Print),
+    WhileExpr(While),
 }
 
 #[derive(Debug)]
@@ -31,4 +32,9 @@ pub struct Var {
 #[derive(Debug)]
 pub struct Print {
     pub expression: ExpressionType,
+}
+#[derive(Debug)]
+pub struct While {
+    pub condition: ExpressionType,
+    pub body: Box<StmtType>,
 }

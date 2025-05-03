@@ -118,12 +118,29 @@ impl Parser {
             Self::if_statement(self)
         } else if Self::match_expr(self, &[TokenType::While]) {
             Self::while_statement(self)
+        } else if Self::match_expr(self, &[TokenType::For]) {
+            Self::for_statement()
         } else {
             Self::expression_statement(self)
         };
     }
+    fn for_statement(&mut self) -> DefaultResult {
+        Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'for'.")?;
+
+        let mut initializer: Option<StmtType> = None;
+
+        if Self::match_expr(self, &[TokenType::Semicolon]) {
+            initializer = None;
+        } else if Self::match_expr(self, &[TokenType::Var]) {
+            let var_decl = Self::var_declaration(self)?;
+            initializer = Some(var_decl);
+        } else  {
+            let var_decl = Self::expression_statement(self)?;
+            initializer = Some(var_decl);
+        }
+    }
     fn if_statement(&mut self) -> DefaultResult {
-        Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'if'.");
+        Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'if'.")?;
         let condition = Self::expression(self)?;
         Self::consume(
             self,

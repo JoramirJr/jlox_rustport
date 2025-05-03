@@ -76,7 +76,7 @@ impl Interpreter {
             ExpressionType::LogicalExpr(logical) => Self::visit_logical_expr(logical, None),
         }
     }
-    fn execute(stmt: &mut StmtType, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
+    fn execute(stmt: StmtType, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
             StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression, None),
@@ -162,12 +162,15 @@ impl Interpreter {
 
         return Ok(value);
     }
-    fn visit_while_stmt(stmt: &mut While, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
-        let evaluated_condition = Self::evaluate(stmt.condition, interpreter)?;
+    fn visit_while_stmt(
+        stmt: While,
+        interpreter: Option<&mut InterpreterMutex>,
+    ) -> DefaultResult {
+        let evaluated_condition = Self::evaluate(stmt.condition.clone(), interpreter)?;
         while Self::is_truthy(&evaluated_condition) {
-            Self::execute(stmt.body, interpreter);
+            Self::execute(*stmt.body.clone(), None)?;
         }
-        return Ok(LiteralType::Nil)
+        return Ok(LiteralType::Nil);
     }
     pub fn stringify(value: &LiteralType) -> String {
         match value {

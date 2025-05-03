@@ -41,7 +41,7 @@ impl Main {
                     .as_bytes(),
             );
             let _ = file_handler.write(
-                ["#[derive(Debug)]\n", "pub enum ExpressionType {\n"]
+                ["#[derive(Debug, Clone)]\n", "pub enum ExpressionType {\n"]
                     .concat()
                     .as_bytes(),
             );
@@ -53,7 +53,7 @@ impl Main {
             );
 
             let _ = file_handler.write(
-                ["#[derive(Debug)]\n", "pub enum StmtType {\n"]
+                ["#[derive(Debug, Clone)]\n", "pub enum StmtType {\n"]
                     .concat()
                     .as_bytes(),
             );
@@ -79,7 +79,7 @@ impl Main {
     }
     fn define_type(file_handler: &mut File, struct_name: &str, field_list: &str) {
         let _ = file_handler.write(
-            ["#[derive(Debug)]\n", "pub struct", " ", struct_name, " {\n"]
+            ["#[derive(Debug, Clone)]\n", "pub struct", " ", struct_name, " {\n"]
                 .concat()
                 .as_bytes(),
         );

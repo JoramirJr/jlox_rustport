@@ -63,27 +63,39 @@ impl Interpreter {
         interpreter: Option<&mut InterpreterMutex>,
     ) -> DefaultResult {
         match expr {
-            ExpressionType::BinaryExpr(binary) => Self::visit_binary_expr(binary, None),
-            ExpressionType::GroupingExpr(grouping) => Self::visit_grouping_expr(grouping, None),
+            ExpressionType::BinaryExpr(binary) => {
+                Self::visit_binary_expr(binary, Some(interpreter.unwrap()))
+            }
+            ExpressionType::GroupingExpr(grouping) => {
+                Self::visit_grouping_expr(grouping, Some(interpreter.unwrap()))
+            }
             ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
-            ExpressionType::UnaryExpr(unary) => Self::visit_unary_expr(unary, None),
+            ExpressionType::UnaryExpr(unary) => {
+                Self::visit_unary_expr(unary, Some(interpreter.unwrap()))
+            }
             ExpressionType::VariableExpr(variable) => {
                 Self::visit_variable_expr(variable, interpreter.unwrap())
             }
             ExpressionType::AssignExpr(assignment) => {
                 Self::visit_assign_expr(assignment, interpreter.unwrap())
             }
-            ExpressionType::LogicalExpr(logical) => Self::visit_logical_expr(logical, None),
+            ExpressionType::LogicalExpr(logical) => {
+                Self::visit_logical_expr(logical, Some(interpreter.unwrap()))
+            }
         }
     }
     fn execute(stmt: StmtType, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
         match stmt {
             StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
-            StmtType::PrintExpr(print) => Self::visit_print_stmt(print.expression, None),
+            StmtType::PrintExpr(print) => {
+                Self::visit_print_stmt(print.expression, Some(interpreter.unwrap()))
+            }
             StmtType::VarExpr(var) => Self::visit_var_stmt(var, interpreter.unwrap()),
             StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
-            StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, None),
-            StmtType::WhileExpr(while_stmt) => Self::visit_while_stmt(while_stmt, None),
+            StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, Some(interpreter.unwrap())),
+            StmtType::WhileExpr(while_stmt) => {
+                Self::visit_while_stmt(while_stmt, Some(interpreter.unwrap()))
+            }
         }
     }
     fn visit_block_stmt(stmt: Block, interpreter: &mut InterpreterMutex) -> DefaultResult {
@@ -162,10 +174,7 @@ impl Interpreter {
 
         return Ok(value);
     }
-    fn visit_while_stmt(
-        stmt: While,
-        interpreter: Option<&mut InterpreterMutex>,
-    ) -> DefaultResult {
+    fn visit_while_stmt(stmt: While, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
         let evaluated_condition = Self::evaluate(stmt.condition.clone(), interpreter)?;
         while Self::is_truthy(&evaluated_condition) {
             Self::execute(*stmt.body.clone(), None)?;

@@ -2,7 +2,7 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Logical, Unary, Variable};
 use crate::lox::Lox;
-use crate::stmt::{Block, If, Print, StmtType, Var, While};
+use crate::stmt::{Block, Expression, If, Print, StmtType, Var, While};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -119,7 +119,7 @@ impl Parser {
         } else if Self::match_expr(self, &[TokenType::While]) {
             Self::while_statement(self)
         } else if Self::match_expr(self, &[TokenType::For]) {
-            Self::for_statement()
+            Self::for_statement(self)
         } else {
             Self::expression_statement(self)
         };
@@ -134,10 +134,66 @@ impl Parser {
         } else if Self::match_expr(self, &[TokenType::Var]) {
             let var_decl = Self::var_declaration(self)?;
             initializer = Some(var_decl);
-        } else  {
-            let var_decl = Self::expression_statement(self)?;
-            initializer = Some(var_decl);
+        } else {
+            let expr_stmt = Self::expression_statement(self)?;
+            initializer = Some(expr_stmt);
         }
+
+        let mut condition: Option<ExpressionType> = None;
+
+        if !Self::check(&self, &TokenType::Semicolon) {
+            let expr_stmt = Self::expression(self)?;
+            condition = Some(expr_stmt);
+        }
+        Self::consume(
+            self,
+            &TokenType::RightParen,
+            "Expect closing ')' after loop condition.",
+        )?;
+
+        let mut increment: Option<ExpressionType> = None;
+
+        if !Self::check(&self, &TokenType::RightParen) {
+            let expr = Self::expression(self)?;
+            increment = Some(expr);
+        }
+        Self::consume(
+            self,
+            &TokenType::RightParen,
+            "Expect closing ')' after 'for' clauses.",
+        )?;
+
+        let mut body = Self::statement(self)?;
+
+        if let Some(increment) = increment {
+            body = StmtType::BlockExpr(Block {
+                statements: Vec::from([
+                    body,
+                    StmtType::ExpressionExpr(Expression {
+                        expression: increment,
+                    }),
+                ]),
+            });
+        }
+
+        if let None = condition {
+            condition = Some(ExpressionType::LiteralExpr(Literal {
+                value: LiteralType::Bool(true),
+            }));
+        }
+
+        body = StmtType::WhileExpr(While {
+            condition: condition.unwrap(),
+            body: Box::new(body),
+        });
+
+        if let Some(initializer) = initializer {
+            body = StmtType::BlockExpr(Block {
+                statements: Vec::from([initializer, body]),
+            })
+        }
+
+        return Ok(body);
     }
     fn if_statement(&mut self) -> DefaultResult {
         Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'if'.")?;

@@ -140,10 +140,11 @@ impl Interpreter {
     fn visit_if_stmt(stmt: If, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
         let evaluate_result = Self::evaluate(*stmt.condition, interpreter)?;
         if Self::is_truthy(&evaluate_result) {
-            Self::execute(StmtType::BlockExpr(stmt.then_branch), None)
+            Self::execute(StmtType::BlockExpr(stmt.then_branch), interpreter)
         } else if let Some(else_branch) = stmt.else_branch {
-            Self::execute(StmtType::BlockExpr(else_branch), None)
-        } else {
+            Self::execute(StmtType::BlockExpr(else_branch), interpreter)
+        } 
+        else {
             Ok(LiteralType::Nil)
         }
     }
@@ -161,13 +162,13 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    fn visit_var_stmt(stmt: Var, interpreter: &mut InterpreterMutex) -> DefaultResult {
+    fn visit_var_stmt(stmt: Var, interpreter: &InterpreterMutex) -> DefaultResult {
         let mut value: LiteralType = LiteralType::Nil;
 
-        if let Some(expr_initializer) = stmt.initializer {
-            let literal = Ok(Self::evaluate(expr_initializer, None))?;
-            value = literal.unwrap();
-        }
+        // if let Some(expr_initializer) = stmt.initializer {
+        //     let literal = Ok(Self::evaluate(expr_initializer, Some(interpreter)))?;
+        //     value = literal.unwrap();
+        // }
         interpreter
             .environment
             .define(stmt.name.lexeme, value.clone());
@@ -177,7 +178,7 @@ impl Interpreter {
     fn visit_while_stmt(stmt: While, interpreter: Option<&mut InterpreterMutex>) -> DefaultResult {
         let evaluated_condition = Self::evaluate(stmt.condition.clone(), interpreter)?;
         while Self::is_truthy(&evaluated_condition) {
-            Self::execute(*stmt.body.clone(), None)?;
+            Self::execute(*stmt.body.clone(), interpreter)?;
         }
         return Ok(LiteralType::Nil);
     }
@@ -215,7 +216,7 @@ impl Interpreter {
             }
         }
 
-        return Self::evaluate(*logical.right, None);
+        return Self::evaluate(*logical.right,interpreter);
     }
     pub fn visit_grouping_expr(
         grouping: Grouping,
@@ -264,7 +265,7 @@ impl Interpreter {
         return get_result;
     }
     pub fn visit_assign_expr(expr: Assign, interpreter: &mut InterpreterMutex) -> DefaultResult {
-        let value = Self::evaluate(*expr.value, None)?;
+        let value = Self::evaluate(*expr.value, interpreter)?;
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;
     }
@@ -275,7 +276,7 @@ impl Interpreter {
         let left = *binary.left;
         let right = *binary.right;
         let left_r_value = Self::evaluate(left, interpreter);
-        let right_r_value = Self::evaluate(right, None);
+        let right_r_value = Self::evaluate(right, interpreter);
 
         if let Err(left_operand_error) = left_r_value {
             return Err(RuntimeError {

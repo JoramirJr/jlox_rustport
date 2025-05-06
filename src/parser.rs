@@ -147,7 +147,7 @@ impl Parser {
         }
         Self::consume(
             self,
-            &TokenType::RightParen,
+            &TokenType::Semicolon,
             "Expect closing ')' after loop condition.",
         )?;
 

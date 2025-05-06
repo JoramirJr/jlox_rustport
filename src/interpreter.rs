@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    ops::{Deref, DerefMut, Neg},
+    ops::{DerefMut, Neg},
     sync::{LazyLock, Mutex, MutexGuard},
 };
 
@@ -12,6 +12,7 @@ use crate::{
     token_type::{LiteralType, Token, TokenType},
 };
 
+#[derive(Clone)]
 pub struct Interpreter {
     environment: Environment,
 }
@@ -83,7 +84,9 @@ impl Interpreter {
     }
     fn execute(stmt: StmtType, interpreter: Option<&mut Interpreter>) -> DefaultResult {
         match stmt {
-            StmtType::ExpressionExpr(expr) => Self::visit_expression_stmt(expr.expression),
+            StmtType::ExpressionExpr(expr) => {
+                Self::visit_expression_stmt(expr.expression, Some(interpreter.unwrap()))
+            }
             StmtType::PrintExpr(print) => {
                 Self::visit_print_stmt(print.expression, Some(interpreter.unwrap()))
             }
@@ -91,7 +94,7 @@ impl Interpreter {
             StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
             StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter.unwrap()),
             StmtType::WhileExpr(while_stmt) => {
-                Self::visit_while_stmt(while_stmt, Some(interpreter.unwrap()))
+                Self::visit_while_stmt(while_stmt, interpreter.unwrap())
             }
         }
     }
@@ -131,10 +134,13 @@ impl Interpreter {
         interpreter.environment = previous.clone();
         Ok(curr_execute_result)
     }
-    fn visit_expression_stmt(expr: ExpressionType) -> DefaultResult {
-        Self::evaluate(expr, None)
+    fn visit_expression_stmt(
+        expr: ExpressionType,
+        interpreter: Option<&mut Interpreter>,
+    ) -> DefaultResult {
+        Self::evaluate(expr, interpreter)
     }
-    fn visit_if_stmt(stmt: If, interpreter: &mut Interpreter) -> DefaultResult {
+    fn visit_if_stmt(stmt: If, mut interpreter: &mut Interpreter) -> DefaultResult {
         let deref_interpreter = interpreter.deref_mut();
 
         let evaluate_result = Self::evaluate(*stmt.condition, Some(deref_interpreter))?;
@@ -176,7 +182,7 @@ impl Interpreter {
 
         return Ok(value);
     }
-    fn visit_while_stmt(stmt: While, interpreter: &mut Interpreter) -> DefaultResult {
+    fn visit_while_stmt(stmt: While, mut interpreter: &mut Interpreter) -> DefaultResult {
         let deref_interpreter = interpreter.deref_mut();
 
         let evaluated_condition = Self::evaluate(stmt.condition.clone(), Some(deref_interpreter))?;
@@ -207,7 +213,8 @@ impl Interpreter {
         logical: Logical,
         interpreter: Option<&mut Interpreter>,
     ) -> DefaultResult {
-        let left = Self::evaluate(*logical.left, interpreter)?;
+        let interpreter = interpreter.unwrap();
+        let left = Self::evaluate(*logical.left, Some(&mut interpreter.clone()))?;
 
         if let TokenType::Or = logical.operator.ttype {
             if Self::is_truthy(&left) {
@@ -219,7 +226,7 @@ impl Interpreter {
             }
         }
 
-        return Self::evaluate(*logical.right, interpreter);
+        return Self::evaluate(*logical.right, Some(interpreter));
     }
     pub fn visit_grouping_expr(
         grouping: Grouping,
@@ -262,7 +269,7 @@ impl Interpreter {
         return get_result;
     }
     pub fn visit_assign_expr(expr: Assign, interpreter: &mut Interpreter) -> DefaultResult {
-        let value = Self::evaluate(*expr.value, interpreter)?;
+        let value = Self::evaluate(*expr.value, Some(interpreter))?;
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;
     }
@@ -272,8 +279,9 @@ impl Interpreter {
     ) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
-        let left_r_value = Self::evaluate(left, interpreter);
-        let right_r_value = Self::evaluate(right, interpreter);
+        let interpreter = interpreter.unwrap();
+        let left_r_value = Self::evaluate(left, Some(&mut interpreter.clone()));
+        let right_r_value = Self::evaluate(right, Some(interpreter));
 
         if let Err(left_operand_error) = left_r_value {
             return Err(RuntimeError {

@@ -163,7 +163,7 @@ impl Interpreter {
 
         match value {
             Ok(literal) => {
-                println!("{:?}", Self::stringify(&literal));
+                // println!("{:?}", Self::stringify(&literal));
                 Ok(literal)
             }
             Err(error) => Err(error),

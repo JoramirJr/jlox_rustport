@@ -93,7 +93,7 @@ impl Parser {
         }))
     }
     fn while_statement(&mut self) -> DefaultResult {
-        Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'while'.");
+        Self::consume(self, &TokenType::LeftParen, "Expect '(' after 'while'.")?;
         let condition = Self::expression(self)?;
         Self::consume(
             self,
@@ -119,7 +119,11 @@ impl Parser {
         } else if Self::match_expr(self, &[TokenType::While]) {
             Self::while_statement(self)
         } else if Self::match_expr(self, &[TokenType::For]) {
-            Self::for_statement(self)
+            let stmt = Self::for_statement(self);
+            println!(
+                "For Stmt: {:?}",stmt.unwrap()
+            );
+            return stmt;
         } else {
             Self::expression_statement(self)
         };
@@ -157,6 +161,7 @@ impl Parser {
             let expr = Self::expression(self)?;
             increment = Some(expr);
         }
+
         Self::consume(
             self,
             &TokenType::RightParen,

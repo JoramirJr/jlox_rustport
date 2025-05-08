@@ -33,14 +33,14 @@ impl Scanner {
         match scanner_singleton {
             Ok(mut scanner) => {
                 scanner.source = source_file;
-        
+
                 while !Self::is_at_end(&scanner) {
                     scanner.start = scanner.current;
                     Self::scan_token(&mut scanner);
                 }
-        
+
                 let line = scanner.line;
-        
+
                 scanner.tokens.push(Token {
                     ttype: TokenType::Eof,
                     lexeme: String::new(),

@@ -120,9 +120,6 @@ impl Parser {
             Self::while_statement(self)
         } else if Self::match_expr(self, &[TokenType::For]) {
             let stmt = Self::for_statement(self);
-            println!(
-                "For Stmt: {:?}",stmt.unwrap()
-            );
             return stmt;
         } else {
             Self::expression_statement(self)
@@ -149,6 +146,7 @@ impl Parser {
             let expr_stmt = Self::expression(self)?;
             condition = Some(expr_stmt);
         }
+        println!("Condition: {:?}", condition);
         Self::consume(
             self,
             &TokenType::Semicolon,

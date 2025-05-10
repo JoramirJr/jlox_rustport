@@ -248,7 +248,7 @@ impl Parser {
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after expression.")?;
 
-        Ok(StmtType::PrintStmt(Print { expression: expr }))
+        Ok(StmtType::ExpressionStmt(Expression { expression: expr }))
     }
     fn block(&mut self) -> Result<Vec<StmtType>, ParseError> {
         let mut statements = Vec::new();

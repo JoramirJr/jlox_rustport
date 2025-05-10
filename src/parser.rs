@@ -87,7 +87,7 @@ impl Parser {
             "Expect ';' after variable declaration",
         )?;
 
-        Ok(StmtType::VarExpr(Var {
+        Ok(StmtType::VarStmt(Var {
             name: name,
             initializer: initializer,
         }))
@@ -103,7 +103,7 @@ impl Parser {
 
         let body = Self::statement(self)?;
 
-        return Ok(StmtType::WhileExpr(While {
+        return Ok(StmtType::WhileStmt(While {
             condition,
             body: Box::new(body),
         }));
@@ -113,7 +113,7 @@ impl Parser {
             Self::print_statement(self)
         } else if Self::match_expr(self, &[TokenType::LeftBrace]) {
             let statements = Self::block(self)?;
-            Ok(StmtType::BlockExpr(Block { statements }))
+            Ok(StmtType::BlockStmt(Block { statements }))
         } else if Self::match_expr(self, &[TokenType::If]) {
             Self::if_statement(self)
         } else if Self::match_expr(self, &[TokenType::While]) {
@@ -146,7 +146,6 @@ impl Parser {
             let expr_stmt = Self::expression(self)?;
             condition = Some(expr_stmt);
         }
-        println!("Condition: {:?}", condition);
         Self::consume(
             self,
             &TokenType::Semicolon,
@@ -169,10 +168,10 @@ impl Parser {
         let mut body = Self::statement(self)?;
 
         if let Some(increment) = increment {
-            body = StmtType::BlockExpr(Block {
+            body = StmtType::BlockStmt(Block {
                 statements: Vec::from([
                     body,
-                    StmtType::ExpressionExpr(Expression {
+                    StmtType::ExpressionStmt(Expression {
                         expression: increment,
                     }),
                 ]),
@@ -185,16 +184,19 @@ impl Parser {
             }));
         }
 
-        body = StmtType::WhileExpr(While {
+        body = StmtType::WhileStmt(While {
             condition: condition.unwrap(),
             body: Box::new(body),
         });
 
         if let Some(initializer) = initializer {
-            body = StmtType::BlockExpr(Block {
+            println!("Initializer: {:?}\n\nBody: {:?}", initializer, body);
+            body = StmtType::BlockStmt(Block {
                 statements: Vec::from([initializer, body]),
             })
         }
+
+        // WhileExpr(While { condition: BinaryExpr(Binary { left: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 5 } }), operator: Token { ttype: Less, lexeme: "<", literal: Nil, line: 5 }, right: LiteralExpr(Literal { value: F32(10000.0) }) }), body: BlockExpr(Block { statements: [BlockExpr(Block { statements: [PrintExpr(Print { expression: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 6 } }) }), PrintExpr(Print { expression: AssignExpr(Assign { name: Token { ttype: Identifier, lexeme: "temp", literal: Nil, line: 7 }, value: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 7 } }) }) }), PrintExpr(Print { expression: AssignExpr(Assign { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 8 }, value: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "b", literal: Nil, line: 8 } }) }) })] }), ExpressionExpr(Expression { expression: AssignExpr(Assign { name: Token { ttype: Identifier, lexeme: "b", literal: Nil, line: 5 }, value: BinaryExpr(Binary { left: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "temp", literal: Nil, line: 5 } }), operator: Token { ttype: Plus, lexeme: "+", literal: Nil, line: 5 }, right: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "b", literal: Nil, line: 5 } }) }) }) })] }) });
 
         return Ok(body);
     }
@@ -209,13 +211,13 @@ impl Parser {
 
         let then_branch = Self::statement(self)?;
 
-        if let StmtType::BlockExpr(then_block) = then_branch {
+        if let StmtType::BlockStmt(then_block) = then_branch {
             let mut else_branch: Option<Block> = None;
 
             if Self::match_expr(self, &[TokenType::Else]) {
                 let stmt_result = Self::statement(self)?;
 
-                if let StmtType::BlockExpr(block) = stmt_result {
+                if let StmtType::BlockStmt(block) = stmt_result {
                     else_branch = Some(block);
                 } else {
                     return Err(ParseError(
@@ -223,7 +225,7 @@ impl Parser {
                     ));
                 }
             }
-            Ok(StmtType::IfExpr(If {
+            Ok(StmtType::IfStmt(If {
                 condition: Box::new(condition),
                 then_branch: then_block,
                 else_branch,
@@ -239,14 +241,14 @@ impl Parser {
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after value.")?;
 
-        Ok(StmtType::PrintExpr(Print { expression: value }))
+        Ok(StmtType::PrintStmt(Print { expression: value }))
     }
     fn expression_statement(&mut self) -> DefaultResult {
         let expr: ExpressionType = Self::expression(self)?;
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after expression.")?;
 
-        Ok(StmtType::PrintExpr(Print { expression: expr }))
+        Ok(StmtType::PrintStmt(Print { expression: expr }))
     }
     fn block(&mut self) -> Result<Vec<StmtType>, ParseError> {
         let mut statements = Vec::new();

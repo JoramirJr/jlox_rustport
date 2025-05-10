@@ -84,16 +84,16 @@ impl Interpreter {
     }
     fn execute(stmt: StmtType, interpreter: Option<&mut Interpreter>) -> DefaultResult {
         match stmt {
-            StmtType::ExpressionExpr(expr) => {
+            StmtType::ExpressionStmt(expr) => {
                 Self::visit_expression_stmt(expr.expression, Some(interpreter.unwrap()))
             }
-            StmtType::PrintExpr(print) => {
+            StmtType::PrintStmt(print) => {
                 Self::visit_print_stmt(print.expression, Some(interpreter.unwrap()))
             }
-            StmtType::VarExpr(var) => Self::visit_var_stmt(var, interpreter.unwrap()),
-            StmtType::BlockExpr(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
-            StmtType::IfExpr(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter.unwrap()),
-            StmtType::WhileExpr(while_stmt) => {
+            StmtType::VarStmt(var) => Self::visit_var_stmt(var, interpreter.unwrap()),
+            StmtType::BlockStmt(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
+            StmtType::IfStmt(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter.unwrap()),
+            StmtType::WhileStmt(while_stmt) => {
                 Self::visit_while_stmt(while_stmt, interpreter.unwrap())
             }
         }
@@ -146,11 +146,11 @@ impl Interpreter {
         let evaluate_result = Self::evaluate(*stmt.condition, Some(deref_interpreter))?;
         if Self::is_truthy(&evaluate_result) {
             Self::execute(
-                StmtType::BlockExpr(stmt.then_branch),
+                StmtType::BlockStmt(stmt.then_branch),
                 Some(deref_interpreter),
             )
         } else if let Some(else_branch) = stmt.else_branch {
-            Self::execute(StmtType::BlockExpr(else_branch), Some(deref_interpreter))
+            Self::execute(StmtType::BlockStmt(else_branch), Some(deref_interpreter))
         } else {
             Ok(LiteralType::Nil)
         }

@@ -58,19 +58,19 @@ impl Main {
                     .as_bytes(),
             );
         }
-        Self::define_expr_stmt_type(&mut file_handler, &types, basename);
+        Self::define_expr_stmt_type(&mut file_handler, &types);
 
         for t in &types {
             let (struct_name, fields) = t.split_once(":").unwrap();
             Self::define_type(&mut file_handler, struct_name.trim(), fields.trim());
         }
     }
-    fn define_expr_stmt_type(file_handler: &mut File, field_list: &Vec<&str>, basename: &str) {
+    fn define_expr_stmt_type(file_handler: &mut File, field_list: &Vec<&str>) {
         for t in field_list {
             let (struct_name, _) = t.split_once(":").unwrap();
 
             let _ = file_handler.write(
-                ["    ", struct_name, if basename == "expr" { "Expr(" } else { "Stmt(" }, struct_name, "),\n"]
+                ["    ", struct_name, "(", struct_name, "),\n"]
                     .concat()
                     .as_bytes(),
             );

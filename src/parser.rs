@@ -87,7 +87,7 @@ impl Parser {
             "Expect ';' after variable declaration",
         )?;
 
-        Ok(StmtType::VarStmt(Var {
+        Ok(StmtType::Var(Var {
             name: name,
             initializer: initializer,
         }))
@@ -103,7 +103,7 @@ impl Parser {
 
         let body = Self::statement(self)?;
 
-        return Ok(StmtType::WhileStmt(While {
+        return Ok(StmtType::While(While {
             condition,
             body: Box::new(body),
         }));
@@ -113,7 +113,7 @@ impl Parser {
             Self::print_statement(self)
         } else if Self::match_expr(self, &[TokenType::LeftBrace]) {
             let statements = Self::block(self)?;
-            Ok(StmtType::BlockStmt(Block { statements }))
+            Ok(StmtType::Block(Block { statements }))
         } else if Self::match_expr(self, &[TokenType::If]) {
             Self::if_statement(self)
         } else if Self::match_expr(self, &[TokenType::While]) {
@@ -168,10 +168,10 @@ impl Parser {
         let mut body = Self::statement(self)?;
 
         if let Some(increment) = increment {
-            body = StmtType::BlockStmt(Block {
+            body = StmtType::Block(Block {
                 statements: Vec::from([
                     body,
-                    StmtType::ExpressionStmt(Expression {
+                    StmtType::Expression(Expression {
                         expression: increment,
                     }),
                 ]),
@@ -184,14 +184,14 @@ impl Parser {
             }));
         }
 
-        body = StmtType::WhileStmt(While {
+        body = StmtType::While(While {
             condition: condition.unwrap(),
             body: Box::new(body),
         });
 
         if let Some(initializer) = initializer {
             println!("Initializer: {:?}\n\nBody: {:?}", initializer, body);
-            body = StmtType::BlockStmt(Block {
+            body = StmtType::Block(Block {
                 statements: Vec::from([initializer, body]),
             })
         }
@@ -211,13 +211,13 @@ impl Parser {
 
         let then_branch = Self::statement(self)?;
 
-        if let StmtType::BlockStmt(then_block) = then_branch {
+        if let StmtType::Block(then_block) = then_branch {
             let mut else_branch: Option<Block> = None;
 
             if Self::match_expr(self, &[TokenType::Else]) {
                 let stmt_result = Self::statement(self)?;
 
-                if let StmtType::BlockStmt(block) = stmt_result {
+                if let StmtType::Block(block) = stmt_result {
                     else_branch = Some(block);
                 } else {
                     return Err(ParseError(
@@ -225,7 +225,7 @@ impl Parser {
                     ));
                 }
             }
-            Ok(StmtType::IfStmt(If {
+            Ok(StmtType::If(If {
                 condition: Box::new(condition),
                 then_branch: then_block,
                 else_branch,
@@ -241,14 +241,14 @@ impl Parser {
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after value.")?;
 
-        Ok(StmtType::PrintStmt(Print { expression: value }))
+        Ok(StmtType::Print(Print { expression: value }))
     }
     fn expression_statement(&mut self) -> DefaultResult {
         let expr: ExpressionType = Self::expression(self)?;
 
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after expression.")?;
 
-        Ok(StmtType::ExpressionStmt(Expression { expression: expr }))
+        Ok(StmtType::Expression(Expression { expression: expr }))
     }
     fn block(&mut self) -> Result<Vec<StmtType>, ParseError> {
         let mut statements = Vec::new();

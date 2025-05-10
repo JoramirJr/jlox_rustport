@@ -2,12 +2,12 @@ use crate::{expr::ExpressionType, token_type::Token};
 
 #[derive(Debug, Clone)]
 pub enum StmtType {
-    ExpressionStmt(Expression),
-    IfStmt(If),
-    BlockStmt(Block),
-    VarStmt(Var),
-    PrintStmt(Print),
-    WhileStmt(While),
+    Expression(Expression),
+    If(If),
+    Block(Block),
+    Var(Var),
+    Print(Print),
+    While(While),
 }
 
 #[derive(Debug, Clone)]

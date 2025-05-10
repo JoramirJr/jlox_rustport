@@ -2,13 +2,13 @@ use crate::token_type::{LiteralType, Token};
 
 #[derive(Debug, Clone)]
 pub enum ExpressionType {
-    AssignExpr(Assign),
-    BinaryExpr(Binary),
-    GroupingExpr(Grouping),
-    LiteralExpr(Literal),
-    VariableExpr(Variable),
-    LogicalExpr(Logical),
-    UnaryExpr(Unary),
+    Assign(Assign),
+    Binary(Binary),
+    Grouping(Grouping),
+    Literal(Literal),
+    Variable(Variable),
+    Logical(Logical),
+    Unary(Unary),
 }
 
 #[derive(Debug, Clone)]

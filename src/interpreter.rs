@@ -47,7 +47,7 @@ impl Interpreter {
             Ok(mut interpreter) => {
                 for statement in statements {
                     let execute_result = Self::execute(statement, Some(&mut interpreter));
-
+                   
                     if let Err(runtime_error) = execute_result {
                         Lox::runtime_error(runtime_error);
                     }
@@ -61,23 +61,23 @@ impl Interpreter {
     }
     pub fn evaluate(expr: ExpressionType, interpreter: Option<&mut Interpreter>) -> DefaultResult {
         match expr {
-            xpressionType::Binary(binary) => {
+            ExpressionType::Binary(binary) => {
                 Self::visit_binary_expr(binary, Some(interpreter.unwrap()))
             }
-            xpressionType::Grouping(grouping) => {
+            ExpressionType::Grouping(grouping) => {
                 Self::visit_grouping_expr(grouping, Some(interpreter.unwrap()))
             }
-            xpressionType::Literal(literal) => Self::visit_literal_expr(literal),
-            xpressionType::Unary(unary) => {
+            ExpressionType::Literal(literal) => Self::visit_literal_expr(literal),
+            ExpressionType::Unary(unary) => {
                 Self::visit_unary_expr(unary, Some(interpreter.unwrap()))
             }
-            xpressionType::Variable(variable) => {
+            ExpressionType::Variable(variable) => {
                 Self::visit_variable_expr(variable, interpreter.unwrap())
             }
-            xpressionType::Assign(assignment) => {
+            ExpressionType::Assign(assignment) => {
                 Self::visit_assign_expr(assignment, interpreter.unwrap())
             }
-            xpressionType::Logical(logical) => {
+            ExpressionType::Logical(logical) => {
                 Self::visit_logical_expr(logical, Some(interpreter.unwrap()))
             }
         }
@@ -93,9 +93,7 @@ impl Interpreter {
             StmtType::Var(var) => Self::visit_var_stmt(var, interpreter.unwrap()),
             StmtType::Block(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
             StmtType::If(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter.unwrap()),
-            StmtType::While(while_stmt) => {
-                Self::visit_while_stmt(while_stmt, interpreter.unwrap())
-            }
+            StmtType::While(while_stmt) => Self::visit_while_stmt(while_stmt, interpreter.unwrap()),
         }
     }
     fn visit_block_stmt(stmt: Block, interpreter: &mut Interpreter) -> DefaultResult {
@@ -145,10 +143,7 @@ impl Interpreter {
 
         let evaluate_result = Self::evaluate(*stmt.condition, Some(deref_interpreter))?;
         if Self::is_truthy(&evaluate_result) {
-            Self::execute(
-                StmtType::Block(stmt.then_branch),
-                Some(deref_interpreter),
-            )
+            Self::execute(StmtType::Block(stmt.then_branch), Some(deref_interpreter))
         } else if let Some(else_branch) = stmt.else_branch {
             Self::execute(StmtType::Block(else_branch), Some(deref_interpreter))
         } else {
@@ -280,6 +275,7 @@ impl Interpreter {
         let left = *binary.left;
         let right = *binary.right;
         let interpreter = interpreter.unwrap();
+        //clonagem do interpretador pode ser a causa dos problemas que identifiquei na última vez
         let left_r_value = Self::evaluate(left, Some(&mut interpreter.clone()));
         let right_r_value = Self::evaluate(right, Some(interpreter));
 

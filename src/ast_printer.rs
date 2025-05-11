@@ -5,24 +5,24 @@ pub struct AstPrinter();
 impl AstPrinter {
     pub fn print(expr: &ExpressionType) -> String {
         match expr {
-            xpressionType::Binary(expr) => {
+            ExpressionType::Binary(expr) => {
                 Self::parenthesize(&expr.operator.lexeme, [&expr.left, &expr.right].to_vec())
             }
-            xpressionType::Grouping(expr) => {
+            ExpressionType::Grouping(expr) => {
                 Self::parenthesize(&"group".to_string(), [&expr.expression].to_vec())
             }
-            xpressionType::Literal(expr) => match &expr.value {
+            ExpressionType::Literal(expr) => match &expr.value {
                 LiteralType::Nil => "nil".to_string(),
                 LiteralType::String(value) => value.clone(),
                 LiteralType::Bool(value) => value.to_string().clone(),
                 LiteralType::F32(value) => value.to_string(),
             },
-            xpressionType::Unary(expr) => {
+            ExpressionType::Unary(expr) => {
                 Self::parenthesize(&expr.operator.lexeme, [&expr.right].to_vec())
             }
-            xpressionType::Variable(_) => todo!(),
-            xpressionType::Assign(_) => todo!(),
-            xpressionType::Logical(_) => todo!(),
+            ExpressionType::Variable(_) => todo!(),
+            ExpressionType::Assign(_) => todo!(),
+            ExpressionType::Logical(_) => todo!(),
         }
     }
     pub fn parenthesize(name: &String, exprs: Vec<&Box<ExpressionType>>) -> String {

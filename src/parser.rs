@@ -179,7 +179,7 @@ impl Parser {
         }
 
         if let None = condition {
-            condition = Some(xpressionType::Literal(Literal {
+            condition = Some(ExpressionType::Literal(Literal {
                 value: LiteralType::Bool(true),
             }));
         }
@@ -190,13 +190,10 @@ impl Parser {
         });
 
         if let Some(initializer) = initializer {
-            println!("Initializer: {:?}\n\nBody: {:?}", initializer, body);
             body = StmtType::Block(Block {
                 statements: Vec::from([initializer, body]),
             })
         }
-
-        // WhileExpr(While { condition: BinaryExpr(Binary { left: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 5 } }), operator: Token { ttype: Less, lexeme: "<", literal: Nil, line: 5 }, right: LiteralExpr(Literal { value: F32(10000.0) }) }), body: BlockExpr(Block { statements: [BlockExpr(Block { statements: [PrintExpr(Print { expression: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 6 } }) }), PrintExpr(Print { expression: AssignExpr(Assign { name: Token { ttype: Identifier, lexeme: "temp", literal: Nil, line: 7 }, value: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 7 } }) }) }), PrintExpr(Print { expression: AssignExpr(Assign { name: Token { ttype: Identifier, lexeme: "a", literal: Nil, line: 8 }, value: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "b", literal: Nil, line: 8 } }) }) })] }), ExpressionExpr(Expression { expression: AssignExpr(Assign { name: Token { ttype: Identifier, lexeme: "b", literal: Nil, line: 5 }, value: BinaryExpr(Binary { left: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "temp", literal: Nil, line: 5 } }), operator: Token { ttype: Plus, lexeme: "+", literal: Nil, line: 5 }, right: VariableExpr(Variable { name: Token { ttype: Identifier, lexeme: "b", literal: Nil, line: 5 } }) }) }) })] }) });
 
         return Ok(body);
     }
@@ -270,9 +267,9 @@ impl Parser {
             let equals = Self::previous(&self);
             let value = Self::assigment(self)?;
 
-            if let xpressionType::Variable(variable) = expr {
+            if let ExpressionType::Variable(variable) = expr {
                 let name = variable.name;
-                return Ok(xpressionType::Assign(Assign {
+                return Ok(ExpressionType::Assign(Assign {
                     name: name,
                     value: Box::new(value),
                 }));
@@ -289,7 +286,7 @@ impl Parser {
         while Self::match_expr(self, &[TokenType::Or]) {
             let operator = Self::previous(self);
             let right = Self::and(self)?;
-            expr = xpressionType::Logical(Logical {
+            expr = ExpressionType::Logical(Logical {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(right),
@@ -303,7 +300,7 @@ impl Parser {
         while Self::match_expr(self, &[TokenType::And]) {
             let operator = Self::previous(self);
             let right = Self::equality(self)?;
-            expr = xpressionType::Logical(Logical {
+            expr = ExpressionType::Logical(Logical {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(right),
@@ -325,7 +322,7 @@ impl Parser {
                     let right = Self::unary(self);
                     match right {
                         Ok(right_expr) => {
-                            expr = Ok(xpressionType::Binary(Binary {
+                            expr = Ok(ExpressionType::Binary(Binary {
                                 left: Box::new(ok_response),
                                 operator: Token {
                                     ttype: operator.ttype,
@@ -367,7 +364,7 @@ impl Parser {
                     let right = Self::unary(self);
                     match right {
                         Ok(right_expr) => {
-                            expr = Ok(xpressionType::Binary(Binary {
+                            expr = Ok(ExpressionType::Binary(Binary {
                                 left: Box::new(ok_response),
                                 operator: Token {
                                     ttype: operator.ttype,
@@ -401,7 +398,7 @@ impl Parser {
                     let right = Self::unary(self);
                     match right {
                         Ok(right_expr) => {
-                            expr = Ok(xpressionType::Binary(Binary {
+                            expr = Ok(ExpressionType::Binary(Binary {
                                 left: Box::new(ok_response),
                                 operator: Token {
                                     ttype: operator.ttype,
@@ -436,7 +433,7 @@ impl Parser {
                     let right = Self::unary(self);
                     match right {
                         Ok(right_expr) => {
-                            expr = Ok(xpressionType::Binary(Binary {
+                            expr = Ok(ExpressionType::Binary(Binary {
                                 left: Box::new(ok_response),
                                 operator: Token {
                                     ttype: operator.ttype,
@@ -467,7 +464,7 @@ impl Parser {
 
             match right {
                 Ok(ok_response) => {
-                    return Ok(xpressionType::Unary(Unary {
+                    return Ok(ExpressionType::Unary(Unary {
                         operator: Token {
                             ttype: operator.ttype,
                             lexeme: operator.lexeme,
@@ -486,23 +483,23 @@ impl Parser {
     }
     pub fn primary(&mut self) -> Result<ExpressionType, ParseError> {
         if Self::match_expr(self, &[TokenType::False]) {
-            return Ok(xpressionType::Literal(Literal {
+            return Ok(ExpressionType::Literal(Literal {
                 value: LiteralType::Bool(false),
             }));
         }
         if Self::match_expr(self, &[TokenType::True]) {
-            return Ok(xpressionType::Literal(Literal {
+            return Ok(ExpressionType::Literal(Literal {
                 value: LiteralType::Bool(true),
             }));
         }
         if Self::match_expr(self, &[TokenType::Nil]) {
-            return Ok(xpressionType::Literal(Literal {
+            return Ok(ExpressionType::Literal(Literal {
                 value: LiteralType::Nil,
             }));
         }
 
         if Self::match_expr(self, &[TokenType::Number, TokenType::String]) {
-            return Ok(xpressionType::Literal(Literal {
+            return Ok(ExpressionType::Literal(Literal {
                 value: Self::previous(&self).literal,
             }));
         }
@@ -513,8 +510,8 @@ impl Parser {
             match expr {
                 Ok(ok_response) => {
                     Self::consume(self, &TokenType::RightParen, "Expect ')' after expression")?;
-                    return Ok(xpressionType::Grouping(Grouping {
-                        expression: Box::new(xpressionType::Grouping(Grouping {
+                    return Ok(ExpressionType::Grouping(Grouping {
+                        expression: Box::new(ExpressionType::Grouping(Grouping {
                             expression: Box::new(ok_response),
                         })),
                     }));
@@ -526,11 +523,11 @@ impl Parser {
         }
         if Self::match_expr(self, &[TokenType::Identifier]) {
             let prev_token = Self::previous(&self);
-            return Ok(xpressionType::Variable(Variable { name: prev_token }));
+            return Ok(ExpressionType::Variable(Variable { name: prev_token }));
         }
         Self::error(Self::peek(self), "Expect expression.");
 
-        return Ok(xpressionType::Literal(Literal {
+        return Ok(ExpressionType::Literal(Literal {
             value: LiteralType::Nil,
         }));
     }

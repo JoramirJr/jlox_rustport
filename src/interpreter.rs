@@ -61,23 +61,23 @@ impl Interpreter {
     }
     pub fn evaluate(expr: ExpressionType, interpreter: Option<&mut Interpreter>) -> DefaultResult {
         match expr {
-            ExpressionType::BinaryExpr(binary) => {
+            xpressionType::Binary(binary) => {
                 Self::visit_binary_expr(binary, Some(interpreter.unwrap()))
             }
-            ExpressionType::GroupingExpr(grouping) => {
+            xpressionType::Grouping(grouping) => {
                 Self::visit_grouping_expr(grouping, Some(interpreter.unwrap()))
             }
-            ExpressionType::LiteralExpr(literal) => Self::visit_literal_expr(literal),
-            ExpressionType::UnaryExpr(unary) => {
+            xpressionType::Literal(literal) => Self::visit_literal_expr(literal),
+            xpressionType::Unary(unary) => {
                 Self::visit_unary_expr(unary, Some(interpreter.unwrap()))
             }
-            ExpressionType::VariableExpr(variable) => {
+            xpressionType::Variable(variable) => {
                 Self::visit_variable_expr(variable, interpreter.unwrap())
             }
-            ExpressionType::AssignExpr(assignment) => {
+            xpressionType::Assign(assignment) => {
                 Self::visit_assign_expr(assignment, interpreter.unwrap())
             }
-            ExpressionType::LogicalExpr(logical) => {
+            xpressionType::Logical(logical) => {
                 Self::visit_logical_expr(logical, Some(interpreter.unwrap()))
             }
         }

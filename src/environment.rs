@@ -5,15 +5,15 @@ use crate::{
     token_type::{LiteralType, Token},
 };
 
-#[derive(Clone, Debug)]
-pub struct Environment {
-    pub enclosing: Option<Box<Environment>>,
+#[derive(Debug)]
+pub struct Environment<'a> {
+    pub enclosing: Option<&'a mut Environment<'a>>,
     pub values: HashMap<String, LiteralType>,
 }
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
-impl Environment {
+impl<'a> Environment<'a> {
     pub fn define(&mut self, name: String, value: LiteralType) -> () {
         self.values.insert(name.clone(), value);
     }
@@ -34,6 +34,7 @@ impl Environment {
         }
     }
     pub fn assign(&mut self, name: Token, value: LiteralType) -> DefaultResult {
+        println!("Assign: {:?}", self);
         if self.values.contains_key(&name.lexeme) {
             let assignment = self.values.insert(name.lexeme, value);
             match assignment {

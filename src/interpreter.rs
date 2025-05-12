@@ -1,5 +1,7 @@
 use std::{
-    cell::{Ref, RefCell}, collections::HashMap, ops::{DerefMut, Neg}, sync::{LazyLock, Mutex, MutexGuard}
+    collections::HashMap,
+    ops::Neg,
+    sync::{LazyLock, Mutex, MutexGuard},
 };
 
 use crate::{
@@ -10,23 +12,18 @@ use crate::{
     token_type::{LiteralType, Token, TokenType},
 };
 
-#[derive(Clone)]
-pub struct Interpreter {
-    environment: Environment,
+pub struct Interpreter<'a> {
+    environment: Option<&'a mut Environment<'a>>,
 }
 
 pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> = LazyLock::new(|| {
     Mutex::new(Interpreter {
-        environment: Environment {
-            values: HashMap::new(),
-            enclosing: None,
-        },
+        environment: Some(&mut Environment {
+                    values: HashMap::new(),
+                    enclosing: None,
+                }),
     })
 });
-
-pub type InterpreterMutex<'a> = MutexGuard<'a, Interpreter>;
-
-pub type InterpreterRefPointer<'a> = RefCell<&'a mut MutexGuard<'a, Interpreter>>;
 
 #[derive(Debug)]
 pub struct RuntimeError {
@@ -36,18 +33,18 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
-impl Interpreter {
+impl<'a> Interpreter<'a> {
     pub fn interpret(statements: Vec<StmtType>) -> () {
         let interpreter_singleton: Result<
-            InterpreterMutex,
-            std::sync::PoisonError<InterpreterMutex>,
+            MutexGuard<'_, Interpreter>,
+            std::sync::PoisonError<MutexGuard<'_, Interpreter>>,
         > = INTERPRETER_SINGLETON.lock();
 
         match interpreter_singleton {
             Ok(mut interpreter) => {
                 for statement in statements {
-                    let execute_result = Self::execute(statement, RefCell::new(&mut interpreter));
-                   
+                    let execute_result = Self::execute(statement, &mut interpreter);
+
                     if let Err(runtime_error) = execute_result {
                         Lox::runtime_error(runtime_error);
                     }
@@ -59,48 +56,32 @@ impl Interpreter {
             }
         }
     }
-    pub fn evaluate(expr: ExpressionType, interpreter: InterpreterRefPointer) -> DefaultResult {
+    pub fn evaluate(expr: ExpressionType, interpreter: &mut Interpreter) -> DefaultResult {
         match expr {
-            ExpressionType::Binary(binary) => {
-                Self::visit_binary_expr(binary, Some(interpreter.unwrap()))
-            }
-            ExpressionType::Grouping(grouping) => {
-                Self::visit_grouping_expr(grouping, Some(interpreter.unwrap()))
-            }
+            ExpressionType::Binary(binary) => Self::visit_binary_expr(binary, interpreter),
+            ExpressionType::Grouping(grouping) => Self::visit_grouping_expr(grouping, interpreter),
             ExpressionType::Literal(literal) => Self::visit_literal_expr(literal),
-            ExpressionType::Unary(unary) => {
-                Self::visit_unary_expr(unary, Some(interpreter.unwrap()))
-            }
-            ExpressionType::Variable(variable) => {
-                Self::visit_variable_expr(variable, interpreter.unwrap())
-            }
-            ExpressionType::Assign(assignment) => {
-                Self::visit_assign_expr(assignment, interpreter.unwrap())
-            }
-            ExpressionType::Logical(logical) => {
-                Self::visit_logical_expr(logical, Some(interpreter.unwrap()))
-            }
+            ExpressionType::Unary(unary) => Self::visit_unary_expr(unary, interpreter),
+            ExpressionType::Variable(variable) => Self::visit_variable_expr(variable, interpreter),
+            ExpressionType::Assign(assignment) => Self::visit_assign_expr(assignment, interpreter),
+            ExpressionType::Logical(logical) => Self::visit_logical_expr(logical, interpreter),
         }
     }
-    fn execute(stmt: StmtType, interpreter: InterpreterRefPointer) -> DefaultResult {
+    fn execute(stmt: StmtType, interpreter: &mut Interpreter) -> DefaultResult {
         match stmt {
-            StmtType::Expression(expr) => {
-                Self::visit_expression_stmt(expr.expression, Some(interpreter.unwrap()))
-            }
-            StmtType::Print(print) => {
-                Self::visit_print_stmt(print.expression, Some(interpreter.unwrap()))
-            }
-            StmtType::Var(var) => Self::visit_var_stmt(var, interpreter.unwrap()),
-            StmtType::Block(block) => Self::visit_block_stmt(block, interpreter.unwrap()),
-            StmtType::If(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter.unwrap()),
-            StmtType::While(while_stmt) => Self::visit_while_stmt(while_stmt, interpreter.unwrap()),
+            StmtType::Expression(expr) => Self::visit_expression_stmt(expr.expression, interpreter),
+            StmtType::Print(print) => Self::visit_print_stmt(print.expression, interpreter),
+            StmtType::Var(var) => Self::visit_var_stmt(var, interpreter),
+            StmtType::Block(block) => Self::visit_block_stmt(block, interpreter),
+            StmtType::If(if_stmt) => Self::visit_if_stmt(if_stmt, interpreter),
+            StmtType::While(while_stmt) => Self::visit_while_stmt(while_stmt, interpreter),
         }
     }
-    fn visit_block_stmt(stmt: Block, interpreter: InterpreterRefPointer) -> DefaultResult {
+    fn visit_block_stmt(stmt: Block, interpreter: &mut Interpreter) -> DefaultResult {
         Self::execute_block(
             stmt.statements,
             Environment {
-                enclosing: Some(Box::new(interpreter.environment.clone())),
+                enclosing: interpreter.environment,
                 values: HashMap::new(),
             },
             interpreter,
@@ -109,15 +90,15 @@ impl Interpreter {
     fn execute_block(
         statements: Vec<StmtType>,
         environment: Environment,
-        interpreter: InterpreterRefPointer,
+        interpreter: &mut Interpreter,
     ) -> DefaultResult {
-        let previous: Environment = interpreter.environment.clone();
+        let previous: Environment = interpreter.environment;
         interpreter.environment = environment;
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
 
         for statement in statements {
             let execute_result: Result<LiteralType, RuntimeError> =
-                Self::execute(statement, Some(interpreter));
+                Self::execute(statement, interpreter);
 
             match execute_result {
                 Ok(literal_type) => {
@@ -132,28 +113,20 @@ impl Interpreter {
         interpreter.environment = previous.clone();
         Ok(curr_execute_result)
     }
-    fn visit_expression_stmt(
-        expr: ExpressionType,
-        interpreter: InterpreterRefPointerrpreter>,
-    ) -> DefaultResult {
+    fn visit_expression_stmt(expr: ExpressionType, interpreter: &mut Interpreter) -> DefaultResult {
         Self::evaluate(expr, interpreter)
     }
-    fn visit_if_stmt(stmt: If, mut interpreter: InterpreterRefPointer) -> DefaultResult {
-        let deref_interpreter = interpreter.deref_mut();
-
-        let evaluate_result = Self::evaluate(*stmt.condition, Some(deref_interpreter))?;
+    fn visit_if_stmt(stmt: If, interpreter: &mut Interpreter) -> DefaultResult {
+        let evaluate_result = Self::evaluate(*stmt.condition, interpreter)?;
         if Self::is_truthy(&evaluate_result) {
-            Self::execute(StmtType::Block(stmt.then_branch), Some(deref_interpreter))
+            Self::execute(StmtType::Block(stmt.then_branch), interpreter)
         } else if let Some(else_branch) = stmt.else_branch {
-            Self::execute(StmtType::Block(else_branch), Some(deref_interpreter))
+            Self::execute(StmtType::Block(else_branch), interpreter)
         } else {
             Ok(LiteralType::Nil)
         }
     }
-    fn visit_print_stmt(
-        expr: ExpressionType,
-        interpreter: InterpreterRefPointerrpreter>,
-    ) -> DefaultResult {
+    fn visit_print_stmt(expr: ExpressionType, interpreter: &mut Interpreter) -> DefaultResult {
         let value = Self::evaluate(expr, interpreter);
 
         match value {
@@ -164,11 +137,11 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    fn visit_var_stmt(stmt: Var, interpreter: InterpreterRefPointer) -> DefaultResult {
+    fn visit_var_stmt(stmt: Var, interpreter: &mut Interpreter) -> DefaultResult {
         let mut value: LiteralType = LiteralType::Nil;
 
         if let Some(expr_initializer) = stmt.initializer {
-            let literal = Ok(Self::evaluate(expr_initializer, Some(interpreter)))?;
+            let literal = Ok(Self::evaluate(expr_initializer, interpreter))?;
             value = literal.unwrap();
         }
         interpreter
@@ -177,12 +150,10 @@ impl Interpreter {
 
         return Ok(value);
     }
-    fn visit_while_stmt(stmt: While, mut interpreter: InterpreterRefPointer) -> DefaultResult {
-        let deref_interpreter = interpreter.deref_mut();
-
-        let evaluated_condition = Self::evaluate(stmt.condition.clone(), Some(deref_interpreter))?;
+    fn visit_while_stmt(stmt: While, mut interpreter: &mut Interpreter) -> DefaultResult {
+        let evaluated_condition = Self::evaluate(stmt.condition.clone(), interpreter)?;
         while Self::is_truthy(&evaluated_condition) {
-            Self::execute(*stmt.body.clone(), Some(deref_interpreter))?;
+            Self::execute(*stmt.body.clone(), interpreter)?;
         }
         return Ok(LiteralType::Nil);
     }
@@ -204,12 +175,9 @@ impl Interpreter {
     pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
         Ok(literal.value)
     }
-    pub fn visit_logical_expr(
-        logical: Logical,
-        interpreter: InterpreterRefPointerrpreter>,
-    ) -> DefaultResult {
-        let interpreter = interpreter.unwrap();
-        let left = Self::evaluate(*logical.left, Some(&mut interpreter.clone()))?;
+    pub fn visit_logical_expr(logical: Logical, interpreter: &mut Interpreter) -> DefaultResult {
+        let interpreter = interpreter;
+        let left = Self::evaluate(*logical.left, interpreter)?;
 
         if let TokenType::Or = logical.operator.ttype {
             if Self::is_truthy(&left) {
@@ -221,15 +189,12 @@ impl Interpreter {
             }
         }
 
-        return Self::evaluate(*logical.right, Some(interpreter));
+        return Self::evaluate(*logical.right, interpreter);
     }
-    pub fn visit_grouping_expr(
-        grouping: Grouping,
-        interpreter: InterpreterRefPointerrpreter>,
-    ) -> DefaultResult {
+    pub fn visit_grouping_expr(grouping: Grouping, interpreter: &mut Interpreter) -> DefaultResult {
         Self::evaluate(*grouping.expression, interpreter)
     }
-    pub fn visit_unary_expr(unary: Unary, interpreter: InterpreterRefPointerrpreter>) -> DefaultResult {
+    pub fn visit_unary_expr(unary: Unary, interpreter: &mut Interpreter) -> DefaultResult {
         let right_r_value = Self::evaluate(*unary.right, interpreter);
 
         if let Err(right_operand_error) = right_r_value {
@@ -259,24 +224,21 @@ impl Interpreter {
         }
         Ok(LiteralType::Nil)
     }
-    pub fn visit_variable_expr(expr: Variable, interpreter: InterpreterRefPointer) -> DefaultResult {
+    pub fn visit_variable_expr(expr: Variable, interpreter: &mut Interpreter) -> DefaultResult {
         let get_result = interpreter.environment.get(&expr.name);
         return get_result;
     }
-    pub fn visit_assign_expr(expr: Assign, interpreter: InterpreterRefPointer) -> DefaultResult {
-        let value = Self::evaluate(*expr.value, Some(interpreter))?;
+    pub fn visit_assign_expr(expr: Assign, interpreter: &mut Interpreter) -> DefaultResult {
+        let value = Self::evaluate(*expr.value, interpreter)?;
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;
     }
-    pub fn visit_binary_expr(
-        binary: Binary,
-        interpreter: InterpreterRefPointerrpreter>,
-    ) -> DefaultResult {
+    pub fn visit_binary_expr(binary: Binary, interpreter: &mut Interpreter) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
-        let interpreter = interpreter.unwrap();
-        let left_r_value = Self::evaluate(left, Some(&mut interpreter.clone()));
-        let right_r_value = Self::evaluate(right, Some(interpreter));
+        let interpreter = interpreter;
+        let left_r_value = Self::evaluate(left, interpreter);
+        let right_r_value = Self::evaluate(right, interpreter);
 
         if let Err(left_operand_error) = left_r_value {
             return Err(RuntimeError {

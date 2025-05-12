@@ -5,15 +5,15 @@ use crate::{
     token_type::{LiteralType, Token},
 };
 
-#[derive(Debug)]
-pub struct Environment<'a> {
-    pub enclosing: Option<&'a mut Environment<'a>>,
+#[derive(Debug, Clone)]
+pub struct Environment {
+    pub enclosing: Option<Box<Environment>>,
     pub values: HashMap<String, LiteralType>,
 }
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
-impl<'a> Environment<'a> {
+impl Environment {
     pub fn define(&mut self, name: String, value: LiteralType) -> () {
         self.values.insert(name.clone(), value);
     }

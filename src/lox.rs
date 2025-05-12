@@ -1,7 +1,9 @@
+use crate::environment::Environment;
 use crate::interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::token_type::{Token, TokenType};
+use std::collections::HashMap;
 use std::{fs, process, str::FromStr};
 
 use interpreter::Interpreter;
@@ -47,7 +49,13 @@ impl Lox {
 
         let scanned_tokens = Scanner::scan_tokens(file);
         let statements = Parser::parse(scanned_tokens);
-        Interpreter::interpret(statements);
+        let mut interpreter = Interpreter {
+            environment: Environment {
+                enclosing: None,
+                values: HashMap::new(),
+            },
+        };
+        interpreter.interpret(statements);
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {
         let lox_singleton = LOX_SINGLETON.lock();

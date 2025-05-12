@@ -1,7 +1,5 @@
 use std::{
-    collections::HashMap,
-    ops::{DerefMut, Neg},
-    sync::{LazyLock, Mutex, MutexGuard},
+    cell::{Ref, RefCell}, collections::HashMap, ops::{DerefMut, Neg}, sync::{LazyLock, Mutex, MutexGuard}
 };
 
 use crate::{
@@ -28,6 +26,8 @@ pub static INTERPRETER_SINGLETON: LazyLock<Mutex<Interpreter>> = LazyLock::new(|
 
 pub type InterpreterMutex<'a> = MutexGuard<'a, Interpreter>;
 
+pub type InterpreterRefPointer<'a> = RefCell<&'a mut MutexGuard<'a, Interpreter>>;
+
 #[derive(Debug)]
 pub struct RuntimeError {
     pub token: Token,
@@ -46,7 +46,7 @@ impl Interpreter {
         match interpreter_singleton {
             Ok(mut interpreter) => {
                 for statement in statements {
-                    let execute_result = Self::execute(statement, Some(&mut interpreter));
+                    let execute_result = Self::execute(statement, RefCell::new(&mut interpreter));
                    
                     if let Err(runtime_error) = execute_result {
                         Lox::runtime_error(runtime_error);
@@ -59,7 +59,7 @@ impl Interpreter {
             }
         }
     }
-    pub fn evaluate(expr: ExpressionType, interpreter: Option<&mut Interpreter>) -> DefaultResult {
+    pub fn evaluate(expr: ExpressionType, interpreter: InterpreterRefPointer) -> DefaultResult {
         match expr {
             ExpressionType::Binary(binary) => {
                 Self::visit_binary_expr(binary, Some(interpreter.unwrap()))
@@ -82,7 +82,7 @@ impl Interpreter {
             }
         }
     }
-    fn execute(stmt: StmtType, interpreter: Option<&mut Interpreter>) -> DefaultResult {
+    fn execute(stmt: StmtType, interpreter: InterpreterRefPointer) -> DefaultResult {
         match stmt {
             StmtType::Expression(expr) => {
                 Self::visit_expression_stmt(expr.expression, Some(interpreter.unwrap()))
@@ -96,7 +96,7 @@ impl Interpreter {
             StmtType::While(while_stmt) => Self::visit_while_stmt(while_stmt, interpreter.unwrap()),
         }
     }
-    fn visit_block_stmt(stmt: Block, interpreter: &mut Interpreter) -> DefaultResult {
+    fn visit_block_stmt(stmt: Block, interpreter: InterpreterRefPointer) -> DefaultResult {
         Self::execute_block(
             stmt.statements,
             Environment {
@@ -109,7 +109,7 @@ impl Interpreter {
     fn execute_block(
         statements: Vec<StmtType>,
         environment: Environment,
-        interpreter: &mut Interpreter,
+        interpreter: InterpreterRefPointer,
     ) -> DefaultResult {
         let previous: Environment = interpreter.environment.clone();
         interpreter.environment = environment;
@@ -134,11 +134,11 @@ impl Interpreter {
     }
     fn visit_expression_stmt(
         expr: ExpressionType,
-        interpreter: Option<&mut Interpreter>,
+        interpreter: InterpreterRefPointerrpreter>,
     ) -> DefaultResult {
         Self::evaluate(expr, interpreter)
     }
-    fn visit_if_stmt(stmt: If, mut interpreter: &mut Interpreter) -> DefaultResult {
+    fn visit_if_stmt(stmt: If, mut interpreter: InterpreterRefPointer) -> DefaultResult {
         let deref_interpreter = interpreter.deref_mut();
 
         let evaluate_result = Self::evaluate(*stmt.condition, Some(deref_interpreter))?;
@@ -152,7 +152,7 @@ impl Interpreter {
     }
     fn visit_print_stmt(
         expr: ExpressionType,
-        interpreter: Option<&mut Interpreter>,
+        interpreter: InterpreterRefPointerrpreter>,
     ) -> DefaultResult {
         let value = Self::evaluate(expr, interpreter);
 
@@ -164,7 +164,7 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    fn visit_var_stmt(stmt: Var, interpreter: &mut Interpreter) -> DefaultResult {
+    fn visit_var_stmt(stmt: Var, interpreter: InterpreterRefPointer) -> DefaultResult {
         let mut value: LiteralType = LiteralType::Nil;
 
         if let Some(expr_initializer) = stmt.initializer {
@@ -177,7 +177,7 @@ impl Interpreter {
 
         return Ok(value);
     }
-    fn visit_while_stmt(stmt: While, mut interpreter: &mut Interpreter) -> DefaultResult {
+    fn visit_while_stmt(stmt: While, mut interpreter: InterpreterRefPointer) -> DefaultResult {
         let deref_interpreter = interpreter.deref_mut();
 
         let evaluated_condition = Self::evaluate(stmt.condition.clone(), Some(deref_interpreter))?;
@@ -206,7 +206,7 @@ impl Interpreter {
     }
     pub fn visit_logical_expr(
         logical: Logical,
-        interpreter: Option<&mut Interpreter>,
+        interpreter: InterpreterRefPointerrpreter>,
     ) -> DefaultResult {
         let interpreter = interpreter.unwrap();
         let left = Self::evaluate(*logical.left, Some(&mut interpreter.clone()))?;
@@ -225,11 +225,11 @@ impl Interpreter {
     }
     pub fn visit_grouping_expr(
         grouping: Grouping,
-        interpreter: Option<&mut Interpreter>,
+        interpreter: InterpreterRefPointerrpreter>,
     ) -> DefaultResult {
         Self::evaluate(*grouping.expression, interpreter)
     }
-    pub fn visit_unary_expr(unary: Unary, interpreter: Option<&mut Interpreter>) -> DefaultResult {
+    pub fn visit_unary_expr(unary: Unary, interpreter: InterpreterRefPointerrpreter>) -> DefaultResult {
         let right_r_value = Self::evaluate(*unary.right, interpreter);
 
         if let Err(right_operand_error) = right_r_value {
@@ -259,23 +259,22 @@ impl Interpreter {
         }
         Ok(LiteralType::Nil)
     }
-    pub fn visit_variable_expr(expr: Variable, interpreter: &mut Interpreter) -> DefaultResult {
+    pub fn visit_variable_expr(expr: Variable, interpreter: InterpreterRefPointer) -> DefaultResult {
         let get_result = interpreter.environment.get(&expr.name);
         return get_result;
     }
-    pub fn visit_assign_expr(expr: Assign, interpreter: &mut Interpreter) -> DefaultResult {
+    pub fn visit_assign_expr(expr: Assign, interpreter: InterpreterRefPointer) -> DefaultResult {
         let value = Self::evaluate(*expr.value, Some(interpreter))?;
         let get_result = interpreter.environment.assign(expr.name, value);
         return get_result;
     }
     pub fn visit_binary_expr(
         binary: Binary,
-        interpreter: Option<&mut Interpreter>,
+        interpreter: InterpreterRefPointerrpreter>,
     ) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
         let interpreter = interpreter.unwrap();
-        //clonagem do interpretador pode ser a causa dos problemas que identifiquei na última vez
         let left_r_value = Self::evaluate(left, Some(&mut interpreter.clone()));
         let right_r_value = Self::evaluate(right, Some(interpreter));
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Neg};
+use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
     environment::Environment,
@@ -8,7 +8,7 @@ use crate::{
     token_type::{LiteralType, Token, TokenType},
 };
 pub struct Interpreter<'a> {
-    pub environment: &'a mut Environment<'a>,
+    pub environment: Rc<RefCell<&'a mut Environment<'a>>>,
 }
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub struct RuntimeError {
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
 impl<'a> Interpreter<'a> {
-    pub fn interpret(self, statements: Vec<StmtType>) -> () {
+    pub fn interpret(&'a mut self, statements: Vec<StmtType>) -> () {
         for statement in statements {
             let execute_result = Self::execute(self, statement);
 
@@ -55,10 +55,10 @@ impl<'a> Interpreter<'a> {
     }
     fn execute_block(&'a mut self, statements: Vec<StmtType>) -> DefaultResult {
         let mut curr_env: Environment<'a> = Environment {
-            enclosing: Some(&mut self.environment),
+            enclosing: Some(self.environment),
             values: HashMap::new(),
         };
-        self.environment = &mut curr_env;
+        self.environment = Rc::new(RefCell::new(&mut curr_env));
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
 
         for statement in statements {
@@ -69,12 +69,12 @@ impl<'a> Interpreter<'a> {
                     curr_execute_result = literal_type;
                 }
                 Err(err) => {
-                    self.environment = &mut self.environment;
+                    self.environment = self.environment;
                     return Err(err);
                 }
             };
         }
-        self.environment = &mut self.environment;
+        self.environment = self.environment;
         Ok(curr_execute_result)
     }
     fn visit_expression_stmt(&mut self, expr: ExpressionType) -> DefaultResult {

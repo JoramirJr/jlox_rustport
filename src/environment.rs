@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     interpreter::RuntimeError,
@@ -7,7 +7,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Environment<'a> {
-    pub enclosing: Option<&'a mut Environment<'a>>,
+    pub enclosing: Option<Rc<RefCell<&'a mut Environment<'a>>>>,
     pub values: HashMap<String, LiteralType>,
 }
 
@@ -24,7 +24,7 @@ impl<'a> Environment<'a> {
             return Ok(literal_value.clone());
         } else {
             if let Some(enclosing_env) = &self.enclosing {
-                return enclosing_env.get(name);
+                return enclosing_env.borrow_mut().get(name);
             } else {
                 return Err(RuntimeError {
                     token: name.clone(),
@@ -43,7 +43,7 @@ impl<'a> Environment<'a> {
             }
         } else {
             if let Some(enclosing_env) = &mut self.enclosing {
-                return enclosing_env.assign(name, value);
+                return enclosing_env.borrow_mut().assign(name, value);
             } else {
                 return Err(RuntimeError {
                     token: name.clone(),

@@ -7,10 +7,8 @@ use crate::{
     stmt::{Block, If, StmtType, Var, While},
     token_type::{LiteralType, Token, TokenType},
 };
-
-#[derive(Clone)]
-pub struct Interpreter {
-    pub environment: Environment,
+pub struct Interpreter<'a> {
+    pub environment: &'a mut Environment<'a>,
 }
 
 #[derive(Debug)]
@@ -21,8 +19,8 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
-impl Interpreter {
-    pub fn interpret(&mut self, statements: Vec<StmtType>) -> () {
+impl<'a> Interpreter<'a> {
+    pub fn interpret(self, statements: Vec<StmtType>) -> () {
         for statement in statements {
             let execute_result = Self::execute(self, statement);
 
@@ -42,7 +40,7 @@ impl Interpreter {
             ExpressionType::Logical(logical) => Self::visit_logical_expr(self, logical),
         }
     }
-    fn execute(&mut self, stmt: StmtType) -> DefaultResult {
+    fn execute(&'a mut self, stmt: StmtType) -> DefaultResult {
         match stmt {
             StmtType::Expression(expr) => Self::visit_expression_stmt(self, expr.expression),
             StmtType::Print(print) => Self::visit_print_stmt(self, print.expression),
@@ -52,20 +50,15 @@ impl Interpreter {
             StmtType::While(while_stmt) => Self::visit_while_stmt(self, while_stmt),
         }
     }
-    fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
-        let first_block_env = Environment {
-            enclosing: Some(Box::new(self.environment)),
+    fn visit_block_stmt(&'a mut self, stmt: Block) -> DefaultResult {
+        Self::execute_block(self, stmt.statements)
+    }
+    fn execute_block(&'a mut self, statements: Vec<StmtType>) -> DefaultResult {
+        let mut curr_env: Environment<'a> = Environment {
+            enclosing: Some(&mut self.environment),
             values: HashMap::new(),
         };
-        Self::execute_block(self, stmt.statements, first_block_env)
-    }
-    fn execute_block(
-        &mut self,
-        statements: Vec<StmtType>,
-        environment: Environment,
-    ) -> DefaultResult {
-        let previous = self.environment;
-        self.environment = environment;
+        self.environment = &mut curr_env;
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
 
         for statement in statements {
@@ -76,18 +69,18 @@ impl Interpreter {
                     curr_execute_result = literal_type;
                 }
                 Err(err) => {
-                    self.environment = previous;
+                    self.environment = &mut self.environment;
                     return Err(err);
                 }
             };
         }
-        self.environment = previous;
+        self.environment = &mut self.environment;
         Ok(curr_execute_result)
     }
     fn visit_expression_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
         Self::evaluate(self, expr)
     }
-    fn visit_if_stmt(&mut self, stmt: If) -> DefaultResult {
+    fn visit_if_stmt(&'a mut self, stmt: If) -> DefaultResult {
         let evaluate_result: LiteralType = Self::evaluate(self, *stmt.condition)?;
         if Self::is_truthy(&evaluate_result) {
             Self::execute(self, StmtType::Block(stmt.then_branch))
@@ -119,9 +112,9 @@ impl Interpreter {
 
         return Ok(value);
     }
-    fn visit_while_stmt(&mut self, stmt: While) -> DefaultResult {
+    fn visit_while_stmt(&'a mut self, stmt: While) -> DefaultResult {
         let evaluated_condition = Self::evaluate(self, stmt.condition.clone())?;
-        while Self::is_truthy(&evaluated_condition) {
+        if Self::is_truthy(&evaluated_condition) {
             Self::execute(self, *stmt.body.clone())?;
         }
         return Ok(LiteralType::Nil);

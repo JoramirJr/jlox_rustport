@@ -7,8 +7,8 @@ use crate::{
     stmt::{Block, If, StmtType, Var, While},
     token_type::{LiteralType, Token, TokenType},
 };
-pub struct Interpreter<'a> {
-    pub environment: Rc<RefCell<&'a mut Environment<'a>>>,
+pub struct Interpreter {
+    pub environment: Rc<RefCell<Environment>>,
 }
 
 #[derive(Debug)]
@@ -19,10 +19,10 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
-impl<'a> Interpreter<'a> {
-    pub fn interpret(&'a mut self, statements: Vec<StmtType>) -> () {
+impl Interpreter {
+    pub fn interpret(mut self, statements: Vec<StmtType>) -> () {
         for statement in statements {
-            let execute_result = Self::execute(self, statement);
+            let execute_result = Self::execute(&mut self, statement);
 
             if let Err(runtime_error) = execute_result {
                 Lox::runtime_error(runtime_error);
@@ -40,7 +40,7 @@ impl<'a> Interpreter<'a> {
             ExpressionType::Logical(logical) => Self::visit_logical_expr(self, logical),
         }
     }
-    fn execute(&'a mut self, stmt: StmtType) -> DefaultResult {
+    fn execute(&mut self, stmt: StmtType) -> DefaultResult {
         match stmt {
             StmtType::Expression(expr) => Self::visit_expression_stmt(self, expr.expression),
             StmtType::Print(print) => Self::visit_print_stmt(self, print.expression),
@@ -50,15 +50,15 @@ impl<'a> Interpreter<'a> {
             StmtType::While(while_stmt) => Self::visit_while_stmt(self, while_stmt),
         }
     }
-    fn visit_block_stmt(&'a mut self, stmt: Block) -> DefaultResult {
+    fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
         Self::execute_block(self, stmt.statements)
     }
-    fn execute_block(&'a mut self, statements: Vec<StmtType>) -> DefaultResult {
-        let mut curr_env: Environment<'a> = Environment {
-            enclosing: Some(self.environment),
+    fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
+        let curr_env: Environment = Environment {
+            enclosing: Some(self.environment.clone()),
             values: HashMap::new(),
         };
-        self.environment = Rc::new(RefCell::new(&mut curr_env));
+        self.environment = Rc::new(RefCell::new(curr_env));
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
 
         for statement in statements {
@@ -69,18 +69,18 @@ impl<'a> Interpreter<'a> {
                     curr_execute_result = literal_type;
                 }
                 Err(err) => {
-                    self.environment = self.environment;
+                    self.environment = self.environment.clone();
                     return Err(err);
                 }
             };
         }
-        self.environment = self.environment;
+        self.environment = self.environment.clone();
         Ok(curr_execute_result)
     }
     fn visit_expression_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
         Self::evaluate(self, expr)
     }
-    fn visit_if_stmt(&'a mut self, stmt: If) -> DefaultResult {
+    fn visit_if_stmt(&mut self, stmt: If) -> DefaultResult {
         let evaluate_result: LiteralType = Self::evaluate(self, *stmt.condition)?;
         if Self::is_truthy(&evaluate_result) {
             Self::execute(self, StmtType::Block(stmt.then_branch))
@@ -95,7 +95,7 @@ impl<'a> Interpreter<'a> {
 
         match value {
             Ok(literal) => {
-                // println!("{:?}", Self::stringify(&literal));
+                println!("{:?}", Self::stringify(&literal));
                 Ok(literal)
             }
             Err(error) => Err(error),
@@ -108,13 +108,15 @@ impl<'a> Interpreter<'a> {
             let literal = Ok(Self::evaluate(self, expr_initializer))?;
             value = literal.unwrap();
         }
-        self.environment.define(stmt.name.lexeme, value.clone());
+        self.environment
+            .borrow_mut()
+            .define(stmt.name.lexeme, value.clone());
 
         return Ok(value);
     }
-    fn visit_while_stmt(&'a mut self, stmt: While) -> DefaultResult {
+    fn visit_while_stmt(&mut self, stmt: While) -> DefaultResult {
         let evaluated_condition = Self::evaluate(self, stmt.condition.clone())?;
-        if Self::is_truthy(&evaluated_condition) {
+        while Self::is_truthy(&evaluated_condition) {
             Self::execute(self, *stmt.body.clone())?;
         }
         return Ok(LiteralType::Nil);
@@ -186,12 +188,12 @@ impl<'a> Interpreter<'a> {
         Ok(LiteralType::Nil)
     }
     pub fn visit_variable_expr(&mut self, expr: Variable) -> DefaultResult {
-        let get_result = self.environment.get(&expr.name);
+        let get_result = self.environment.borrow_mut().get(&expr.name);
         return get_result;
     }
     pub fn visit_assign_expr(&mut self, expr: Assign) -> DefaultResult {
         let value = Self::evaluate(self, *expr.value)?;
-        let get_result = self.environment.assign(expr.name, value);
+        let get_result = self.environment.borrow_mut().assign(expr.name, value);
         return get_result;
     }
     pub fn visit_binary_expr(&mut self, binary: Binary) -> DefaultResult {

@@ -189,6 +189,8 @@ impl Parser {
             body: Box::new(body),
         });
 
+        println!("Body: {:?}", body);
+
         if let Some(initializer) = initializer {
             body = StmtType::Block(Block {
                 statements: Vec::from([initializer, body]),

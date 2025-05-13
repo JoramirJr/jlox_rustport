@@ -3,7 +3,9 @@ use crate::interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::token_type::{Token, TokenType};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::{fs, process, str::FromStr};
 
 use interpreter::Interpreter;
@@ -49,11 +51,11 @@ impl Lox {
 
         let scanned_tokens = Scanner::scan_tokens(file);
         let statements = Parser::parse(scanned_tokens);
-        let mut interpreter = Interpreter {
-            environment: Environment {
+        let interpreter = Interpreter {
+            environment: Rc::new(RefCell::new(Environment {
                 enclosing: None,
                 values: HashMap::new(),
-            },
+            })),
         };
         interpreter.interpret(statements);
     }

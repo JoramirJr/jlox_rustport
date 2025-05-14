@@ -4,6 +4,7 @@ use crate::token_type::{LiteralType, Token};
 pub enum ExpressionType {
     Assign(Assign),
     Binary(Binary),
+    Call(Call),
     Grouping(Grouping),
     Literal(Literal),
     Variable(Variable),
@@ -21,6 +22,12 @@ pub struct Binary {
     pub left: Box<ExpressionType>,
     pub operator: Token,
     pub right: Box<ExpressionType>,
+}
+#[derive(Debug, Clone)]
+pub struct Call {
+    pub callee: Box<ExpressionType>,
+    pub paren: Token,
+    pub arguments: Vec<ExpressionType>,
 }
 #[derive(Debug, Clone)]
 pub struct Grouping {

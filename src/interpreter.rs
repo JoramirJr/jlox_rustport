@@ -300,6 +300,7 @@ impl Interpreter {
         } else if let TokenType::Less = binary.operator.ttype {
             match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
+                    println!("LV: {:?}, RV: {:?}", f32_left, f32_right);
                     return Ok(LiteralType::Bool(f32_left < f32_right));
                 }
                 _ => {

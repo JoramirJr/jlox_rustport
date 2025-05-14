@@ -36,7 +36,6 @@ impl Environment {
     pub fn assign(&mut self, name: Token, value: LiteralType) -> DefaultResult {
         if self.values.contains_key(&name.lexeme) {
             let assignment = self.values.insert(name.lexeme, value);
-            println!("values: {:?}", self.values);
             match assignment {
                 Some(literal) => Ok(literal),
                 None => Ok(LiteralType::Nil),

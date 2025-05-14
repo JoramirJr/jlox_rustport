@@ -115,8 +115,7 @@ impl Interpreter {
         return Ok(value);
     }
     fn visit_while_stmt(&mut self, stmt: While) -> DefaultResult {
-        let evaluated_condition = Self::evaluate(self, stmt.condition.clone())?;
-        while Self::is_truthy(&evaluated_condition) {
+        while Self::is_truthy(&Self::evaluate(self, stmt.condition.clone())?) {
             Self::execute(self, *stmt.body.clone())?;
         }
         return Ok(LiteralType::Nil);
@@ -300,7 +299,6 @@ impl Interpreter {
         } else if let TokenType::Less = binary.operator.ttype {
             match (left_value, right_value) {
                 (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    println!("LV: {:?}, RV: {:?}", f32_left, f32_right);
                     return Ok(LiteralType::Bool(f32_left < f32_right));
                 }
                 _ => {

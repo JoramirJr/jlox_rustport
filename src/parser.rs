@@ -1,6 +1,8 @@
 use std::sync::{LazyLock, Mutex};
 
-use crate::expr::{Assign, Binary, ExpressionType, Grouping, Literal, Logical, Unary, Variable};
+use crate::expr::{
+    Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable,
+};
 use crate::lox::Lox;
 use crate::stmt::{Block, Expression, If, Print, StmtType, Var, While};
 use crate::token_type::*;
@@ -483,17 +485,37 @@ impl Parser {
         }
         return Self::call(self);
     }
+    fn finish_call(&mut self, callee: ExpressionType) -> Result<ExpressionType, ParseError> {
+        let mut arguments: Vec<ExpressionType> = Vec::new();
+
+        if !Self::check(&self, &TokenType::RightParen) {
+            arguments.push(Self::expression(self)?);
+            while Self::match_expr(self, &[TokenType::Comma]) {
+                arguments.push(Self::expression(self)?);
+            }
+        }
+
+        let paren = Self::consume(self, &TokenType::RightParen, "Expect ')' after arguments.")?;
+
+        return Ok(ExpressionType::Call(Call {
+            callee: Box::new(callee),
+            arguments,
+            paren,
+        }));
+    }
     pub fn call(&mut self) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::primary(self)?;
 
-        while(true) {
+        loop {
             if Self::match_expr(self, &[TokenType::LeftParen]) {
-                expr = Self::finish_call(expr);
+                expr = Self::finish_call(self, expr)?;
             } else {
-                break;;
+                break;
             }
         }
-    } 
+
+        return Ok(expr);
+    }
     pub fn primary(&mut self) -> Result<ExpressionType, ParseError> {
         if Self::match_expr(self, &[TokenType::False]) {
             return Ok(ExpressionType::Literal(Literal {

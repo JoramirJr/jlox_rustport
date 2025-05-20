@@ -23,6 +23,7 @@ impl AstPrinter {
             ExpressionType::Variable(_) => todo!(),
             ExpressionType::Assign(_) => todo!(),
             ExpressionType::Logical(_) => todo!(),
+            ExpressionType::Call(_) => todo!(),
         }
     }
     pub fn parenthesize(name: &String, exprs: Vec<&Box<ExpressionType>>) -> String {

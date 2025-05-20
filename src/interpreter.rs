@@ -38,6 +38,7 @@ impl Interpreter {
             ExpressionType::Variable(variable) => Self::visit_variable_expr(self, variable),
             ExpressionType::Assign(assignment) => Self::visit_assign_expr(self, assignment),
             ExpressionType::Logical(logical) => Self::visit_logical_expr(self, logical),
+            ExpressionType::Call(call) => todo!(),
         }
     }
     fn execute(&mut self, stmt: StmtType) -> DefaultResult {

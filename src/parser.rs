@@ -481,8 +481,19 @@ impl Parser {
                 }
             }
         }
-        return Self::primary(self);
+        return Self::call(self);
     }
+    pub fn call(&mut self) -> Result<ExpressionType, ParseError> {
+        let mut expr = Self::primary(self)?;
+
+        while(true) {
+            if Self::match_expr(self, &[TokenType::LeftParen]) {
+                expr = Self::finish_call(expr);
+            } else {
+                break;;
+            }
+        }
+    } 
     pub fn primary(&mut self) -> Result<ExpressionType, ParseError> {
         if Self::match_expr(self, &[TokenType::False]) {
             return Ok(ExpressionType::Literal(Literal {

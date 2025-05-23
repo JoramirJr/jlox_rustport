@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
     environment::Environment,
-    expr::{Assign, Binary, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
+    expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
     lox::Lox,
     stmt::{Block, If, StmtType, Var, While},
     token_type::{LiteralType, Token, TokenType},
@@ -350,6 +350,15 @@ impl Interpreter {
                 message: String::from("Invalid operator"),
                 token: binary.operator,
             });
+        }
+    }
+    pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
+        let callee = Self::evaluate(&mut self, expr)?;
+
+        let arguments: Vec<LiteralType> = Vec::new();
+
+        for argument in arguments {
+            arguments.push(Self::evaluate(self, argument)?);
         }
     }
     pub fn is_truthy(item: &LiteralType) -> bool {

@@ -489,6 +489,11 @@ impl Parser {
         let mut arguments: Vec<ExpressionType> = Vec::new();
 
         if !Self::check(&self, &TokenType::RightParen) {
+            if arguments.len() >= 255 {
+                Lox::error(Self::peek(&self), "Can't have more than 255 arguments.");
+            }
+
+
             arguments.push(Self::expression(self)?);
             while Self::match_expr(self, &[TokenType::Comma]) {
                 arguments.push(Self::expression(self)?);

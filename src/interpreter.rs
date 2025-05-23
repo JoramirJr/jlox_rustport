@@ -353,12 +353,21 @@ impl Interpreter {
         }
     }
     pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
-        let callee = Self::evaluate(&mut self, expr)?;
+        let callee = Self::evaluate(self, *expr.callee)?;
 
-        let arguments: Vec<LiteralType> = Vec::new();
+        let mut arguments: Vec<LiteralType> = Vec::new();
 
-        for argument in arguments {
+        for argument in expr.arguments {
             arguments.push(Self::evaluate(self, argument)?);
+        }
+
+        if let LiteralType::String(_) = callee {
+            return Err(RuntimeError {
+                token: expr.paren,
+                message: "Can only call functions and classes.".to_string(),
+            });
+        } else {
+            return Ok(callee.call(Some(self), arguments));
         }
     }
     pub fn is_truthy(item: &LiteralType) -> bool {

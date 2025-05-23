@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::interpreter::Interpreter;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     //single-character tokens
@@ -61,4 +63,10 @@ pub struct Token {
     pub lexeme: String,
     pub literal: LiteralType,
     pub line: u32,
+}
+
+impl LiteralType {
+    pub fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<LiteralType>) -> LiteralType {
+        todo!()
+    }
 }

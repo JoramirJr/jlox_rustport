@@ -9,6 +9,7 @@ use crate::{
 };
 pub struct Interpreter {
     pub environment: Rc<RefCell<Environment>>,
+    pub globals: Environment
 }
 
 #[derive(Debug)]

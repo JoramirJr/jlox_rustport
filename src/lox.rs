@@ -52,10 +52,14 @@ impl Lox {
         let scanned_tokens = Scanner::scan_tokens(file);
         let statements = Parser::parse(scanned_tokens);
         let interpreter = Interpreter {
+            globals: Environment {
+                enclosing: None,
+                values: HashMap::new(),
+            },
             environment: Rc::new(RefCell::new(Environment {
                 enclosing: None,
                 values: HashMap::new(),
-            })),
+            }))
         };
         interpreter.interpret(statements);
     }

@@ -69,4 +69,7 @@ impl LiteralType {
     pub fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<LiteralType>) -> LiteralType {
         todo!()
     }
+    pub fn arity(&self) -> usize {
+        todo!()
+    }
 }

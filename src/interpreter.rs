@@ -361,14 +361,21 @@ impl Interpreter {
             arguments.push(Self::evaluate(self, argument)?);
         }
 
-        if let LiteralType::String(_) = callee {
+        if arguments.len() != callee.arity()   {
             return Err(RuntimeError {
                 token: expr.paren,
-                message: "Can only call functions and classes.".to_string(),
+                message: format!(
+                    "Expected {} arguments but got {} arguments.",
+                    callee.arity(),
+                    arguments.len()
+                ),
             });
-        } else {
-            return Ok(callee.call(Some(self), arguments));
         }
+
+        return Err(RuntimeError {
+            token: expr.paren,
+            message: "Can only call functions and classes.".to_string(),
+        });
     }
     pub fn is_truthy(item: &LiteralType) -> bool {
         match item {

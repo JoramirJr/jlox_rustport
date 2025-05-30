@@ -9,7 +9,7 @@ use crate::{
 };
 pub struct Interpreter {
     pub environment: Rc<RefCell<Environment>>,
-    pub globals: Environment
+    pub globals: Option<Rc<RefCell<Environment>>>,
 }
 
 #[derive(Debug)]
@@ -362,7 +362,7 @@ impl Interpreter {
             arguments.push(Self::evaluate(self, argument)?);
         }
 
-        if arguments.len() != callee.arity()   {
+        if arguments.len() != callee.arity() {
             return Err(RuntimeError {
                 token: expr.paren,
                 message: format!(
@@ -373,10 +373,14 @@ impl Interpreter {
             });
         }
 
-        return Err(RuntimeError {
-            token: expr.paren,
-            message: "Can only call functions and classes.".to_string(),
-        });
+        if let LiteralType::String(_) = callee {
+            return Err(RuntimeError {
+                token: expr.paren,
+                message: "Can only call functions and classes".to_string(),
+            });
+        } else {
+            return callee.call(self, arguments);
+        }
     }
     pub fn is_truthy(item: &LiteralType) -> bool {
         match item {

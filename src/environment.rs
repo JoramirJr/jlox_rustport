@@ -6,23 +6,23 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct Environment<T> {
-    pub enclosing: Option<Rc<RefCell<Environment<T>>>>,
-    pub values: HashMap<String, T>,
+pub struct Environment {
+    pub enclosing: Option<Rc<RefCell<Environment>>>,
+    pub values: HashMap<String, LiteralType>,
 }
 
-impl<T> Environment<T> {
-    pub fn define(&mut self, name: String, value: T) -> () {
+impl Environment {
+    pub fn define(&mut self, name: String, value: LiteralType) -> () {
         self.values.insert(name.clone(), value);
     }
-    pub fn get(&self, name: &Token) -> Result<&T, RuntimeError> {
+    pub fn get(&self, name: &Token) -> Result<LiteralType, RuntimeError> {
         let map_value = self.values.get(name.lexeme.as_str());
 
         if let Some(literal_value) = map_value {
-            return Ok(literal_value);
+            return Ok(literal_value.clone());
         } else {
             if let Some(enclosing_env) = &self.enclosing {
-                return enclosing_env.clone().borrow_mut().get(name);
+                return enclosing_env.borrow_mut().get(name);
             } else {
                 return Err(RuntimeError {
                     token: name.clone(),
@@ -31,7 +31,7 @@ impl<T> Environment<T> {
             }
         }
     }
-    pub fn assign(&mut self, name: Token, value: LiteralType) -> Result<T, RuntimeError> {
+    pub fn assign(&mut self, name: Token, value: LiteralType) -> Result<LiteralType, RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
             let assignment = self.values.insert(name.lexeme, value);
             match assignment {

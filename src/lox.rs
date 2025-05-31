@@ -51,14 +51,7 @@ impl Lox {
 
         let scanned_tokens = Scanner::scan_tokens(file);
         let statements = Parser::parse(scanned_tokens);
-        let mut interpreter = Interpreter {
-            environment: Rc::new(RefCell::new(Environment {
-                enclosing: None,
-                values: HashMap::new(),
-            })),
-            globals: None,
-        };
-        interpreter.globals = Some(Rc::clone(&interpreter.environment));
+        let interpreter = Interpreter::new();
         interpreter.interpret(statements);
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {

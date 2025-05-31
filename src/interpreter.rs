@@ -21,6 +21,20 @@ pub struct RuntimeError {
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
 impl Interpreter {
+    pub fn new() -> Interpreter {
+        let mut interpreter = Interpreter {
+            environment: Rc::new(RefCell::new(Environment {
+                enclosing: None,
+                values: HashMap::new(),
+            })),
+            globals: None,
+        };
+        interpreter.globals = Some(Rc::clone(&interpreter.environment));
+
+        interpreter.globals.unwrap().borrow_mut().define("clock".to_string(), );
+
+        return interpreter;
+    }
     pub fn interpret(mut self, statements: Vec<StmtType>) -> () {
         for statement in statements {
             let execute_result = Self::execute(&mut self, statement);

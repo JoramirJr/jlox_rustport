@@ -7,6 +7,7 @@ mod parser;
 mod scanner;
 mod stmt;
 mod token_type;
+mod lib;
 
 use lox::Lox;
 

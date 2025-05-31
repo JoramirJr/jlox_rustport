@@ -1,16 +1,16 @@
 use crate::environment::Environment;
 use crate::interpreter;
+use crate::lib;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::token_type::{Token, TokenType};
+use interpreter::Interpreter;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
-use std::{fs, process, str::FromStr};
-
-use interpreter::Interpreter;
 use std::env;
+use std::rc::Rc;
 use std::sync::{LazyLock, Mutex, MutexGuard};
+use std::{fs, process, str::FromStr};
 #[derive(Default)]
 pub struct Lox {
     pub args: Vec<String>,

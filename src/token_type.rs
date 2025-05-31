@@ -1,6 +1,4 @@
-use std::fmt;
-
-use crate::interpreter::Interpreter;
+use crate::{interpreter::Interpreter, Callable};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
@@ -65,11 +63,15 @@ pub struct Token {
     pub line: u32,
 }
 
-impl LiteralType {
-    pub fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<LiteralType>) -> LiteralType {
+impl Callable for LiteralType {
+    fn call(
+        &self,
+        interpreter: Option<&mut Interpreter>,
+        arguments: Vec<LiteralType>,
+    ) -> LiteralType {
         todo!()
     }
-    pub fn arity(&self) -> usize {
+    fn arity(&self) -> usize {
         todo!()
     }
 }

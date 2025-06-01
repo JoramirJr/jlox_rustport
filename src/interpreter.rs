@@ -1,11 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
-    environment::Environment,
+    environment::{Environment, VariablePossibleTypes},
     expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
     lox::Lox,
     stmt::{Block, If, StmtType, Var, While},
     token_type::{LiteralType, Token, TokenType},
+    LoxCallable,
 };
 pub struct Interpreter {
     pub environment: Rc<RefCell<Environment>>,
@@ -20,6 +21,11 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
+pub enum InterpreterGenericTypes {
+    LoxCallable(LoxCallable),
+    LiteralType(LiteralType),
+}
+
 impl Interpreter {
     pub fn new() -> Interpreter {
         let mut interpreter = Interpreter {
@@ -31,7 +37,11 @@ impl Interpreter {
         };
         interpreter.globals = Some(Rc::clone(&interpreter.environment));
 
-        interpreter.globals.unwrap().borrow_mut().define("clock".to_string(), );
+        interpreter.globals.as_ref().map(|interpreter| {
+            interpreter
+                .borrow_mut()
+                .define("clock".to_string(), VariablePossibleTypes::LoxCallable(LoxCallable))
+        });
 
         return interpreter;
     }
@@ -126,7 +136,7 @@ impl Interpreter {
         }
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme, value.clone());
+            .define(stmt.name.lexeme,   VariablePossibleTypes::LiteralType(value.clone()));
 
         return Ok(value);
     }

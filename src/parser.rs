@@ -36,7 +36,7 @@ impl Parser {
                 while !Self::is_at_end(&parser) {
                     let declaration = Self::declaration(&mut parser);
 
-                    if let Some(value) = declaration {
+                    if let Ok(value) = declaration {
                         statements.push(value);
                     }
                 }
@@ -48,30 +48,30 @@ impl Parser {
             }
         }
     }
-    fn declaration(&mut self) -> Option<StmtType> {
+    fn declaration(&mut self) -> Result<StmtType, ParseError> {
         if Self::match_expr(self, &[TokenType::Var]) {
             let var_declaration = Self::var_declaration(self);
 
             match var_declaration {
-                Ok(value) => return Some(value),
+                Ok(value) => return Ok(value),
                 Err(_) => {
                     Self::synchronize(self);
-                    return None;
+                    return Err(ParseError("".to_string()));
                 }
             }
         } else if Self::match_expr(self, &[TokenType::Fun]) {
-            return Self::function("function");
+            return Ok(Self::function(self, "function"))?;
         }
 
         let stmt = Self::statement(self);
 
         match stmt {
             Ok(stmt) => {
-                return Some(stmt);
+                return Ok(stmt);
             }
             Err(_) => {
                 Self::synchronize(self);
-                None
+                return Err(ParseError("".to_string()));
             }
         }
     }
@@ -253,8 +253,49 @@ impl Parser {
 
         Ok(StmtType::Expression(Expression { expression: expr }))
     }
-    fn function(kind: &str) -> Function {
-        todo!()
+    fn function(&mut self, kind: &str) -> Result<StmtType, ParseError> {
+        let name = Self::consume(
+            self,
+            &TokenType::Identifier,
+            format!("Expect {} name.", kind).as_str(),
+        )?;
+
+        Self::consume(
+            self,
+            &TokenType::LeftParen,
+            format!("Expect '(' after {} name.", kind).as_str(),
+        )?;
+
+        let mut params: Vec<Token> = Vec::new();
+
+        if !Self::check(&self, &TokenType::RightParen) {
+            while Self::match_expr(self, &[TokenType::Comma]) {
+                if params.len() > 255 {
+                    return Err(Self::error(
+                        Self::peek(&self),
+                        "Can't have more than 255 characters",
+                    ));
+                }
+
+                params.push(Self::consume(
+                    self,
+                    &TokenType::Identifier,
+                    "Expect parameter name.",
+                )?)
+            }
+        }
+
+        Self::consume(self, &TokenType::RightParen, "Expect ')' after parameters.")?;
+
+        Self::consume(
+            self,
+            &TokenType::LeftBrace,
+            format!("Expect ')' before {} body", kind).as_str(),
+        )?;
+
+        let body: Vec<StmtType> = Self::block(self)?;
+
+        return Ok(StmtType::Function(Function { name, params, body }));
     }
     fn block(&mut self) -> Result<Vec<StmtType>, ParseError> {
         let mut statements = Vec::new();
@@ -262,7 +303,7 @@ impl Parser {
         while !Self::check(&self, &TokenType::RightBrace) && !Self::is_at_end(&self) {
             let declaration = Self::declaration(self);
 
-            if let Some(decl) = declaration {
+            if let Ok(decl) = declaration {
                 statements.push(decl);
             }
         }

@@ -1,4 +1,4 @@
-use crate::interpreter::Interpreter;
+use crate::{interpreter::Interpreter, LoxCallable};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
@@ -63,15 +63,15 @@ pub struct Token {
     pub line: u32,
 }
 
-impl LiteralType {
-    pub fn call(
+impl LoxCallable for LiteralType {
+    fn call(
         &self,
         _interpreter: Option<&mut Interpreter>,
         _arguments: Vec<LiteralType>,
     ) -> LiteralType {
         todo!()
     }
-    pub fn arity(&self) -> usize {
+    fn arity(&self) -> usize {
         todo!()
     }
 }

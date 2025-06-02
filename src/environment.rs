@@ -2,26 +2,22 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     interpreter::RuntimeError,
-    token_type::{LiteralType, Token}, LoxCallable,
+    token_type::{LiteralType, Token},
 };
 
 #[derive(Debug)]
-pub enum VariablePossibleTypes {
-    LoxCallable(LoxCallable),
-    LiteralType(LiteralType),
-}
 
 #[derive(Debug)]
 pub struct Environment {
     pub enclosing: Option<Rc<RefCell<Environment>>>,
-    pub values: HashMap<String, VariablePossibleTypes>,
+    pub values: HashMap<String, LiteralType>,
 }
 
 impl Environment {
-    pub fn define(&mut self, name: String, value: VariablePossibleTypes) -> () {
+    pub fn define(&mut self, name: String, value: LiteralType) -> () {
         self.values.insert(name.clone(), value);
     }
-    pub fn get(&self, name: &Token) -> Result<VariablePossibleTypes, RuntimeError> {
+    pub fn get(&self, name: &Token) -> Result<LiteralType, RuntimeError> {
         let map_value = self.values.get(name.lexeme.as_str());
 
         if let Some(literal_value) = map_value {
@@ -37,7 +33,7 @@ impl Environment {
             }
         }
     }
-    pub fn assign(&mut self, name: Token, value: LiteralType) -> Result<VariablePossibleTypes, RuntimeError> {
+    pub fn assign(&mut self, name: Token, value: LiteralType) -> Result<LiteralType, RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
             let assignment = self.values.insert(name.lexeme, value);
             match assignment {

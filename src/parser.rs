@@ -4,7 +4,7 @@ use crate::expr::{
     Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable,
 };
 use crate::lox::Lox;
-use crate::stmt::{Block, Expression, If, Print, StmtType, Var, While};
+use crate::stmt::{Block, Expression, Function, If, Print, StmtType, Var, While};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -59,6 +59,8 @@ impl Parser {
                     return None;
                 }
             }
+        } else if Self::match_expr(self, &[TokenType::Fun]) {
+            return Self::function("function");
         }
 
         let stmt = Self::statement(self);
@@ -250,6 +252,9 @@ impl Parser {
         Self::consume(self, &TokenType::Semicolon, "Expect ';' after expression.")?;
 
         Ok(StmtType::Expression(Expression { expression: expr }))
+    }
+    fn function(kind: &str) -> Function {
+        todo!()
     }
     fn block(&mut self) -> Result<Vec<StmtType>, ParseError> {
         let mut statements = Vec::new();
@@ -492,7 +497,6 @@ impl Parser {
             if arguments.len() >= 255 {
                 Lox::error(Self::peek(&self), "Can't have more than 255 arguments.");
             }
-
 
             arguments.push(Self::expression(self)?);
             while Self::match_expr(self, &[TokenType::Comma]) {

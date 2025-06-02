@@ -3,6 +3,7 @@ use crate::{expr::ExpressionType, token_type::Token};
 #[derive(Debug, Clone)]
 pub enum StmtType {
     Expression(Expression),
+    Function(Function),
     If(If),
     Block(Block),
     Var(Var),
@@ -13,6 +14,12 @@ pub enum StmtType {
 #[derive(Debug, Clone)]
 pub struct Expression {
     pub expression: ExpressionType,
+}
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<StmtType>,
 }
 #[derive(Debug, Clone)]
 pub struct If {

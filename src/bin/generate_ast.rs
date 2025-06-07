@@ -27,21 +27,18 @@ impl Main {
                 "Block: Vec<StmtType> statements",
                 "Var: Token name, Option<ExpressionType> initializer",
                 "Print: ExpressionType expression",
-                "While: ExpressionType condition, Box<StmtType> body"
+                "While: ExpressionType condition, Box<StmtType> body",
             ]),
         );
     }
     fn define_ast(basename: &str, types: Vec<&str>) {
-        let path = ["src", "/", basename, ".rs"].concat();
+        let path = format!("src/{}.rs", basename);
 
         let mut file_handler = File::create(&path).unwrap();
 
         if basename == "expr" {
-            let _ = file_handler.write(
-                ["use crate::token_type::{LiteralType, Token};\n\n"]
-                    .concat()
-                    .as_bytes(),
-            );
+            let _ = file_handler
+                .write(format!("use crate::token_type::{{LiteralType, Token}};\n\n").as_bytes());
             let _ = file_handler.write(
                 ["#[derive(Debug, Clone)]\n", "pub enum ExpressionType {\n"]
                     .concat()
@@ -49,16 +46,11 @@ impl Main {
             );
         } else {
             let _ = file_handler.write(
-                ["use crate::{expr::ExpressionType, token_type::Token};\n\n"]
-                    .concat()
-                    .as_bytes(),
+                format!("use crate::{{expr::ExpressionType, token_type::Token}};\n\n").as_bytes(),
             );
 
-            let _ = file_handler.write(
-                ["#[derive(Debug, Clone)]\n", "pub enum StmtType {\n"]
-                    .concat()
-                    .as_bytes(),
-            );
+            let _ = file_handler
+                .write(format!("#[derive(Debug, Clone)]\npub enum StmtType {{\n").as_bytes());
         }
         Self::define_expr_stmt_type(&mut file_handler, &types);
 
@@ -81,9 +73,15 @@ impl Main {
     }
     fn define_type(file_handler: &mut File, struct_name: &str, field_list: &str) {
         let _ = file_handler.write(
-            ["#[derive(Debug, Clone)]\n", "pub struct", " ", struct_name, " {\n"]
-                .concat()
-                .as_bytes(),
+            [
+                "#[derive(Debug, Clone)]\n",
+                "pub struct",
+                " ",
+                struct_name,
+                " {\n",
+            ]
+            .concat()
+            .as_bytes(),
         );
 
         let fields = field_list.split(", ");
@@ -92,11 +90,8 @@ impl Main {
             let field_split: Vec<&str> = field.split(" ").collect();
             let field_name = field_split[1];
             let field_type = field_split[0];
-            let _ = file_handler.write(
-                ["    ", "pub ", field_name, ": ", field_type, ",\n"]
-                    .concat()
-                    .as_bytes(),
-            );
+            let _ =
+                file_handler.write(format!("    pub {}: {},\n", field_name, field_type).as_bytes());
         }
 
         let _ = file_handler.write(b"}\n");

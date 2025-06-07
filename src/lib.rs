@@ -8,11 +8,11 @@ pub mod environment;
 pub mod expr;
 pub mod interpreter;
 pub mod lox;
+pub mod lox_function;
 pub mod parser;
 pub mod scanner;
 pub mod stmt;
 pub mod token_type;
-pub mod lox_function;
 
 pub fn clock() -> f32 {
     let now = SystemTime::now();
@@ -25,10 +25,7 @@ pub fn clock() -> f32 {
 }
 
 pub trait LoxCallable {
-    fn call(
-        &self,
-        interpreter: Option<&mut Interpreter>,
-        arguments: Vec<LiteralType>,
-    ) -> LiteralType;
+    fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<LiteralType>);
     fn arity(&self) -> usize;
+    fn to_string(&self) -> String;
 }

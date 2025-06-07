@@ -68,7 +68,7 @@ impl Interpreter {
     fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
         Self::execute_block(self, stmt.statements)
     }
-    fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
+    pub fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
         let curr_env: Environment = Environment {
             enclosing: Some(self.environment.clone()),
             values: HashMap::new(),

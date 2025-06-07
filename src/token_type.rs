@@ -64,14 +64,14 @@ pub struct Token {
 }
 
 impl LoxCallable for LiteralType {
-    fn call(
-        &self,
-        _interpreter: Option<&mut Interpreter>,
-        _arguments: Vec<LiteralType>,
-    ) -> LiteralType {
+    fn call(&self, _interpreter: Option<&mut Interpreter>, _arguments: Vec<LiteralType>) {
         todo!()
     }
     fn arity(&self) -> usize {
+        todo!()
+    }
+
+    fn to_string(&self) -> String {
         todo!()
     }
 }

@@ -102,7 +102,6 @@ impl Scanner {
         }
     }
     pub fn advance(&mut self) -> Option<char> {
-        //+1 and -1 implemented to not jump the first chars position
         self.current = self.current + 1;
         self.source.chars().nth(self.current - 1)
     }
@@ -114,32 +113,29 @@ impl Scanner {
             Self::advance(self);
         }
 
-        let text: Option<&str> = self.source.get(self.start..self.current);
+        let text = self.source.get(self.start..self.current).unwrap();
 
         let ttype = match text {
-            Some("and") => TokenType::And,
-            Some("class") => TokenType::Class,
-            Some("else") => TokenType::Else,
-            Some("false") => TokenType::False,
-            Some("for") => TokenType::For,
-            Some("fun") => TokenType::Fun,
-            Some("if") => TokenType::If,
-            Some("nil") => TokenType::Nil,
-            Some("or") => TokenType::Or,
-            Some("print") => TokenType::Print,
-            Some("return") => TokenType::Return,
-            Some("super") => TokenType::Super,
-            Some("this") => TokenType::This,
-            Some("true") => TokenType::True,
-            Some("var") => TokenType::Var,
-            Some("while") => TokenType::While,
-            _ => TokenType::Nil,
+            "and" => TokenType::And,
+            "class" => TokenType::Class,
+            "else" => TokenType::Else,
+            "false" => TokenType::False,
+            "for" => TokenType::For,
+            "fun" => TokenType::Fun,
+            "if" => TokenType::If,
+            "nil" => TokenType::Nil,
+            "or" => TokenType::Or,
+            "print" => TokenType::Print,
+            "return" => TokenType::Return,
+            "super" => TokenType::Super,
+            "this" => TokenType::This,
+            "true" => TokenType::True,
+            "var" => TokenType::Var,
+            "while" => TokenType::While,
+            _ => TokenType::Identifier,
         };
 
-        match ttype {
-            TokenType::Nil => Self::add_token(self, TokenType::Identifier, Some(LiteralType::Nil)),
-            _ => Self::add_token(self, ttype, Some(LiteralType::Nil)),
-        }
+        Self::add_token(self, ttype, Some(LiteralType::Nil))
     }
     pub fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'

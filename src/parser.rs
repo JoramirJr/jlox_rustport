@@ -585,7 +585,7 @@ impl Parser {
 
         if Self::match_expr(self, &[TokenType::Number, TokenType::String]) {
             return Ok(ExpressionType::Literal(Literal {
-                value: Self::previous(&self).literal,
+                value: Self::previous(&self).literal.unwrap(),
             }));
         }
 

@@ -63,26 +63,13 @@ impl Main {
         for t in field_list {
             let (struct_name, _) = t.split_once(":").unwrap();
 
-            let _ = file_handler.write(
-                ["    ", struct_name, "(", struct_name, "),\n"]
-                    .concat()
-                    .as_bytes(),
-            );
+            let _ = file_handler.write(format!("    {0}({0}),\n", struct_name).as_bytes());
         }
         let _ = file_handler.write("}\n\n".as_bytes());
     }
     fn define_type(file_handler: &mut File, struct_name: &str, field_list: &str) {
-        let _ = file_handler.write(
-            [
-                "#[derive(Debug, Clone)]\n",
-                "pub struct",
-                " ",
-                struct_name,
-                " {\n",
-            ]
-            .concat()
-            .as_bytes(),
-        );
+        let _ = file_handler
+            .write(format!("#[derive(Debug, Clone)]\npub struct {} {{\n", struct_name).as_bytes());
 
         let fields = field_list.split(", ");
 

@@ -42,15 +42,15 @@ impl Lox {
     }
     pub fn run_file(lox: MutexGuard<'_, Lox>) {
         let file: String = fs::read_to_string(&lox.args[1]).expect("File reading successful");
+
+        let scanned_tokens = Scanner::scan_tokens(file);
+        let statements: Vec<crate::stmt::StmtType> = Parser::parse(scanned_tokens);
         if lox.had_error {
             process::exit(65);
         }
-        std::mem::drop(lox);
-
-        let scanned_tokens = Scanner::scan_tokens(file);
-        let statements = Parser::parse(scanned_tokens);
         let interpreter = Interpreter::new();
         interpreter.interpret(statements);
+        std::mem::drop(lox);
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {
         let lox_singleton = LOX_SINGLETON.lock();

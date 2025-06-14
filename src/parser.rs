@@ -369,7 +369,7 @@ impl Parser {
 
             match expr {
                 Ok(ok_response) => {
-                    let right = Self::unary(self);
+                    let right = Self::comparison(self);
                     match right {
                         Ok(right_expr) => {
                             expr = Ok(ExpressionType::Binary(Binary {

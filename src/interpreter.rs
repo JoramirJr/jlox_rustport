@@ -336,29 +336,12 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::BangEqual = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::Bool(f32_left != f32_right));
-                }
-                _ => {
-                    return Err(RuntimeError {
-                        message: String::from("Operands must be a number"),
-                        token: binary.operator,
-                    })
-                }
-            }
+            Ok(LiteralType::Bool(!Self::is_equal(
+                &left_value,
+                &right_value,
+            )))
         } else if let TokenType::EqualEqual = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::Bool(f32_left == f32_right));
-                }
-                _ => {
-                    return Err(RuntimeError {
-                        message: String::from("Operands must be a number"),
-                        token: binary.operator,
-                    })
-                }
-            }
+            Ok(LiteralType::Bool(Self::is_equal(&left_value, &right_value)))
         } else {
             return Err(RuntimeError {
                 message: String::from("Invalid operator"),
@@ -407,5 +390,14 @@ impl Interpreter {
                 return true;
             }
         }
+    }
+    pub fn is_equal(a: &LiteralType, b: &LiteralType) -> bool {
+        if let LiteralType::Nil = a {
+            if let LiteralType::Nil = b {
+                return true;
+            }
+            return false;
+        }
+        return a == b;
     }
 }

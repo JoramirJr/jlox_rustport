@@ -50,6 +50,9 @@ impl Lox {
         }
         let interpreter = Interpreter::new();
         interpreter.interpret(statements);
+        if lox.had_runtime_error {
+            process::exit(70);
+        }
         std::mem::drop(lox);
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {

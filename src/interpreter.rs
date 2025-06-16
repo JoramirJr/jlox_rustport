@@ -336,12 +336,9 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::BangEqual = binary.operator.ttype {
-            Ok(LiteralType::Bool(!Self::is_equal(
-                &left_value,
-                &right_value,
-            )))
+            Ok(LiteralType::Bool(left_value != right_value))
         } else if let TokenType::EqualEqual = binary.operator.ttype {
-            Ok(LiteralType::Bool(Self::is_equal(&left_value, &right_value)))
+            Ok(LiteralType::Bool(left_value == right_value))
         } else {
             return Err(RuntimeError {
                 message: String::from("Invalid operator"),
@@ -390,14 +387,5 @@ impl Interpreter {
                 return true;
             }
         }
-    }
-    pub fn is_equal(a: &LiteralType, b: &LiteralType) -> bool {
-        if let LiteralType::Nil = a {
-            if let LiteralType::Nil = b {
-                return true;
-            }
-            return false;
-        }
-        return a == b;
     }
 }

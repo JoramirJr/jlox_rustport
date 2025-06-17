@@ -1,8 +1,6 @@
 use std::io;
 use std::io::Write;
 use std::str::FromStr;
-use std::sync::LazyLock;
-use std::sync::Mutex;
 
 use crate::token_type::LiteralType;
 use crate::token_type::Token;
@@ -16,45 +14,25 @@ pub struct Scanner {
     pub line: u32,
 }
 
-pub static SCANNER_SINGLETON: LazyLock<Mutex<Scanner>> = LazyLock::new(|| {
-    Mutex::new(Scanner {
-        source: String::new(),
-        tokens: Vec::new(),
-        start: 0,
-        current: 0,
-        line: 1,
-    })
-});
-
 impl Scanner {
-    pub fn scan_tokens(source_file: String) -> Vec<Token> {
-        let scanner_singleton = SCANNER_SINGLETON.lock();
+    pub fn scan_tokens(&mut self, source_file: String) -> Vec<Token> {
+        self.source = source_file;
 
-        match scanner_singleton {
-            Ok(mut scanner) => {
-                scanner.source = source_file;
-
-                while !Self::is_at_end(&scanner) {
-                    scanner.start = scanner.current;
-                    Self::scan_token(&mut scanner);
-                }
-
-                let line = scanner.line;
-
-                scanner.tokens.push(Token {
-                    ttype: TokenType::Eof,
-                    lexeme: String::new(),
-                    literal: Some(LiteralType::Nil),
-                    line: line,
-                });
-                let tokens = scanner.tokens.clone();
-                std::mem::drop(scanner);
-                tokens
-            }
-            Err(err) => {
-                panic!("Scanner singleton lock unwrap failed; error: {:?}", err);
-            }
+        while !Self::is_at_end(&self) {
+            self.start = self.current;
+            Self::scan_token(self);
         }
+
+        let line = self.line;
+
+        self.tokens.push(Token {
+            ttype: TokenType::Eof,
+            lexeme: String::new(),
+            literal: Some(LiteralType::Nil),
+            line: line,
+        });
+        let tokens = self.tokens.clone();
+        tokens
     }
     pub fn report(line: &u32, location: String, message: &str) -> () {
         let err_msg = format!("[line {}] Error {}: {}", line, location, message);

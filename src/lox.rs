@@ -25,7 +25,15 @@ impl Lox {
         let file: String =
             fs::read_to_string(self.args[1].clone()).expect("File reading successful");
 
-        let scanned_tokens = Scanner::scan_tokens(file);
+        let mut scanner = Scanner {
+            source: String::new(),
+            tokens: Vec::new(),
+            start: 0,
+            current: 0,
+            line: 1,
+        };
+
+        let scanned_tokens = scanner.scan_tokens(file);
 
         let mut parser = Parser {
             tokens: Vec::new(),
@@ -37,7 +45,7 @@ impl Lox {
             process::exit(65);
         }
         let interpreter = Interpreter::new();
-        interpreter.interpret(statements);
+        interpreter.interpret(statements, self);
         if self.had_runtime_error {
             process::exit(70);
         }

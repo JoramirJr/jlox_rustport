@@ -33,12 +33,12 @@ impl Interpreter {
 
         return interpreter;
     }
-    pub fn interpret(mut self, statements: Vec<StmtType>) -> () {
+    pub fn interpret(mut self, statements: Vec<StmtType>, lox_strt_instance: &mut Lox) -> () {
         for statement in statements {
             let execute_result = Self::execute(&mut self, statement);
 
             if let Err(runtime_error) = execute_result {
-                Lox::runtime_error(runtime_error);
+                lox_strt_instance.runtime_error(runtime_error);
                 break;
             }
         }

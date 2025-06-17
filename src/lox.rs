@@ -50,13 +50,13 @@ impl Lox {
         }
         let interpreter = Interpreter::new();
         interpreter.interpret(statements);
+        println!("I'm here!");
         if lox.had_runtime_error {
             process::exit(70);
         }
         std::mem::drop(lox);
     }
     pub fn runtime_error(error: interpreter::RuntimeError) -> () {
-        let lox_singleton = LOX_SINGLETON.lock();
         match lox_singleton {
             Ok(mut singleton) => {
                 let message = format!("{}\n[line: {:?}]", error.message, error.token.line);

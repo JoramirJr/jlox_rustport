@@ -39,6 +39,7 @@ impl Interpreter {
 
             if let Err(runtime_error) = execute_result {
                 Lox::runtime_error(runtime_error);
+                break;
             }
         }
     }

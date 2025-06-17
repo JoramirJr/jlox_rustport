@@ -41,11 +41,15 @@ impl Lox {
         };
 
         let statements: Vec<crate::stmt::StmtType> = parser.parse(scanned_tokens, self);
+
         if self.had_error {
             process::exit(65);
         }
+
         let interpreter = Interpreter::new();
+
         interpreter.interpret(statements, self);
+
         if self.had_runtime_error {
             process::exit(70);
         }

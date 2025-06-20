@@ -358,6 +358,10 @@ impl Parser {
 
             if let ExpressionType::Variable(variable) = expr {
                 let name = variable.name;
+                // println!("parsed assigment: {:?}", Assign {
+                //     name: name.clone(),
+                //     value: Box::new(value.clone()),
+                // });
                 return Ok(ExpressionType::Assign(Assign {
                     name: name,
                     value: Box::new(value),

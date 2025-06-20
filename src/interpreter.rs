@@ -1,12 +1,14 @@
 use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
-    environment::Environment,
+    environment::{self, Environment},
     expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
     lox::Lox,
     stmt::{Block, If, StmtType, Var, While},
     token_type::{LiteralType, Token, TokenType},
 };
+
+#[derive(Debug)]
 pub struct Interpreter {
     pub environment: Rc<RefCell<Environment>>,
     pub globals: Option<Rc<RefCell<Environment>>>,
@@ -70,11 +72,14 @@ impl Interpreter {
         Self::execute_block(self, stmt.statements)
     }
     pub fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
-        let curr_env: Environment = Environment {
+        let environment = Environment {
             enclosing: Some(self.environment.clone()),
             values: HashMap::new(),
         };
-        self.environment = Rc::new(RefCell::new(curr_env));
+        let previous = self.environment.clone();
+
+        self.environment = Rc::new(RefCell::new(environment));
+
         let mut curr_execute_result: LiteralType = LiteralType::Nil;
 
         for statement in statements {
@@ -85,12 +90,12 @@ impl Interpreter {
                     curr_execute_result = literal_type;
                 }
                 Err(err) => {
-                    self.environment = self.environment.clone();
+                    self.environment = previous;
                     return Err(err);
                 }
             };
         }
-        self.environment = self.environment.clone();
+        self.environment = previous;
         Ok(curr_execute_result)
     }
     fn visit_expression_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
@@ -204,6 +209,10 @@ impl Interpreter {
     }
     pub fn visit_variable_expr(&mut self, expr: Variable) -> DefaultResult {
         let get_result = self.environment.borrow_mut().get(&expr.name);
+        // println!(
+        //     "visit variable expr: {:?}, get_result: {:?}",
+        //     expr, get_result
+        // );
         return get_result;
     }
     pub fn visit_assign_expr(&mut self, expr: Assign) -> DefaultResult {

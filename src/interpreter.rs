@@ -356,35 +356,35 @@ impl Interpreter {
             });
         }
     }
-    // pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
-    //     let callee = Self::evaluate(self, *expr.callee)?;
+    pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
+        let callee = Self::evaluate(self, *expr.callee)?;
 
-    //     let mut arguments: Vec<LiteralType> = Vec::new();
+        let mut arguments: Vec<LiteralType> = Vec::new();
 
-    //     for argument in expr.arguments {
-    //         arguments.push(Self::evaluate(self, argument)?);
-    //     }
+        for argument in expr.arguments {
+            arguments.push(Self::evaluate(self, argument)?);
+        }
 
-    //     if arguments.len() != callee.arity() {
-    //         return Err(RuntimeError {
-    //             token: expr.paren,
-    //             message: format!(
-    //                 "Expected {} arguments but got {} arguments.",
-    //                 callee.arity(),
-    //                 arguments.len()
-    //             ),
-    //         });
-    //     }
+        if arguments.len() != callee.arity() {
+            return Err(RuntimeError {
+                token: expr.paren,
+                message: format!(
+                    "Expected {} arguments but got {} arguments.",
+                    callee.arity(),
+                    arguments.len()
+                ),
+            });
+        }
 
-    //     if let LiteralType::String(_) = callee {
-    //         return Err(RuntimeError {
-    //             token: expr.paren,
-    //             message: "Can only call functions and classes".to_string(),
-    //         });
-    //     } else {
-    //         return callee.call(self, arguments);
-    //     }
-    // }
+        if let LiteralType::String(_) = callee {
+            return Err(RuntimeError {
+                token: expr.paren,
+                message: "Can only call functions and classes".to_string(),
+            });
+        } else {
+            return callee.call(self, arguments);
+        }
+    }
     pub fn is_truthy(item: &LiteralType) -> bool {
         match item {
             LiteralType::Bool(bool) => {

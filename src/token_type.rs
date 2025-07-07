@@ -1,5 +1,3 @@
-use crate::{interpreter::Interpreter, LoxCallable};
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     //single-character tokens
@@ -63,15 +61,50 @@ pub struct Token {
     pub line: u32,
 }
 
-impl LoxCallable for LiteralType {
-    fn call(&self, _interpreter: Option<&mut Interpreter>, _arguments: Vec<LiteralType>) {
-        todo!()
+pub mod LoxCallable {
+    use crate::{
+        interpreter::{Interpreter, RuntimeError},
+        token_type::{LiteralType, Token},
+    };
+
+    pub fn call_function(
+        callee: &LiteralType,
+        arguments: Vec<LiteralType>,
+        interpreter: Option<&mut Interpreter>,
+        expr_closing_paren: Token,
+    ) -> Result<LiteralType, RuntimeError> {
+        match callee {
+            LiteralType::String(_) => {
+                return Err(RuntimeError {
+                    token: expr_closing_paren,
+                    message: "Can only call functions and classes.".to_string(),
+                })
+            }
+            LiteralType::F32(_) => {
+                return Err(RuntimeError {
+                    token: expr_closing_paren,
+                    message: "Can only call functions and classes.".to_string(),
+                })
+            }
+            LiteralType::Bool(_) => {
+                return Err(RuntimeError {
+                    token: expr_closing_paren,
+                    message: "Can only call functions and classes.".to_string(),
+                })
+            }
+            LiteralType::Nil => {
+                return Err(RuntimeError {
+                    token: expr_closing_paren,
+                    message: "Can only call functions and classes.".to_string(),
+                })
+            }
+        }
     }
-    fn arity(&self) -> usize {
+    pub fn arity(&self) -> usize {
         todo!()
     }
 
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         todo!()
     }
 }

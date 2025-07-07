@@ -1,3 +1,8 @@
+use crate::{
+    interpreter::{Interpreter, RuntimeError},
+    token_type::{LiteralType, Token},
+};
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     //single-character tokens
@@ -61,50 +66,40 @@ pub struct Token {
     pub line: u32,
 }
 
-pub mod LoxCallable {
-    use crate::{
-        interpreter::{Interpreter, RuntimeError},
-        token_type::{LiteralType, Token},
-    };
+pub struct LoxCallable {
+    call: 
+}
 
-    pub fn call_function(
-        callee: &LiteralType,
-        arguments: Vec<LiteralType>,
-        interpreter: Option<&mut Interpreter>,
-        expr_closing_paren: Token,
-    ) -> Result<LiteralType, RuntimeError> {
-        match callee {
-            LiteralType::String(_) => {
-                return Err(RuntimeError {
-                    token: expr_closing_paren,
-                    message: "Can only call functions and classes.".to_string(),
-                })
-            }
-            LiteralType::F32(_) => {
-                return Err(RuntimeError {
-                    token: expr_closing_paren,
-                    message: "Can only call functions and classes.".to_string(),
-                })
-            }
-            LiteralType::Bool(_) => {
-                return Err(RuntimeError {
-                    token: expr_closing_paren,
-                    message: "Can only call functions and classes.".to_string(),
-                })
-            }
-            LiteralType::Nil => {
-                return Err(RuntimeError {
-                    token: expr_closing_paren,
-                    message: "Can only call functions and classes.".to_string(),
-                })
-            }
+pub fn is_callable(
+    callee: &LiteralType,
+    arguments: Vec<LiteralType>,
+    interpreter: Option<&mut Interpreter>,
+    expr_closing_paren: Token,
+) -> Result<LiteralType, RuntimeError> {
+    match callee {
+        LiteralType::String(_) => {
+            return Err(RuntimeError {
+                token: expr_closing_paren,
+                message: "Can only call functions and classes.".to_string(),
+            })
         }
-    }
-    pub fn arity(&self) -> usize {
-        todo!()
-    }
-
-    pub fn to_string(&self) -> String {
-        todo!()
+        LiteralType::F32(_) => {
+            return Err(RuntimeError {
+                token: expr_closing_paren,
+                message: "Can only call functions and classes.".to_string(),
+            })
+        }
+        LiteralType::Bool(_) => {
+            return Err(RuntimeError {
+                token: expr_closing_paren,
+                message: "Can only call functions and classes.".to_string(),
+            })
+        }
+        LiteralType::Nil => {
+            return Err(RuntimeError {
+                token: expr_closing_paren,
+                message: "Can only call functions and classes.".to_string(),
+            })
+        }
     }
 }

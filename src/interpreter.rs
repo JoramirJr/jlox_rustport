@@ -365,24 +365,33 @@ impl Interpreter {
             arguments.push(Self::evaluate(self, argument)?);
         }
 
-        if arguments.len() != callee.arity() {
-            return Err(RuntimeError {
-                token: expr.paren,
-                message: format!(
-                    "Expected {} arguments but got {} arguments.",
-                    callee.arity(),
-                    arguments.len()
-                ),
-            });
-        }
+        if let ExpressionType::Variable(identifier) = *expr.callee {
+            let function = self.environment.borrow().get(&identifier.name);
 
-        if let LiteralType::String(_) = callee {
-            return Err(RuntimeError {
-                token: expr.paren,
-                message: "Can only call functions and classes".to_string(),
-            });
+            match function {
+                Ok(function) => {
+                    function.call(self, arguments);
+                },
+                Err => {
+                    return Err(RuntimeError {
+                        token: expr.paren,
+                        message: "Can only call functions and classes".to_string(),
+                    });
+                }
+            }
+
+            if arguments.len() != function.arity() {
+                return Err(RuntimeError {
+                    token: expr.paren,
+                    message: format!(
+                        "Expected {} arguments but got {} arguments.",
+                        function.arity(),
+                        arguments.len()
+                    ),
+                });
+            }
         } else {
-            return callee.call(self, arguments);
+            panic!("Shouldn't be reaching here yet; function call with identifier only, for now");
         }
     }
     pub fn is_truthy(item: &LiteralType) -> bool {

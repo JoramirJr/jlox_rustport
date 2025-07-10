@@ -9,9 +9,9 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct Interpreter {
-    pub environment: Rc<RefCell<Environment>>,
-    pub globals: Option<Rc<RefCell<Environment>>>,
+pub struct Interpreter<T> {
+    pub environment: Rc<RefCell<Environment<T>>>,
+    pub globals: Option<Rc<RefCell<Environment<T>>>>,
 }
 
 #[derive(Debug)]
@@ -22,8 +22,8 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
-impl Interpreter {
-    pub fn new() -> Interpreter {
+impl<T: Clone> Interpreter<T> {
+    pub fn new() -> Interpreter<T> {
         let mut interpreter = Interpreter {
             environment: Rc::new(RefCell::new(Environment {
                 enclosing: None,

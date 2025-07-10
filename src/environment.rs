@@ -33,11 +33,13 @@ impl<T: Clone> Environment<T> {
         }
     }
     pub fn assign(&mut self, name: Token, value: T) -> Result<T, RuntimeError> {
+        let value_clone = value.clone();
+
         if self.values.contains_key(&name.lexeme) {
             let assignment = self.values.insert(name.lexeme, value);
             match assignment {
                 Some(literal) => Ok(literal),
-                None => Ok(LiteralType::Nil),
+                None => Ok(value_clone),
             }
         } else {
             if let Some(enclosing_env) = &mut self.enclosing {

@@ -8,10 +8,9 @@ use crate::{
     token_type::{LiteralType, Token, TokenType},
 };
 
-#[derive(Debug)]
-pub struct Interpreter<T> {
-    pub environment: Rc<RefCell<Environment<T>>>,
-    pub globals: Option<Rc<RefCell<Environment<T>>>>,
+pub struct Interpreter {
+    pub environment: Rc<RefCell<Environment>>,
+    pub globals: Option<Rc<RefCell<Environment>>>,
 }
 
 #[derive(Debug)]
@@ -22,8 +21,8 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<LiteralType, RuntimeError>;
 
-impl<T: Clone> Interpreter<T> {
-    pub fn new() -> Interpreter<T> {
+impl Interpreter {
+    pub fn new() -> Interpreter {
         let mut interpreter = Interpreter {
             environment: Rc::new(RefCell::new(Environment {
                 enclosing: None,
@@ -371,7 +370,7 @@ impl<T: Clone> Interpreter<T> {
             match function {
                 Ok(function) => {
                     function.call(self, arguments);
-                },
+                }
                 Err => {
                     return Err(RuntimeError {
                         token: expr.paren,

@@ -5,6 +5,7 @@ use crate::{
     LoxCallable,
 };
 
+#[derive(Clone)]
 pub struct LoxFunction {
     declaration: Function,
 }

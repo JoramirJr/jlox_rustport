@@ -1,15 +1,23 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    interpreter::RuntimeError,
-    token_type::{LiteralType, Token},
+    interpreter::RuntimeError, lox_function::LoxFunction, token_type::{LiteralType, Token}
 };
 
 #[derive(Debug)]
 
+#[derive(Clone)]
+pub enum BindableValue {
+    Number(f64),
+    Str(String),
+    Bool(bool),
+    Nil,
+    Function(LoxFunction)
+}
+
 pub struct Environment {
     pub enclosing: Option<Rc<RefCell<Environment>>>,
-    pub values: HashMap<String, >,
+    pub values: HashMap<String, BindableValue>,
 }
 
 impl Environment {

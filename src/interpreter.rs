@@ -131,7 +131,7 @@ impl<T: Clone> Interpreter<T> {
         }
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme, value.clone());
+            .define(stmt.name.lexeme, T::from(value));
 
         return Ok(value);
     }

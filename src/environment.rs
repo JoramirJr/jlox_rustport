@@ -7,12 +7,12 @@ use crate::{
 
 #[derive(Debug)]
 
-pub struct Environment<T> {
-    pub enclosing: Option<Rc<RefCell<Environment<T>>>>,
-    pub values: HashMap<String, T>,
+pub struct Environment {
+    pub enclosing: Option<Rc<RefCell<Environment>>>,
+    pub values: HashMap<String, >,
 }
 
-impl<T: Clone> Environment<T> {
+impl Environment {
     pub fn define(&mut self, name: String, value: T) -> () {
         self.values.insert(name.clone(), value);
     }

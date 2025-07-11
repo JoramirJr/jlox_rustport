@@ -209,8 +209,10 @@ impl Interpreter {
 
         match unary.operator.ttype {
             TokenType::Minus => {
-                if let LiteralType::F32(f32_value) = right_value {
-                    return Ok(LiteralType::F32(f32_value.neg()));
+                if let Some(BindableValue::Literal(LiteralType::F32(f32_value))) = right_value {
+                    return Ok(Some(BindableValue::Literal(LiteralType::F32(
+                        f32_value.neg(),
+                    ))));
                 } else {
                     return Err(RuntimeError {
                         message: String::from("Operand must be a number"),
@@ -219,20 +221,31 @@ impl Interpreter {
                 }
             }
             TokenType::Bang => {
-                return Ok(LiteralType::Bool(!Self::is_truthy(&right_value)));
+                return Ok(Some(BindableValue::Literal(LiteralType::Bool(
+                    !Self::is_truthy(&Option::expect(
+            right_value,
+            "Interpreter implementation fail - while stmt condition not evaluated to a valid value",
+        )),
+                ))));
             }
             _ => {}
         }
-        Ok(LiteralType::Nil)
+        Ok(None)
     }
     pub fn visit_variable_expr(&mut self, expr: Variable) -> DefaultResult {
-        let get_result = self.environment.borrow_mut().get(&expr.name);
-        return get_result;
+        let get_result = self.environment.borrow_mut().get(&expr.name)?;
+        Ok(Some(get_result))
     }
     pub fn visit_assign_expr(&mut self, expr: Assign) -> DefaultResult {
         let value = Self::evaluate(self, *expr.value)?;
-        let get_result = self.environment.borrow_mut().assign(expr.name, value);
-        return get_result;
+        let get_result = self.environment.borrow_mut().assign(
+            expr.name,
+            Option::expect(
+                value,
+                "Interpreter implementation fail - assignment value not evaluated to a valid value",
+            ),
+        )?;
+        Ok(Some(get_result))
     }
     pub fn visit_binary_expr(&mut self, binary: Binary) -> DefaultResult {
         let left = *binary.left;
@@ -257,10 +270,18 @@ impl Interpreter {
         let left_value = left_r_value.unwrap();
         let right_value = right_r_value.unwrap();
 
+        let left_unwrapped_value = Option::expect(left_value, 
+                      "Interpreter implementation fail - left operator in binary expression not evaluated to a valid value");
+
+        let right_unwrapped_value = Option::expect(right_value, 
+                      "Interpreter implementation fail - left operator in binary expression not evaluated to a valid value");
+
         if let TokenType::Minus = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::F32(f32_left - f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(
+                        BindableValue::Literal(LiteralType::F32(f32_left - f32_right))
+                    ));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -270,15 +291,15 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Plus = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::F32(f32_left + f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::F32(f32_left + f32_right))));
                 }
-                (LiteralType::String(string_left), LiteralType::String(string_right)) => {
-                    return Ok(LiteralType::String(format!(
+                (BindableValue::Literal(LiteralType::String(string_left)) , BindableValue::Literal(LiteralType::String(string_right)) ) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::String(format!(
                         "{}{}",
                         string_left, string_right
-                    )));
+                    )))));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -288,9 +309,9 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Slash = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::F32(f32_left / f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::F32(f32_left / f32_right))));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -300,9 +321,9 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Star = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::F32(f32_left * f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::F32(f32_left * f32_right))));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -312,9 +333,9 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Greater = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::Bool(f32_left > f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::Bool(f32_left > f32_right))));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -324,9 +345,9 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::GreaterEqual = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::Bool(f32_left >= f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::Bool(f32_left >= f32_right))));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -336,9 +357,9 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::Less = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::Bool(f32_left < f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::Bool(f32_left < f32_right))));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -348,9 +369,9 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::LessEqual = binary.operator.ttype {
-            match (left_value, right_value) {
-                (LiteralType::F32(f32_left), LiteralType::F32(f32_right)) => {
-                    return Ok(LiteralType::Bool(f32_left <= f32_right));
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(LiteralType::F32(f32_left)), BindableValue::Literal(LiteralType::F32(f32_right))) => {
+                    return Ok(Some(BindableValue::Literal(LiteralType::Bool(f32_left <= f32_right))));
                 }
                 _ => {
                     return Err(RuntimeError {
@@ -360,9 +381,32 @@ impl Interpreter {
                 }
             }
         } else if let TokenType::BangEqual = binary.operator.ttype {
-            Ok(LiteralType::Bool(left_value != right_value))
+            match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(left_literal), BindableValue::Literal(right_literal)) => {
+                  Ok(Some(BindableValue
+                            ::Literal(LiteralType::Bool(left_literal != right_literal))))  
+                }
+                _ => {
+            return Err(RuntimeError {
+                message: String::from("Comparisons only allowed between literals"),
+                token: binary.operator,
+            });        
+                }
+            }
+            
         } else if let TokenType::EqualEqual = binary.operator.ttype {
-            Ok(LiteralType::Bool(left_value == right_value))
+             match (left_unwrapped_value, right_unwrapped_value) {
+                (BindableValue::Literal(left_literal), BindableValue::Literal(right_literal)) => {
+                  Ok(Some(BindableValue
+                            ::Literal(LiteralType::Bool(left_literal == right_literal))))  
+                }
+                _ => {
+            return Err(RuntimeError {
+                message: String::from("Comparisons only allowed between literals"),
+                token: binary.operator,
+            });        
+                }
+            }
         } else {
             return Err(RuntimeError {
                 message: String::from("Invalid operator"),

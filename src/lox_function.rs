@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 
 use crate::{
-    environment::Environment, interpreter::Interpreter, stmt::Function, token_type::LiteralType,
+    environment::{BindableValue, Environment},
+    interpreter::Interpreter,
+    stmt::Function,
+    token_type::LiteralType,
     LoxCallable,
 };
 
 #[derive(Clone, Debug)]
 pub struct LoxFunction {
-    declaration: Function,
+    pub declaration: Function,
 }
 
 impl LoxFunction {
@@ -21,7 +24,7 @@ impl LoxCallable for LoxFunction {
     fn arity(&self) -> usize {
         self.declaration.params.len()
     }
-    fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<LiteralType>) {
+    fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<BindableValue>) {
         let interpreter = interpreter.unwrap();
         let mut environment = Environment {
             enclosing: interpreter.globals.clone(),

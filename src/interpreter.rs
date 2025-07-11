@@ -1,12 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
-    environment::{self, BindableValue, Environment},
-    expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
-    lox::Lox,
-    stmt::{Block, If, StmtType, Var, While},
-    token_type::{LiteralType, Token, TokenType},
-    LoxCallable,
+    environment::{self, BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, stmt::{Block, Function, If, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable
 };
 
 pub struct Interpreter {
@@ -101,6 +96,14 @@ impl Interpreter {
     }
     fn visit_expression_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
         Self::evaluate(self, expr)
+    }
+    fn visit_function_stmt(&mut self, stmt: Function) -> DefaultResult {
+        let lexeme = stmt.name.lexeme.clone();
+
+        let function = LoxFunction { declaration: stmt };
+        self.environment.borrow_mut().define(lexeme, BindableValue::Function(function));
+
+        Ok(None)
     }
     fn visit_if_stmt(&mut self, stmt: If) -> DefaultResult {
         let evaluate_result: Option<BindableValue> = Self::evaluate(self, *stmt.condition)?;
@@ -414,44 +417,26 @@ impl Interpreter {
             });
         }
     }
-    // pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
-    //     let callee = Self::evaluate(self, *expr.callee)?;
+     pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
+         let callee = Self::evaluate(self, *expr.callee)?.unwrap();
 
-    //     let mut arguments: Vec<LiteralType> = Vec::new();
+         let mut arguments: Vec<BindableValue> = Vec::new();
 
-    //     for argument in expr.arguments {
-    //         arguments.push(Self::evaluate(self, argument)?);
-    //     }
+         for argument in expr.arguments {
+             arguments.push(Option::expect(Self::evaluate(self, argument)?, "Bug in visit_call_expr() call"));
+         }
 
-    //     if let ExpressionType::Variable(identifier) = *expr.callee {
-    //         let function = self.environment.borrow().get(&identifier.name);
-
-    //         match function {
-    //             Ok(function) => {
-    //                 function.call(self, arguments);
-    //             }
-    //             Err => {
-    //                 return Err(RuntimeError {
-    //                     token: expr.paren,
-    //                     message: "Can only call functions and classes".to_string(),
-    //                 });
-    //             }
-    //         }
-
-    //         if arguments.len() != function.arity() {
-    //             return Err(RuntimeError {
-    //                 token: expr.paren,
-    //                 message: format!(
-    //                     "Expected {} arguments but got {} arguments.",
-    //                     function.arity(),
-    //                     arguments.len()
-    //                 ),
-    //             });
-    //         }
-    //     } else {
-    //         panic!("Shouldn't be reaching here yet; function call with identifier only, for now");
-    //     }
-    // }
+         match callee {
+            BindableValue::Function(function) => {
+                        function.call(Some(self), arguments);
+                        Ok(None)
+                     }
+            BindableValue::Literal(_) => {
+                Err(RuntimeError { token: expr.paren, message: "Can only call functions and classes.".to_string()
+             })
+            },
+                     }
+     }
     pub fn is_truthy(item: &BindableValue) -> bool {
         match item {
             BindableValue::Literal(LiteralType::Bool(bool)) => {

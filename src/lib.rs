@@ -3,6 +3,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use interpreter::Interpreter;
 use token_type::LiteralType;
 
+use crate::environment::BindableValue;
+
 pub mod ast_printer;
 pub mod environment;
 pub mod expr;
@@ -25,7 +27,7 @@ pub fn clock() -> f32 {
 }
 
 pub trait LoxCallable {
-    fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<LiteralType>);
+    fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<BindableValue>);
     fn arity(&self) -> usize;
     fn to_string(&self) -> String;
 }

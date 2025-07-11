@@ -196,7 +196,7 @@ impl Parser {
             condition: condition.unwrap(),
             body: Box::new(body),
         });
-        
+
         if let Some(initializer) = initializer {
             body = StmtType::Block(Block {
                 statements: Vec::from([initializer, body]),
@@ -356,10 +356,6 @@ impl Parser {
 
             if let ExpressionType::Variable(variable) = expr {
                 let name = variable.name;
-                // println!("parsed assigment: {:?}", Assign {
-                //     name: name.clone(),
-                //     value: Box::new(value.clone()),
-                // });
                 return Ok(ExpressionType::Assign(Assign {
                     name: name,
                     value: Box::new(value),

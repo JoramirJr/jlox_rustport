@@ -1,18 +1,15 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    interpreter::RuntimeError, lox_function::LoxFunction, token_type::{LiteralType, Token}
+    interpreter::RuntimeError,
+    lox_function::LoxFunction,
+    token_type::{LiteralType, Token},
 };
 
-#[derive(Debug)]
-
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum BindableValue {
-    Number(f64),
-    Str(String),
-    Bool(bool),
-    Nil,
-    Function(LoxFunction)
+    Literal(LiteralType),
+    Function(LoxFunction),
 }
 
 pub struct Environment {
@@ -21,10 +18,10 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn define(&mut self, name: String, value: T) -> () {
+    pub fn define(&mut self, name: String, value: BindableValue) -> () {
         self.values.insert(name.clone(), value);
     }
-    pub fn get(&self, name: &Token) -> Result<T, RuntimeError> {
+    pub fn get(&self, name: &Token) -> Result<BindableValue, RuntimeError> {
         let map_value = self.values.get(name.lexeme.as_str());
 
         if let Some(value) = map_value {
@@ -40,7 +37,11 @@ impl Environment {
             }
         }
     }
-    pub fn assign(&mut self, name: Token, value: T) -> Result<T, RuntimeError> {
+    pub fn assign(
+        &mut self,
+        name: Token,
+        value: BindableValue,
+    ) -> Result<BindableValue, RuntimeError> {
         let value_clone = value.clone();
 
         if self.values.contains_key(&name.lexeme) {

@@ -1,11 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
-    environment::{self, Environment},
+    environment::{self, BindableValue, Environment},
     expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable},
     lox::Lox,
     stmt::{Block, If, StmtType, Var, While},
     token_type::{LiteralType, Token, TokenType},
+    LoxCallable,
 };
 
 pub struct Interpreter {
@@ -19,7 +20,7 @@ pub struct RuntimeError {
     pub message: String,
 }
 
-type DefaultResult = Result<LiteralType, RuntimeError>;
+type DefaultResult = Result<Option<BindableValue>, RuntimeError>;
 
 impl Interpreter {
     pub fn new() -> Interpreter {
@@ -79,14 +80,15 @@ impl Interpreter {
 
         self.environment = Rc::new(RefCell::new(environment));
 
-        let mut curr_execute_result: LiteralType = LiteralType::Nil;
+        let mut curr_execute_result: Option<BindableValue> =
+            Some(BindableValue::Literal(LiteralType::Nil));
 
         for statement in statements {
-            let execute_result: Result<LiteralType, RuntimeError> = Self::execute(self, statement);
+            let execute_result: DefaultResult = Self::execute(self, statement);
 
             match execute_result {
-                Ok(literal_type) => {
-                    curr_execute_result = literal_type;
+                Ok(value) => {
+                    curr_execute_result = value;
                 }
                 Err(err) => {
                     self.environment = previous;
@@ -101,48 +103,58 @@ impl Interpreter {
         Self::evaluate(self, expr)
     }
     fn visit_if_stmt(&mut self, stmt: If) -> DefaultResult {
-        let evaluate_result: LiteralType = Self::evaluate(self, *stmt.condition)?;
-        if Self::is_truthy(&evaluate_result) {
-            Self::execute(self, StmtType::Block(stmt.then_branch))
-        } else if let Some(else_branch) = stmt.else_branch {
-            Self::execute(self, StmtType::Block(else_branch))
+        let evaluate_result: Option<BindableValue> = Self::evaluate(self, *stmt.condition)?;
+
+        if let Some(value) = evaluate_result {
+            if Self::is_truthy(&value) {
+                Self::execute(self, StmtType::Block(stmt.then_branch))
+            } else if let Some(else_branch) = stmt.else_branch {
+                Self::execute(self, StmtType::Block(else_branch))
+            } else {
+                Ok(Some(BindableValue::Literal(LiteralType::Nil)))
+            }
         } else {
-            Ok(LiteralType::Nil)
+            panic!(
+                "Interpreter implementation fail - if stmt condition not evaluated to a valid value"
+            )
         }
     }
     fn visit_print_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
         let value = Self::evaluate(self, expr);
 
         match value {
-            Ok(literal) => {
-                println!("{:?}", Self::stringify(&literal));
-                Ok(literal)
+            Ok(value) => {
+                println!("{:?}", Self::stringify(&Option::expect(value, "Interpreter implementation fail - print stmt adjacent expression not evaluated to a valid value")));
+                Ok(None)
             }
             Err(error) => Err(error),
         }
     }
     fn visit_var_stmt(&mut self, stmt: Var) -> DefaultResult {
-        let mut value: LiteralType = LiteralType::Nil;
+        let mut value: BindableValue = BindableValue::Literal(LiteralType::Nil);
 
         if let Some(expr_initializer) = stmt.initializer {
-            let literal = Ok(Self::evaluate(self, expr_initializer))?;
-            value = literal.unwrap();
+            let bindable = Self::evaluate(self, expr_initializer)?;
+            value = bindable.unwrap();
         }
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme, T::from(value));
+            .define(stmt.name.lexeme, value);
 
-        return Ok(value);
+        return Ok(None);
     }
     fn visit_while_stmt(&mut self, stmt: While) -> DefaultResult {
-        while Self::is_truthy(&Self::evaluate(self, stmt.condition.clone())?) {
+        while Self::is_truthy(&Option::expect(
+            Self::evaluate(self, stmt.condition.clone())?,
+            "Interpreter implementation fail - while stmt condition not evaluated to a valid value",
+        )) {
             Self::execute(self, *stmt.body.clone())?;
         }
-        return Ok(LiteralType::Nil);
+        return Ok(None);
     }
-    pub fn stringify(value: &LiteralType) -> String {
+    pub fn stringify(value: &BindableValue) -> String {
         match value {
-            LiteralType::F32(f32_value) => {
+            BindableValue::Literal(LiteralType::F32(f32_value)) => {
                 let mut text = f32_value.to_string();
                 if text.ends_with(".0") {
                     let decimal_offset = text.find(".0").unwrap_or(text.len());
@@ -150,23 +162,30 @@ impl Interpreter {
                 }
                 text
             }
-            LiteralType::Nil => "nil".to_string(),
-            LiteralType::Bool(bool_value) => bool_value.to_string(),
-            LiteralType::String(string_value) => string_value.clone(),
+            BindableValue::Literal(LiteralType::Nil) => "nil".to_string(),
+            BindableValue::Literal(LiteralType::Bool(bool_value)) => bool_value.to_string(),
+            BindableValue::Literal(LiteralType::String(string_value)) => string_value.clone(),
+            BindableValue::Function(lox_function) => lox_function.to_string(),
         }
     }
     pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
-        Ok(literal.value)
+        Ok(Some(BindableValue::Literal(literal.value)))
     }
     pub fn visit_logical_expr(&mut self, logical: Logical) -> DefaultResult {
         let left = Self::evaluate(self, *logical.left)?;
 
         if let TokenType::Or = logical.operator.ttype {
-            if Self::is_truthy(&left) {
+            if Self::is_truthy(&Option::expect(
+            left.clone(),
+            "Interpreter implementation fail - while stmt condition not evaluated to a valid value",
+        )) {
                 return Ok(left);
             }
         } else {
-            if !Self::is_truthy(&left) {
+            if !Self::is_truthy(&Option::expect(
+            left.clone(),
+            "Interpreter implementation fail - while stmt condition not evaluated to a valid value",
+        )) {
                 return Ok(left);
             }
         }
@@ -208,10 +227,6 @@ impl Interpreter {
     }
     pub fn visit_variable_expr(&mut self, expr: Variable) -> DefaultResult {
         let get_result = self.environment.borrow_mut().get(&expr.name);
-        // println!(
-        //     "visit variable expr: {:?}, get_result: {:?}",
-        //     expr, get_result
-        // );
         return get_result;
     }
     pub fn visit_assign_expr(&mut self, expr: Assign) -> DefaultResult {
@@ -355,50 +370,50 @@ impl Interpreter {
             });
         }
     }
-    pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
-        let callee = Self::evaluate(self, *expr.callee)?;
+    // pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
+    //     let callee = Self::evaluate(self, *expr.callee)?;
 
-        let mut arguments: Vec<LiteralType> = Vec::new();
+    //     let mut arguments: Vec<LiteralType> = Vec::new();
 
-        for argument in expr.arguments {
-            arguments.push(Self::evaluate(self, argument)?);
-        }
+    //     for argument in expr.arguments {
+    //         arguments.push(Self::evaluate(self, argument)?);
+    //     }
 
-        if let ExpressionType::Variable(identifier) = *expr.callee {
-            let function = self.environment.borrow().get(&identifier.name);
+    //     if let ExpressionType::Variable(identifier) = *expr.callee {
+    //         let function = self.environment.borrow().get(&identifier.name);
 
-            match function {
-                Ok(function) => {
-                    function.call(self, arguments);
-                }
-                Err => {
-                    return Err(RuntimeError {
-                        token: expr.paren,
-                        message: "Can only call functions and classes".to_string(),
-                    });
-                }
-            }
+    //         match function {
+    //             Ok(function) => {
+    //                 function.call(self, arguments);
+    //             }
+    //             Err => {
+    //                 return Err(RuntimeError {
+    //                     token: expr.paren,
+    //                     message: "Can only call functions and classes".to_string(),
+    //                 });
+    //             }
+    //         }
 
-            if arguments.len() != function.arity() {
-                return Err(RuntimeError {
-                    token: expr.paren,
-                    message: format!(
-                        "Expected {} arguments but got {} arguments.",
-                        function.arity(),
-                        arguments.len()
-                    ),
-                });
-            }
-        } else {
-            panic!("Shouldn't be reaching here yet; function call with identifier only, for now");
-        }
-    }
-    pub fn is_truthy(item: &LiteralType) -> bool {
+    //         if arguments.len() != function.arity() {
+    //             return Err(RuntimeError {
+    //                 token: expr.paren,
+    //                 message: format!(
+    //                     "Expected {} arguments but got {} arguments.",
+    //                     function.arity(),
+    //                     arguments.len()
+    //                 ),
+    //             });
+    //         }
+    //     } else {
+    //         panic!("Shouldn't be reaching here yet; function call with identifier only, for now");
+    //     }
+    // }
+    pub fn is_truthy(item: &BindableValue) -> bool {
         match item {
-            LiteralType::Bool(bool) => {
+            BindableValue::Literal(LiteralType::Bool(bool)) => {
                 return *bool;
             }
-            LiteralType::Nil => {
+            BindableValue::Literal(LiteralType::Nil) => {
                 return false;
             }
             _ => {

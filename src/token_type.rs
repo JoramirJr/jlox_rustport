@@ -1,7 +1,4 @@
-use crate::{
-    interpreter::{Interpreter, RuntimeError},
-    token_type::{LiteralType, Token},
-};
+use crate::interpreter::{Interpreter, RuntimeError};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
@@ -66,9 +63,9 @@ pub struct Token {
     pub line: u32,
 }
 
-pub struct LoxCallable {
-    call: 
-}
+// pub struct LoxCallable {
+//     call:
+// }
 
 pub fn is_callable(
     callee: &LiteralType,

@@ -1,11 +1,11 @@
-use std::{collections::HashMap, fmt::format};
+use std::collections::HashMap;
 
 use crate::{
     environment::Environment, interpreter::Interpreter, stmt::Function, token_type::LiteralType,
     LoxCallable,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LoxFunction {
     declaration: Function,
 }

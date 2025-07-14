@@ -5,8 +5,8 @@ use crate::{
 };
 
 pub struct Interpreter {
-    pub environment: Rc<RefCell<Environment>>,
-    pub globals: Option<Rc<RefCell<Environment>>>,
+    pub globals: <Rc<RefCell<Environment>>>,
+    pub environment: Option<Rc<RefCell<Environment>>>,
 }
 
 #[derive(Debug)]
@@ -18,18 +18,6 @@ pub struct RuntimeError {
 type DefaultResult = Result<Option<BindableValue>, RuntimeError>;
 
 impl Interpreter {
-    pub fn new() -> Interpreter {
-        let mut interpreter = Interpreter {
-            environment: Rc::new(RefCell::new(Environment {
-                enclosing: None,
-                values: HashMap::new(),
-            })),
-            globals: None,
-        };
-        interpreter.globals = Some(Rc::clone(&interpreter.environment));
-
-        return interpreter;
-    }
     pub fn interpret(mut self, statements: Vec<StmtType>, lox_strt_instance: &mut Lox) -> () {
         for statement in statements {
             let execute_result = Self::execute(&mut self, statement);

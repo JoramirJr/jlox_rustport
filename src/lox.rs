@@ -1,8 +1,14 @@
+use crate::environment::{BindableValue, Environment};
 use crate::interpreter;
+use crate::lox_function::LoxFunction;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
+use crate::stmt::Function;
 use crate::token_type::{Token, TokenType};
 use interpreter::Interpreter;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 use std::{fs, process, str::FromStr};
 #[derive(Default)]
 pub struct Lox {
@@ -46,7 +52,15 @@ impl Lox {
             process::exit(65);
         }
 
-        let interpreter = Interpreter::new();
+        let mut interpreter = Interpreter {
+            globals: Rc::new(RefCell::new(Environment {
+                enclosing: None,
+                values: HashMap::new(),
+            })),
+            environment: None,
+        };
+        interpreter.environment = interpreter.globals.clone();
+        interpreter.globals.borrow_mut().define("clock", LoxFunction { declaration: Function {  } });
 
         interpreter.interpret(statements, self);
 

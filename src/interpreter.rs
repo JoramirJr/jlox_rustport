@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
-    environment::{self, BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, stmt::{Block, Function, If, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable
+    environment::{BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, stmt::{Block, Function, If, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable, lox_std::{NativeFunction}
 };
 
 pub struct Interpreter {
@@ -48,7 +48,7 @@ impl Interpreter {
             StmtType::Block(block) => Self::visit_block_stmt(self, block),
             StmtType::If(if_stmt) => Self::visit_if_stmt(self, if_stmt),
             StmtType::While(while_stmt) => Self::visit_while_stmt(self, while_stmt),
-            StmtType::Function(function) => todo!(),
+            StmtType::Function(_function) => todo!(),
         }
     }
     fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
@@ -146,17 +146,24 @@ impl Interpreter {
     pub fn stringify(value: &BindableValue) -> String {
         match value {
             BindableValue::Literal(LiteralType::F32(f32_value)) => {
-                let mut text = f32_value.to_string();
-                if text.ends_with(".0") {
-                    let decimal_offset = text.find(".0").unwrap_or(text.len());
-                    text = text.drain(..decimal_offset).collect();
-                }
-                text
-            }
+                        let mut text = f32_value.to_string();
+                        if text.ends_with(".0") {
+                            let decimal_offset = text.find(".0").unwrap_or(text.len());
+                            text = text.drain(..decimal_offset).collect();
+                        }
+                        text
+                    }
             BindableValue::Literal(LiteralType::Nil) => "nil".to_string(),
             BindableValue::Literal(LiteralType::Bool(bool_value)) => bool_value.to_string(),
             BindableValue::Literal(LiteralType::String(string_value)) => string_value.clone(),
             BindableValue::Function(lox_function) => lox_function.to_string(),
+            BindableValue::NativeFunction(native_function) => {
+                match native_function {
+                    NativeFunction::Clock(clock) => {
+                        clock.to_string()
+                    }
+                }
+            },
         }
     }
     pub fn visit_literal_expr(literal: Literal) -> DefaultResult {
@@ -416,14 +423,15 @@ impl Interpreter {
 
          match callee {
             BindableValue::Function(function) => {
-                        function.call(Some(self), arguments);
-                        Ok(None)
-                     }
+                                function.call(Some(self), arguments);
+                                Ok(None)
+                             }
             BindableValue::Literal(_) => {
-                Err(RuntimeError { token: expr.paren, message: "Can only call functions and classes.".to_string()
-             })
-            },
-                     }
+                        Err(RuntimeError { token: expr.paren, message: "Can only call functions and classes.".to_string()
+                     })
+                    },
+BindableValue::NativeFunction(_native_function) => todo!(),
+                    }
      }
     pub fn is_truthy(item: &BindableValue) -> bool {
         match item {

@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use interpreter::Interpreter;
 use token_type::LiteralType;
 
-use crate::environment::BindableValue;
+use crate::{environment::BindableValue, expr::ExpressionType};
 
 pub mod ast_printer;
 pub mod environment;
@@ -16,18 +16,56 @@ pub mod scanner;
 pub mod stmt;
 pub mod token_type;
 
-pub fn clock() -> f32 {
-    let now = SystemTime::now();
-    let millis = now
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis();
+pub mod lox_std {
+    use std::time::{SystemTime, UNIX_EPOCH};
 
-    millis as f32
+    use crate::{
+        expr::{ExpressionType, Literal},
+        token_type::LiteralType,
+        LoxCallable,
+    };
+
+    #[derive(Debug, Clone)]
+    pub enum NativeFunction {
+        Clock(Clock),
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Clock;
+
+    impl LoxCallable for Clock {
+        fn call(
+            &self,
+            _: Option<&mut crate::interpreter::Interpreter>,
+            _: Vec<crate::environment::BindableValue>,
+        ) -> ExpressionType {
+            let now = SystemTime::now();
+            let time_elapsed = now
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_secs_f32();
+
+            ExpressionType::Literal(Literal {
+                value: LiteralType::F32(time_elapsed),
+            })
+        }
+
+        fn arity(&self) -> usize {
+            return 0;
+        }
+
+        fn to_string(&self) -> String {
+            return "<native fn>".to_string();
+        }
+    }
 }
 
 pub trait LoxCallable {
-    fn call(&self, interpreter: Option<&mut Interpreter>, arguments: Vec<BindableValue>);
+    fn call(
+        &self,
+        interpreter: Option<&mut Interpreter>,
+        arguments: Vec<BindableValue>,
+    ) -> ExpressionType;
     fn arity(&self) -> usize;
     fn to_string(&self) -> String;
 }

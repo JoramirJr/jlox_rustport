@@ -1,6 +1,7 @@
 use crate::environment::{BindableValue, Environment};
 use crate::interpreter;
 use crate::lox_function::LoxFunction;
+use crate::lox_std::{Clock, NativeFunction};
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::stmt::Function;
@@ -60,7 +61,10 @@ impl Lox {
             environment: None,
         };
         interpreter.environment = interpreter.globals.clone();
-        interpreter.globals.borrow_mut().define("clock", LoxFunction { declaration: Function {  } });
+        interpreter.globals.borrow_mut().define(
+            "clock",
+            BindableValue::NativeFunction(NativeFunction::Clock(Clock)),
+        );
 
         interpreter.interpret(statements, self);
 

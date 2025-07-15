@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use crate::{
     interpreter::RuntimeError,
     lox_function::LoxFunction,
+    lox_std::NativeFunction,
     token_type::{LiteralType, Token},
 };
 
@@ -10,6 +11,7 @@ use crate::{
 pub enum BindableValue {
     Literal(LiteralType),
     Function(LoxFunction),
+    NativeFunction(NativeFunction),
 }
 
 pub struct Environment {

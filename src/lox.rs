@@ -54,10 +54,10 @@ impl Lox {
         }
 
         let mut interpreter = Interpreter {
-            globals: Rc::new(RefCell::new(Environment {
+            globals: Environment {
                 enclosing: None,
                 values: HashMap::new(),
-            })),
+            },
             environment: None,
         };
         interpreter.environment = interpreter.globals.clone();

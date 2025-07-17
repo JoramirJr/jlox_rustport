@@ -4,9 +4,9 @@ use crate::{
     environment::{BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, stmt::{Block, Function, If, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable, lox_std::{NativeFunction}
 };
 
-pub struct Interpreter<'a> {
-    pub globals: Environment<'a>,
-    pub environment: Environment<'a>,
+pub struct Interpreter {
+    pub globals: Rc<RefCell<Environment>>,
+    pub environment: Option<Rc<RefCell<Environment>>>,
 }
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<Option<BindableValue>, RuntimeError>;
 
-impl Interpreter<'_> {
+impl Interpreter {
     pub fn interpret(mut self, statements: Vec<StmtType>, lox_strt_instance: &mut Lox) -> () {
         for statement in statements {
             let execute_result = Self::execute(&mut self, statement);
@@ -56,12 +56,12 @@ impl Interpreter<'_> {
     }
     pub fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
         let environment = Environment {
-            enclosing: Some(&mut self.environment),
+            enclosing: Some(self.environment.clone().unwrap()),
             values: HashMap::new(),
         };
-        let previous = self.environment;
+        let previous = self.environment.clone();
 
-        self.environment = environment;
+        self.environment = Some(Rc::new(RefCell::new(environment)));
 
         let mut curr_execute_result: Option<BindableValue> =
             Some(BindableValue::Literal(LiteralType::Nil));
@@ -129,7 +129,6 @@ impl Interpreter<'_> {
             value = bindable.unwrap();
         }
         self.environment
-            .clone()
             .unwrap()
             .borrow_mut()
             .define(stmt.name.lexeme, value);

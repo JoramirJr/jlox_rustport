@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub struct Interpreter {
-    pub globals: <Rc<RefCell<Environment>>>,
+    pub globals: Rc<RefCell<Environment>>,
     pub environment: Option<Rc<RefCell<Environment>>>,
 }
 
@@ -56,12 +56,12 @@ impl Interpreter {
     }
     pub fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
         let environment = Environment {
-            enclosing: Some(self.environment.clone()),
+            enclosing: Some(self.environment.clone().unwrap()),
             values: HashMap::new(),
         };
         let previous = self.environment.clone();
 
-        self.environment = Rc::new(RefCell::new(environment));
+        self.environment = Some(Rc::new(RefCell::new(environment)));
 
         let mut curr_execute_result: Option<BindableValue> =
             Some(BindableValue::Literal(LiteralType::Nil));

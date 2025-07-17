@@ -30,21 +30,19 @@ impl LoxCallable for LoxFunction {
         interpreter: Option<&mut Interpreter>,
         arguments: Vec<BindableValue>,
     ) -> ExpressionType {
-        todo!()
+        let mut environment = Environment {
+            enclosing: Some(&mut interpreter.globals),
+            values: HashMap::new(),
+        };
 
-        // let mut environment = Environment {
-        //     enclosing: Some(&mut interpreter.globals),
-        //     values: HashMap::new(),
-        // };
+        for (idx, _) in self.declaration.params.iter().enumerate() {
+            environment.define(
+                self.declaration.params.get(idx).unwrap().lexeme.clone(),
+                arguments.get(idx).unwrap().clone(),
+            );
 
-        // for (idx, _) in self.declaration.params.iter().enumerate() {
-        //     environment.define(
-        //         self.declaration.params.get(idx).unwrap().lexeme.clone(),
-        //         arguments.get(idx).unwrap().clone(),
-        //     );
-
-        //     let _ = interpreter.execute_block(self.declaration.body.clone());
-        // }
+            let _ = interpreter.execute_block(self.declaration.body.clone());
+        }
     }
     fn to_string(&self) -> String {
         format!("<fn {} >", self.declaration.name.lexeme)

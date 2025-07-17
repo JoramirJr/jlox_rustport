@@ -37,7 +37,7 @@ impl Interpreter {
             ExpressionType::Variable(variable) => Self::visit_variable_expr(self, variable),
             ExpressionType::Assign(assignment) => Self::visit_assign_expr(self, assignment),
             ExpressionType::Logical(logical) => Self::visit_logical_expr(self, logical),
-            ExpressionType::Call(_) => todo!(),
+            ExpressionType::Call(call) => Self::visit_call_expr(self, call),
         }
     }
     fn execute(&mut self, stmt: StmtType) -> DefaultResult {
@@ -48,7 +48,7 @@ impl Interpreter {
             StmtType::Block(block) => Self::visit_block_stmt(self, block),
             StmtType::If(if_stmt) => Self::visit_if_stmt(self, if_stmt),
             StmtType::While(while_stmt) => Self::visit_while_stmt(self, while_stmt),
-            StmtType::Function(_function) => todo!(),
+            StmtType::Function(function) => Self::visit_function_stmt(self, function),
         }
     }
     fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
@@ -129,6 +129,7 @@ impl Interpreter {
             value = bindable.unwrap();
         }
         self.environment
+            .clone()
             .unwrap()
             .borrow_mut()
             .define(stmt.name.lexeme, value);
@@ -232,12 +233,12 @@ impl Interpreter {
         Ok(None)
     }
     pub fn visit_variable_expr(&mut self, expr: Variable) -> DefaultResult {
-        let get_result = self.environment.borrow_mut().get(&expr.name)?;
+        let get_result = self.environment.clone().unwrap().borrow_mut().get(&expr.name)?;
         Ok(Some(get_result))
     }
     pub fn visit_assign_expr(&mut self, expr: Assign) -> DefaultResult {
         let value = Self::evaluate(self, *expr.value)?;
-        let get_result = self.environment.borrow_mut().assign(
+        let get_result = self.environment.clone().unwrap().borrow_mut().assign(
             expr.name,
             Option::expect(
                 value,

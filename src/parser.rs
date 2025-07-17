@@ -293,15 +293,20 @@ impl Parser {
         let mut params: Vec<Token> = Vec::new();
 
         if !Self::check(&self, &TokenType::RightParen) {
+            if params.len() > 255 {
+                return Err(Self::error(
+                    Self::peek(&self),
+                    "Can't have more than 255 characters",
+                    lox_strt_instance,
+                ));
+            }
+            params.push(Self::consume(
+                    self,
+                    &TokenType::Identifier,
+                    "Expect parameter name.",
+                    lox_strt_instance,
+                )?);
             while Self::match_expr(self, &[TokenType::Comma]) {
-                if params.len() > 255 {
-                    return Err(Self::error(
-                        Self::peek(&self),
-                        "Can't have more than 255 characters",
-                        lox_strt_instance,
-                    ));
-                }
-
                 params.push(Self::consume(
                     self,
                     &TokenType::Identifier,

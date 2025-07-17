@@ -54,15 +54,15 @@ impl Lox {
         }
 
         let mut interpreter = Interpreter {
-            globals: Environment {
+            globals: Rc::new(RefCell::new(Environment {
                 enclosing: None,
                 values: HashMap::new(),
-            },
+            })),
             environment: None,
         };
-        interpreter.environment = interpreter.globals.clone();
+        interpreter.environment = Some(interpreter.globals.clone());
         interpreter.globals.borrow_mut().define(
-            "clock",
+            "clock".to_string(),
             BindableValue::NativeFunction(NativeFunction::Clock(Clock)),
         );
 

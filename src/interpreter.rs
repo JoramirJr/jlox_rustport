@@ -4,9 +4,9 @@ use crate::{
     environment::{BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, stmt::{Block, Function, If, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable, lox_std::{NativeFunction}
 };
 
-pub struct Interpreter {
-    pub globals: Rc<RefCell<Environment>>,
-    pub environment: Option<Rc<RefCell<Environment>>>,
+pub struct Interpreter<'a> {
+    pub globals: Environment<'a>,
+    pub environment: Environment<'a>,
 }
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub struct RuntimeError {
 
 type DefaultResult = Result<Option<BindableValue>, RuntimeError>;
 
-impl Interpreter {
+impl Interpreter<'_> {
     pub fn interpret(mut self, statements: Vec<StmtType>, lox_strt_instance: &mut Lox) -> () {
         for statement in statements {
             let execute_result = Self::execute(&mut self, statement);
@@ -56,12 +56,12 @@ impl Interpreter {
     }
     pub fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
         let environment = Environment {
-            enclosing: Some(self.environment.clone().unwrap()),
+            enclosing: Some(&mut self.environment),
             values: HashMap::new(),
         };
-        let previous = self.environment.clone();
+        let previous = self.environment;
 
-        self.environment = Some(Rc::new(RefCell::new(environment)));
+        self.environment = environment;
 
         let mut curr_execute_result: Option<BindableValue> =
             Some(BindableValue::Literal(LiteralType::Nil));
@@ -89,7 +89,7 @@ impl Interpreter {
         let lexeme = stmt.name.lexeme.clone();
 
         let function = LoxFunction { declaration: stmt };
-        self.environment.borrow_mut().define(lexeme, BindableValue::Function(function));
+        self.environment.clone().unwrap().borrow_mut().define(lexeme, BindableValue::Function(function));
 
         Ok(None)
     }
@@ -129,6 +129,8 @@ impl Interpreter {
             value = bindable.unwrap();
         }
         self.environment
+            .clone()
+            .unwrap()
             .borrow_mut()
             .define(stmt.name.lexeme, value);
 

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use crate::{
     interpreter::RuntimeError,
@@ -14,12 +14,12 @@ pub enum BindableValue {
     NativeFunction(NativeFunction),
 }
 
-pub struct Environment {
-    pub enclosing: Option<Rc<RefCell<Environment>>>,
+pub struct Environment<'a> {
+    pub enclosing: Option<&'a mut Environment<'a>>,
     pub values: HashMap<String, BindableValue>,
 }
 
-impl Environment {
+impl Environment<'_> {
     pub fn define(&mut self, name: String, value: BindableValue) -> () {
         self.values.insert(name.clone(), value);
     }
@@ -30,7 +30,7 @@ impl Environment {
             return Ok(value.clone());
         } else {
             if let Some(enclosing_env) = &self.enclosing {
-                return enclosing_env.borrow_mut().get(name);
+                return enclosing_env.get(name);
             } else {
                 return Err(RuntimeError {
                     token: name.clone(),
@@ -54,7 +54,7 @@ impl Environment {
             }
         } else {
             if let Some(enclosing_env) = &mut self.enclosing {
-                return enclosing_env.borrow_mut().assign(name, value);
+                return enclosing_env.assign(name, value);
             } else {
                 return Err(RuntimeError {
                     token: name.clone(),

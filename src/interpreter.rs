@@ -113,6 +113,8 @@ impl Interpreter {
     fn visit_print_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
         let value = Self::evaluate(self, expr);
 
+        println!("print stmt value: {:?}", value);
+
         match value {
             Ok(value) => {
                 println!("{:?}", Self::stringify(&Option::expect(value, "Interpreter implementation fail - print stmt adjacent expression not evaluated to a valid value")));

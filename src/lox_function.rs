@@ -36,14 +36,13 @@ impl LoxCallable for LoxFunction {
             values: HashMap::new(),
         };
 
-        for (idx, _) in self.declaration.params.iter().enumerate() {
-            environment.define(
-                self.declaration.params.get(idx).unwrap().lexeme.clone(),
-                arguments.get(idx).unwrap().clone(),
-            );
+        for (idx, param) in self.declaration.params.iter().enumerate() {
+            environment.define(param.lexeme.clone(), arguments.get(idx).unwrap().clone());
 
             let _ = interpreter.execute_block(self.declaration.body.clone());
         }
+
+        println!("saiHi()'s environment: {:?}", environment.values);
 
         return ExpressionType::Literal(Literal {
             value: LiteralType::Nil,

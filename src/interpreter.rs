@@ -87,10 +87,13 @@ impl Interpreter {
     }
     fn visit_function_stmt(&mut self, stmt: Function) -> DefaultResult {
         let lexeme = stmt.name.lexeme.clone();
-
         let function = LoxFunction { declaration: stmt };
+
+        // println!("Lexeme: {:?}, Function: {:?}", lexeme, function);
+
         self.environment.clone().unwrap().borrow_mut().define(lexeme, BindableValue::Function(function));
 
+        
         Ok(None)
     }
     fn visit_if_stmt(&mut self, stmt: If) -> DefaultResult {
@@ -112,8 +115,6 @@ impl Interpreter {
     }
     fn visit_print_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
         let value = Self::evaluate(self, expr);
-
-        println!("print stmt value: {:?}", value);
 
         match value {
             Ok(value) => {
@@ -427,15 +428,14 @@ impl Interpreter {
 
          match callee {
             BindableValue::Function(function) => {
-                                function.call(Some(self), arguments);
-                                Ok(None)
-                             }
+                    function.call(Some(self), arguments);
+                    Ok(None)
+            }
             BindableValue::Literal(_) => {
-                        Err(RuntimeError { token: expr.paren, message: "Can only call functions and classes.".to_string()
-                     })
-                    },
-BindableValue::NativeFunction(_native_function) => todo!(),
-                    }
+                    Err(RuntimeError { token: expr.paren, message: "Can only call functions and classes.".to_string()})
+            },
+            BindableValue::NativeFunction(_native_function) => todo!(),
+        }
      }
     pub fn is_truthy(item: &BindableValue) -> bool {
         match item {

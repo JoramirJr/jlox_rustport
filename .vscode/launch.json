@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug jlox_rustport (direct)",
+      "program": "${workspaceFolder}/target/debug/jlox_rustport",
+      "args": ["${workspaceFolder}/example.jlox"],
+      "cwd": "${workspaceFolder}",
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug generate_ast (direct)",
+      "program": "${workspaceFolder}/target/debug/generate_ast",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "sourceLanguages": ["rust"]
+    }
+  ]
+}

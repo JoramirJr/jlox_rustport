@@ -4,6 +4,7 @@ use crate::{
     environment::{BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, stmt::{Block, Function, If, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable, lox_std::{NativeFunction}
 };
 
+#[derive(Debug)]
 pub struct Interpreter {
     pub globals: Rc<RefCell<Environment>>,
     pub environment: Option<Rc<RefCell<Environment>>>,
@@ -88,8 +89,6 @@ impl Interpreter {
     fn visit_function_stmt(&mut self, stmt: Function) -> DefaultResult {
         let lexeme = stmt.name.lexeme.clone();
         let function = LoxFunction { declaration: stmt };
-
-        // println!("Lexeme: {:?}, Function: {:?}", lexeme, function);
 
         self.environment.clone().unwrap().borrow_mut().define(lexeme, BindableValue::Function(function));
 
@@ -236,8 +235,11 @@ impl Interpreter {
         Ok(None)
     }
     pub fn visit_variable_expr(&mut self, expr: Variable) -> DefaultResult {
+        println!("\ncurr env {:?} retrieval: {:?}\n", expr, self.environment.clone().unwrap());
         let get_result = self.environment.clone().unwrap().borrow_mut().get(&expr.name)?;
         Ok(Some(get_result))
+
+        { name: Token { ttype: Identifier, lexeme: "first", literal: Some(Nil), line: 6 } } retrieval: RefCell { value: Environment { enclosing: Some(RefCell { value: Environment { enclosing: None, values: {"sayHi": Function(LoxFunction { declaration: Function { name: Token { ttype: Identifier, lexeme: "sayHi", literal: Some(Nil), line: 1 }, params: [Token { ttype: Identifier, lexeme: "first", literal: Some(Nil), line: 1 }, Token { ttype: Identifier, lexeme: "last", literal: Some(Nil), line: 1 }], body: [Print(Print { expression: Binary(Binary { left: Binary(Binary { left: Binary(Binary { left: Binary(Binary { left: Literal(Literal { value: String("Hi, ") }), operator: Token { ttype: Plus, lexeme: "+", literal: None, line: 6 }, right: Variable(Variable { name: Token { ttype: Identifier, lexeme: "first", literal: Some(Nil), line: 6 } }) }), operator: Token { ttype: Plus, lexeme: "+", literal: None, line: 6 }, right: Literal(Literal { value: String(" ") }) }), operator: Token { ttype: Plus, lexeme: "+", literal: None, line: 7 }, right: Variable(Variable { name: Token { ttype: Identifier, lexeme: "last", literal: Some(Nil), line: 7 } }) }), operator: Token { ttype: Plus, lexeme: "+", literal: None, line: 7 }, right: Literal(Literal { value: String("!") }) }) })] } }), "clock": NativeFunction(Clock(Clock))} } }), values: {} } }
     }
     pub fn visit_assign_expr(&mut self, expr: Assign) -> DefaultResult {
         let value = Self::evaluate(self, *expr.value)?;
@@ -253,8 +255,10 @@ impl Interpreter {
     pub fn visit_binary_expr(&mut self, binary: Binary) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
+        // println!("visit binary, left: {:?}\n - right: {:?}\n\n", left, right);
         let left_r_value = Self::evaluate(self, left);
         let right_r_value = Self::evaluate(self, right);
+
 
         if let Err(left_operand_error) = left_r_value {
             return Err(RuntimeError {
@@ -431,10 +435,10 @@ impl Interpreter {
                     function.call(Some(self), arguments);
                     Ok(None)
             }
+            BindableValue::NativeFunction(_native_function) => todo!(),
             BindableValue::Literal(_) => {
                     Err(RuntimeError { token: expr.paren, message: "Can only call functions and classes.".to_string()})
             },
-            BindableValue::NativeFunction(_native_function) => todo!(),
         }
      }
     pub fn is_truthy(item: &BindableValue) -> bool {

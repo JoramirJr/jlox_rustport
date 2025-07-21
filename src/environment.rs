@@ -14,6 +14,7 @@ pub enum BindableValue {
     NativeFunction(NativeFunction),
 }
 
+#[derive(Debug)]
 pub struct Environment {
     pub enclosing: Option<Rc<RefCell<Environment>>>,
     pub values: HashMap<String, BindableValue>,

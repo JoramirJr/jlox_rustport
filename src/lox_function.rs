@@ -38,11 +38,9 @@ impl LoxCallable for LoxFunction {
 
         for (idx, param) in self.declaration.params.iter().enumerate() {
             environment.define(param.lexeme.clone(), arguments.get(idx).unwrap().clone());
-
-            let _ = interpreter.execute_block(self.declaration.body.clone());
         }
 
-        println!("saiHi()'s environment: {:?}", environment.values);
+        let _ = interpreter.execute_block(self.declaration.body.clone());
 
         return ExpressionType::Literal(Literal {
             value: LiteralType::Nil,

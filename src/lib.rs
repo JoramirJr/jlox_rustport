@@ -20,7 +20,11 @@ pub mod lox_std {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::{
-        environment::BindableValue, expr::{ExpressionType, Literal}, interpreter::RuntimeError, token_type::LiteralType, LoxCallable
+        environment::BindableValue,
+        expr::{ExpressionType, Literal},
+        interpreter::RuntimeError,
+        token_type::LiteralType,
+        LoxCallable,
     };
 
     #[derive(Debug, Clone)]
@@ -43,9 +47,7 @@ pub mod lox_std {
                 .expect("Time went backwards")
                 .as_secs_f32();
 
-            return Ok(BindableValue::Literal(Literal(Literal {
-                value: LiteralType::F32(time_elapsed),
-            })));
+            return Ok(BindableValue::Literal(LiteralType::F32(time_elapsed)));
         }
 
         fn arity(&self) -> usize {

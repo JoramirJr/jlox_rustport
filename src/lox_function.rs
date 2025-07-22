@@ -33,9 +33,9 @@ impl LoxCallable for LoxFunction {
             environment.define(param.lexeme.clone(), arguments.get(idx).unwrap().clone());
         }
 
-        return interpreter
+        return Ok(interpreter
             .execute_block(self.declaration.body.clone(), environment)?
-            .unwrap();
+            .unwrap());
     }
     fn to_string(&self) -> String {
         format!("<fn {}>", self.declaration.name.lexeme)

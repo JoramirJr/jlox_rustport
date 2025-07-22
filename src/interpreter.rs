@@ -114,7 +114,6 @@ impl Interpreter {
     }
     fn visit_print_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
         let value = Self::evaluate(self, expr);
-
         match value {
             Ok(value) => {
                 println!("{:?}", Self::stringify(&Option::expect(value, "Interpreter implementation fail - print stmt adjacent expression not evaluated to a valid value")));
@@ -440,8 +439,7 @@ impl Interpreter {
 
          match callee {
             BindableValue::Function(function) => {
-                    function.call(Some(self), arguments);
-                    Ok(None)
+                    return function.call(Some(self), arguments).map(|function_return| Some(function_return));
             }
             BindableValue::NativeFunction(_native_function) => todo!(),
             BindableValue::Literal(_) => {

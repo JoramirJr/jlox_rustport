@@ -122,6 +122,9 @@ impl Parser {
         } else if Self::match_expr(self, &[TokenType::For]) {
             let stmt = Self::for_statement(self, lox_strt_instance);
             return stmt;
+        } else if Self::match_expr(self, &[TokenType::Return]) {
+            let stmt = Self::return_statement(self, lox_strt_instance);
+            return stmt;
         } else {
             Self::expression_statement(self, lox_strt_instance)
         };
@@ -259,6 +262,9 @@ impl Parser {
 
         Ok(StmtType::Print(Print { expression: value }))
     }
+    fn return_statement(&mut self, lox_strt_instance: &mut Lox) -> DefaultResult {
+        todo!()
+    }
     fn expression_statement(&mut self, lox_strt_instance: &mut Lox) -> DefaultResult {
         let expr: ExpressionType = Self::expression(self, lox_strt_instance)?;
 
@@ -301,11 +307,11 @@ impl Parser {
                 ));
             }
             params.push(Self::consume(
-                    self,
-                    &TokenType::Identifier,
-                    "Expect parameter name.",
-                    lox_strt_instance,
-                )?);
+                self,
+                &TokenType::Identifier,
+                "Expect parameter name.",
+                lox_strt_instance,
+            )?);
             while Self::match_expr(self, &[TokenType::Comma]) {
                 params.push(Self::consume(
                     self,

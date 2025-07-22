@@ -8,6 +8,7 @@ pub enum StmtType {
     Block(Block),
     Var(Var),
     Print(Print),
+    Return(Return),
     While(While),
 }
 
@@ -39,6 +40,11 @@ pub struct Var {
 #[derive(Debug, Clone)]
 pub struct Print {
     pub expression: ExpressionType,
+}
+#[derive(Debug, Clone)]
+pub struct Return {
+    pub keyword: Token,
+    pub value: ExpressionType,
 }
 #[derive(Debug, Clone)]
 pub struct While {

@@ -50,16 +50,16 @@ impl Interpreter {
             StmtType::If(if_stmt) => Self::visit_if_stmt(self, if_stmt),
             StmtType::While(while_stmt) => Self::visit_while_stmt(self, while_stmt),
             StmtType::Function(function) => Self::visit_function_stmt(self, function),
+            StmtType::Return(_) => todo!(),
         }
     }
     fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
-        Self::execute_block(self, stmt.statements)
-    }
-    pub fn execute_block(&mut self, statements: Vec<StmtType>) -> DefaultResult {
-        let environment = Environment {
+        Self::execute_block(self, stmt.statements, Environment {
             enclosing: Some(self.environment.clone().unwrap()),
             values: HashMap::new(),
-        };
+        })
+    }
+    pub fn execute_block(&mut self, statements: Vec<StmtType>, environment: Environment) -> DefaultResult {
         let previous = self.environment.clone();
 
         self.environment = Some(Rc::new(RefCell::new(environment)));

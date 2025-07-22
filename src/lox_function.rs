@@ -14,13 +14,6 @@ pub struct LoxFunction {
     pub declaration: Function,
 }
 
-impl LoxFunction {
-    fn new(declaration: Function) -> LoxFunction {
-        let function = LoxFunction { declaration };
-        return function;
-    }
-}
-
 impl LoxCallable for LoxFunction {
     fn arity(&self) -> usize {
         self.declaration.params.len()
@@ -40,7 +33,7 @@ impl LoxCallable for LoxFunction {
             environment.define(param.lexeme.clone(), arguments.get(idx).unwrap().clone());
         }
 
-        let _ = interpreter.execute_block(self.declaration.body.clone());
+        let _ = interpreter.execute_block(self.declaration.body.clone(), environment);
 
         return ExpressionType::Literal(Literal {
             value: LiteralType::Nil,

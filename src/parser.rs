@@ -2,7 +2,7 @@ use crate::expr::{
     Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable,
 };
 use crate::lox::Lox;
-use crate::stmt::{Block, Expression, Function, If, Print, StmtType, Var, While};
+use crate::stmt::{Block, Expression, Function, If, Print, Return, StmtType, Var, While};
 use crate::token_type::*;
 
 pub struct Parser {
@@ -263,7 +263,23 @@ impl Parser {
         Ok(StmtType::Print(Print { expression: value }))
     }
     fn return_statement(&mut self, lox_strt_instance: &mut Lox) -> DefaultResult {
-        todo!()
+        let keyword = Self::previous(&self);
+        let mut value = ExpressionType::Literal(Literal {
+            value: LiteralType::Nil,
+        });
+
+        if !Self::check(&self, &TokenType::Semicolon) {
+            value = Self::expression(self, lox_strt_instance)?;
+        }
+
+        Self::consume(
+            self,
+            &TokenType::Semicolon,
+            "Expect ';' after return value.",
+            lox_strt_instance,
+        )?;
+
+        return Ok(StmtType::Return(Return { keyword, value }));
     }
     fn expression_statement(&mut self, lox_strt_instance: &mut Lox) -> DefaultResult {
         let expr: ExpressionType = Self::expression(self, lox_strt_instance)?;

@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use interpreter::Interpreter;
 use token_type::LiteralType;
 
-use crate::{environment::BindableValue, expr::ExpressionType};
+use crate::{environment::BindableValue, expr::ExpressionType, interpreter::RuntimeError};
 
 pub mod ast_printer;
 pub mod environment;
@@ -20,9 +20,7 @@ pub mod lox_std {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::{
-        expr::{ExpressionType, Literal},
-        token_type::LiteralType,
-        LoxCallable,
+        environment::BindableValue, expr::{ExpressionType, Literal}, interpreter::RuntimeError, token_type::LiteralType, LoxCallable
     };
 
     #[derive(Debug, Clone)]
@@ -38,16 +36,16 @@ pub mod lox_std {
             &self,
             _: Option<&mut crate::interpreter::Interpreter>,
             _: Vec<crate::environment::BindableValue>,
-        ) -> ExpressionType {
+        ) -> Result<BindableValue, RuntimeError> {
             let now = SystemTime::now();
             let time_elapsed = now
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
                 .as_secs_f32();
 
-            ExpressionType::Literal(Literal {
+            return Ok(BindableValue::Literal(Literal(Literal {
                 value: LiteralType::F32(time_elapsed),
-            })
+            })));
         }
 
         fn arity(&self) -> usize {
@@ -65,7 +63,7 @@ pub trait LoxCallable {
         &self,
         interpreter: Option<&mut Interpreter>,
         arguments: Vec<BindableValue>,
-    ) -> ExpressionType;
+    ) -> Result<BindableValue, RuntimeError>;
     fn arity(&self) -> usize;
     fn to_string(&self) -> String;
 }

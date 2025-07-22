@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, ops::Neg, rc::Rc};
 
 use crate::{
-    environment::{BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, stmt::{Block, Function, If, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable, lox_std::{NativeFunction}
+    environment::{BindableValue, Environment}, expr::{Assign, Binary, Call, ExpressionType, Grouping, Literal, Logical, Unary, Variable}, lox::Lox, lox_function::LoxFunction, lox_std::NativeFunction, stmt::{Block, Function, If, Return, StmtType, Var, While}, token_type::{LiteralType, Token, TokenType}, LoxCallable
 };
 
 #[derive(Debug)]
@@ -50,7 +50,7 @@ impl Interpreter {
             StmtType::If(if_stmt) => Self::visit_if_stmt(self, if_stmt),
             StmtType::While(while_stmt) => Self::visit_while_stmt(self, while_stmt),
             StmtType::Function(function) => Self::visit_function_stmt(self, function),
-            StmtType::Return(_) => todo!(),
+            StmtType::Return(ret_stmt) => Self::visit_return_stmt(self, ret_stmt),
         }
     }
     fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
@@ -122,6 +122,18 @@ impl Interpreter {
             }
             Err(error) => Err(error),
         }
+    }
+    fn visit_return_stmt(&mut self, stmt: Return) -> DefaultResult {
+        match stmt.value {
+            ExpressionType::Literal(Literal { value: LiteralType::Nil }) => {
+                return Ok(Some(
+                    BindableValue::Literal(LiteralType::Nil)
+                ));
+            },
+            _ => {
+                return Ok(Some(Self::evaluate(self, stmt.value)?.unwrap()));
+            }
+        } 
     }
     fn visit_var_stmt(&mut self, stmt: Var) -> DefaultResult {
         let mut value: BindableValue = BindableValue::Literal(LiteralType::Nil);

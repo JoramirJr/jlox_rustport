@@ -100,9 +100,9 @@ impl Interpreter {
 
         if let Some(value) = evaluate_result {
             if Self::is_truthy(&value) {
-                Self::execute(self, StmtType::Block(stmt.then_branch))
+                Self::execute(self, *stmt.then_branch)
             } else if let Some(else_branch) = stmt.else_branch {
-                Self::execute(self, StmtType::Block(else_branch))
+                Self::execute(self, *else_branch)
             } else {
                 Ok(Some(BindableValue::Literal(LiteralType::Nil)))
             }

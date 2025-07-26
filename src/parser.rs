@@ -224,31 +224,17 @@ impl Parser {
         )?;
 
         let then_branch = Self::statement(self, lox_strt_instance)?;
+        let mut else_branch: Option<StmtType> = None;
 
-        if let StmtType::Block(then_block) = then_branch {
-            let mut else_branch: Option<Block> = None;
-
-            if Self::match_expr(self, &[TokenType::Else]) {
-                let stmt_result = Self::statement(self, lox_strt_instance)?;
-
-                if let StmtType::Block(block) = stmt_result {
-                    else_branch = Some(block);
-                } else {
-                    return Err(ParseError(
-                        "Expect '{' after else condition's parens.".to_string(),
-                    ));
-                }
-            }
-            Ok(StmtType::If(If {
-                condition: Box::new(condition),
-                then_branch: then_block,
-                else_branch,
-            }))
-        } else {
-            Err(ParseError(
-                "Expect '{' after if condition's parens.".to_string(),
-            ))
+        if Self::match_expr(self, &[TokenType::Else]) {
+            let stmt_result = Self::statement(self, lox_strt_instance)?;
+            else_branch = Some(stmt_result);
         }
+        return Ok(StmtType::If(If {
+            condition: Box::new(condition),
+            then_branch: Box::new(then_branch),
+            else_branch: else_branch.map(|branch| Box::new(branch)),
+        }));
     }
     fn print_statement(&mut self, lox_strt_instance: &mut Lox) -> DefaultResult {
         let value: ExpressionType = Self::expression(self, lox_strt_instance)?;

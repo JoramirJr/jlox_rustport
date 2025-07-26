@@ -25,8 +25,8 @@ pub struct Function {
 #[derive(Debug, Clone)]
 pub struct If {
     pub condition: Box<ExpressionType>,
-    pub then_branch: Block,
-    pub else_branch: Option<Block>,
+    pub then_branch: Box<StmtType>,
+    pub else_branch: Option<Box<StmtType>>,
 }
 #[derive(Debug, Clone)]
 pub struct Block {

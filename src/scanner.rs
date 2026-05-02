@@ -18,9 +18,9 @@ impl Scanner {
     pub fn scan_tokens(&mut self, source_file: String) -> Vec<Token> {
         self.source = source_file;
 
-        while !Self::is_at_end(&self) {
+        while !self.is_at_end() {
             self.start = self.current;
-            Self::scan_token(self);
+            self.scan_token();
         }
 
         let line = self.line;
@@ -43,35 +43,35 @@ impl Scanner {
         Self::report(line, String::new(), message);
     }
     pub fn scan_token(&mut self) -> () {
-        let c: Option<char> = Self::advance(self);
+        let c: Option<char> = self.advance();
 
         if c != None {
             match c.unwrap() {
-                '(' => Self::add_token(self, TokenType::LeftParen, None),
-                ')' => Self::add_token(self, TokenType::RightParen, None),
-                '{' => Self::add_token(self, TokenType::LeftBrace, None),
-                '}' => Self::add_token(self, TokenType::RightBrace, None),
-                ',' => Self::add_token(self, TokenType::Comma, None),
-                '.' => Self::add_token(self, TokenType::Dot, None),
-                '-' => Self::add_token(self, TokenType::Minus, None),
-                '+' => Self::add_token(self, TokenType::Plus, None),
-                ';' => Self::add_token(self, TokenType::Semicolon, None),
-                '*' => Self::add_token(self, TokenType::Star, None),
-                '!' => Self::match_token_sequence(self, '!', Some('=')),
-                '=' => Self::match_token_sequence(self, '=', Some('=')),
-                '<' => Self::match_token_sequence(self, '<', Some('=')),
-                '>' => Self::match_token_sequence(self, '>', Some('=')),
-                '/' => Self::match_token_sequence(self, '/', Some('/')),
+                '(' => self.add_token(TokenType::LeftParen, None),
+                ')' => self.add_token(TokenType::RightParen, None),
+                '{' => self.add_token(TokenType::LeftBrace, None),
+                '}' => self.add_token(TokenType::RightBrace, None),
+                ',' => self.add_token(TokenType::Comma, None),
+                '.' => self.add_token(TokenType::Dot, None),
+                '-' => self.add_token(TokenType::Minus, None),
+                '+' => self.add_token(TokenType::Plus, None),
+                ';' => self.add_token(TokenType::Semicolon, None),
+                '*' => self.add_token(TokenType::Star, None),
+                '!' => self.match_token_sequence('!', Some('=')),
+                '=' => self.match_token_sequence('=', Some('=')),
+                '<' => self.match_token_sequence('<', Some('=')),
+                '>' => self.match_token_sequence('>', Some('=')),
+                '/' => self.match_token_sequence('/', Some('/')),
                 ' ' => {}
                 '\r' => {}
                 '\t' => {}
                 '\n' => self.line += 1,
-                '"' => Self::string(self),
+                '"' => self.string(),
                 _ => {
                     if Self::is_digit(c.unwrap()) {
-                        Self::number(self);
+                        self.number();
                     } else if Self::is_alpha(c.unwrap()) {
-                        Self::identifier(self);
+                        self.identifier();
                     } else {
                         Scanner::error(&self.line, "Unexpected character.")
                     }
@@ -87,8 +87,8 @@ impl Scanner {
         (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
     }
     pub fn identifier(&mut self) {
-        while Self::is_alphanumeric(Self::peek(&self)) {
-            Self::advance(self);
+        while Self::is_alphanumeric(self.peek()) {
+            self.advance();
         }
 
         let text = self.source.get(self.start..self.current).unwrap();
@@ -113,7 +113,7 @@ impl Scanner {
             _ => TokenType::Identifier,
         };
 
-        Self::add_token(self, ttype, Some(LiteralType::Nil))
+        self.add_token(ttype, Some(LiteralType::Nil))
     }
     pub fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'
@@ -132,7 +132,7 @@ impl Scanner {
         }
     }
     pub fn match_token_sequence(&mut self, case: char, expected: Option<char>) {
-        let match_sequence = Self::match_token(self, expected);
+        let match_sequence = self.match_token(expected);
 
         if case == '!' {
             let ttype = if match_sequence {
@@ -140,35 +140,35 @@ impl Scanner {
             } else {
                 TokenType::Bang
             };
-            Self::add_token(self, ttype, Some(LiteralType::Nil))
+            self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == '=' {
             let ttype = if match_sequence {
                 TokenType::EqualEqual
             } else {
                 TokenType::Equal
             };
-            Self::add_token(self, ttype, Some(LiteralType::Nil))
+            self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == '<' {
             let ttype = if match_sequence {
                 TokenType::LessEqual
             } else {
                 TokenType::Less
             };
-            Self::add_token(self, ttype, Some(LiteralType::Nil))
+            self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == '>' {
             let ttype = if match_sequence {
                 TokenType::GreaterEqual
             } else {
                 TokenType::Greater
             };
-            Self::add_token(self, ttype, Some(LiteralType::Nil))
+            self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == '/' {
             if match_sequence {
-                while Self::peek(&self) != '\n' && Self::is_at_end(&self) {
-                    let _ = Self::advance(self);
+                while self.peek() != '\n' && self.is_at_end() {
+                    let _ = self.advance();
                 }
             } else {
-                Self::add_token(self, TokenType::Slash, Some(LiteralType::Nil));
+                self.add_token(TokenType::Slash, Some(LiteralType::Nil));
             };
         }
     }
@@ -185,22 +185,22 @@ impl Scanner {
         }
     }
     pub fn peek(&self) -> char {
-        if Self::is_at_end(&self) {
+        if self.is_at_end() {
             return '\0';
         } else {
             return self.source.chars().nth(self.current).unwrap();
         }
     }
     pub fn number(&mut self) {
-        while Self::is_digit(Self::peek(&self)) {
-            Self::advance(self);
+        while Self::is_digit(self.peek()) {
+            self.advance();
         }
 
-        if Self::peek(&self) == '.' && Self::is_digit(Self::peek_next(&self)) {
-            Self::advance(self);
+        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
+            self.advance();
 
-            while Self::is_digit(Self::peek(&self)) {
-                Self::advance(self);
+            while Self::is_digit(self.peek()) {
+                self.advance();
             }
         }
 
@@ -208,31 +208,27 @@ impl Scanner {
             .ok()
             .unwrap();
 
-        Self::add_token(
-            self,
-            TokenType::Number,
-            Some(LiteralType::F32(float_number)),
-        );
+        self.add_token(TokenType::Number, Some(LiteralType::F32(float_number)));
     }
     pub fn string(&mut self) {
-        while Self::peek(&self) != '"' && !Self::is_at_end(&self) {
-            if Self::peek(&self) != '\n' {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() != '\n' {
                 self.line += 1;
-                Self::advance(self);
+                self.advance();
             }
         }
-        if Self::is_at_end(&self) {
+        if self.is_at_end() {
             Scanner::error(&self.line, "Unterminated string");
         }
 
-        Self::advance(self);
+        self.advance();
 
         let value: String = self
             .source
             .get((self.start + 1)..(self.current - 1))
             .unwrap()
             .to_string();
-        Self::add_token(self, TokenType::String, Some(LiteralType::String(value)))
+        self.add_token(TokenType::String, Some(LiteralType::String(value)))
     }
     pub fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {

@@ -452,7 +452,7 @@ impl Parser {
         &mut self,
         lox_strt_instance: &mut Lox,
     ) -> Result<ExpressionType, ParseError> {
-        let mut expr = Self::term(self, lox_strt_instance);
+        let mut expr = Self::term(self, lox_strt_instance)?;
 
         while Self::match_expr(
             self,
@@ -465,34 +465,15 @@ impl Parser {
         ) {
             let operator = Self::previous(self);
 
-            match expr {
-                Ok(ok_response) => {
-                    let right = Self::unary(self, lox_strt_instance);
-                    match right {
-                        Ok(right_expr) => {
-                            expr = Ok(ExpressionType::Binary(Binary {
-                                left: Box::new(ok_response),
-                                operator: Token {
-                                    ttype: operator.ttype,
-                                    lexeme: operator.lexeme,
-                                    literal: operator.literal,
-                                    line: operator.line,
-                                },
-                                right: Box::new(right_expr),
-                            }));
-                        }
-                        Err(err_response) => {
-                            return Err(err_response);
-                        }
-                    }
-                }
-                Err(err_response) => {
-                    return Err(err_response);
-                }
-            }
+            let right = Self::unary(self, lox_strt_instance)?;
+            expr = ExpressionType::Binary(Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            });
         }
 
-        return expr;
+        return Ok(expr);
     }
     pub fn term(&mut self, lox_strt_instance: &mut Lox) -> Result<ExpressionType, ParseError> {
         let mut expr = Self::factor(self, lox_strt_instance);

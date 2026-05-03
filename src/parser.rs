@@ -427,12 +427,7 @@ impl Parser {
                         Ok(right_expr) => {
                             expr = Ok(ExpressionType::Binary(Binary {
                                 left: Box::new(ok_response),
-                                operator: Token {
-                                    ttype: operator.ttype,
-                                    lexeme: operator.lexeme,
-                                    literal: operator.literal,
-                                    line: operator.line,
-                                },
+                                operator,
                                 right: Box::new(right_expr),
                             }));
                         }
@@ -636,26 +631,17 @@ impl Parser {
         }
 
         if Self::match_expr(self, &[TokenType::LeftParen]) {
-            let expr = Self::expression(self, lox_strt_instance);
+            let expr = Self::expression(self, lox_strt_instance)?;
 
-            match expr {
-                Ok(ok_response) => {
-                    Self::consume(
-                        self,
-                        &TokenType::RightParen,
-                        "Expect ')' after expression",
-                        lox_strt_instance,
-                    )?;
-                    return Ok(ExpressionType::Grouping(Grouping {
-                        expression: Box::new(ExpressionType::Grouping(Grouping {
-                            expression: Box::new(ok_response),
-                        })),
-                    }));
-                }
-                Err(err_response) => {
-                    return Err(err_response);
-                }
-            }
+            Self::consume(
+                self,
+                &TokenType::RightParen,
+                "Expect ')' after expression",
+                lox_strt_instance,
+            )?;
+            return Ok(ExpressionType::Grouping(Grouping {
+                expression: Box::new(expr),
+            }));
         }
         if Self::match_expr(self, &[TokenType::Identifier]) {
             let prev_token = Self::previous(&self);

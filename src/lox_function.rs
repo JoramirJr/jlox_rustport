@@ -30,10 +30,8 @@ impl LoxCallable for LoxFunction {
         };
 
         for (idx, param) in self.declaration.params.iter().enumerate() {
-            println!("N value: {:?}", arguments.get(idx).unwrap().clone());
             environment.define(param.lexeme.clone(), arguments.get(idx).unwrap().clone());
         }
-
 
         return Ok(interpreter
             .execute_block(self.declaration.body.clone(), environment)?

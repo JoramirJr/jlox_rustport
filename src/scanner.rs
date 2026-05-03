@@ -173,12 +173,10 @@ impl Scanner {
         }
     }
     pub fn add_token(&mut self, ttype: TokenType, literal: Option<LiteralType>) {
-        let text = self.source.get(self.start..self.current);
-
-        if text != None {
+        if let Some(text) = self.source.get(self.start..self.current) {
             self.tokens.push(Token {
                 ttype,
-                lexeme: text.unwrap().to_string(),
+                lexeme: text.to_string(),
                 literal,
                 line: self.line,
             });

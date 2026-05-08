@@ -2,10 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     environment::{BindableValue, Environment},
-    expr::{ExpressionType, Literal},
-    interpreter::{self, Interpreter, RuntimeError},
+    interpreter::{Interpreter, RuntimeError},
     stmt::Function,
-    token_type::LiteralType,
     LoxCallable,
 };
 
@@ -25,7 +23,7 @@ impl LoxCallable for LoxFunction {
     ) -> Result<BindableValue, RuntimeError> {
         let interpreter = interpreter.unwrap();
         let mut environment = Environment {
-            enclosing: Some(interpreter.globals.clone()),
+            enclosing: Some(interpreter.environment.clone().unwrap()),
             values: HashMap::new(),
         };
 

@@ -151,7 +151,7 @@ impl Parser {
 
         let mut condition: Option<ExpressionType> = None;
 
-        if !Self::check(&self, &TokenType::Semicolon) {
+        if !self.check(&TokenType::Semicolon) {
             let expr_stmt = Self::expression(self, lox_strt_instance)?;
             condition = Some(expr_stmt);
         }
@@ -164,7 +164,7 @@ impl Parser {
 
         let mut increment: Option<ExpressionType> = None;
 
-        if !Self::check(&self, &TokenType::RightParen) {
+        if !self.check(&TokenType::RightParen) {
             let expr = Self::expression(self, lox_strt_instance)?;
             increment = Some(expr);
         }
@@ -254,7 +254,7 @@ impl Parser {
             value: LiteralType::Nil,
         });
 
-        if !Self::check(&self, &TokenType::Semicolon) {
+        if !self.check(&TokenType::Semicolon) {
             value = Self::expression(self, lox_strt_instance)?;
         }
 
@@ -300,7 +300,7 @@ impl Parser {
 
         let mut params: Vec<Token> = Vec::new();
 
-        if !Self::check(&self, &TokenType::RightParen) {
+        if !self.check(&TokenType::RightParen) {
             if params.len() > 255 {
                 return Err(Self::error(
                     Self::peek(&self),
@@ -345,7 +345,7 @@ impl Parser {
     fn block(&mut self, lox_strt_instance: &mut Lox) -> Result<Vec<StmtType>, ParseError> {
         let mut statements = Vec::new();
 
-        while !Self::check(&self, &TokenType::RightBrace) && !Self::is_at_end(&self) {
+        while !self.check(&TokenType::RightBrace) && !Self::is_at_end(&self) {
             let declaration = Self::declaration(self, lox_strt_instance);
 
             if let Ok(decl) = declaration {
@@ -570,7 +570,7 @@ impl Parser {
     ) -> Result<ExpressionType, ParseError> {
         let mut arguments: Vec<ExpressionType> = Vec::new();
 
-        if !Self::check(&self, &TokenType::RightParen) {
+        if !self.check(&TokenType::RightParen) {
             if arguments.len() >= 255 {
                 lox_strt_instance.error(Self::peek(&self), "Can't have more than 255 arguments.");
             }
@@ -659,7 +659,7 @@ impl Parser {
         message: &str,
         lox_strt_instance: &mut Lox,
     ) -> Result<Token, ParseError> {
-        if !Self::check(self, t_type) {
+        if !self.check(t_type) {
             let next_token = Self::peek(self);
             return Err(Self::error(next_token, message, lox_strt_instance));
         }
@@ -688,7 +688,7 @@ impl Parser {
     }
     pub fn match_expr(&mut self, types: &[TokenType]) -> bool {
         types.iter().any(|t| {
-            if Self::check(self, t) {
+            if self.check(t) {
                 Self::advance(self);
                 return true;
             } else {

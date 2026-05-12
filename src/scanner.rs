@@ -164,7 +164,7 @@ impl Scanner {
             self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == '/' {
             if match_sequence {
-                while self.peek() != '\n' && self.is_at_end() {
+                while self.peek() != '\n' && !self.is_at_end() {
                     let _ = self.advance();
                 }
             } else {
@@ -210,10 +210,10 @@ impl Scanner {
     }
     pub fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
-            if self.peek() != '\n' {
+            if self.peek() == '\n' {
                 self.line += 1;
-                self.advance();
             }
+            self.advance();
         }
         if self.is_at_end() {
             Scanner::error(&self.line, "Unterminated string");

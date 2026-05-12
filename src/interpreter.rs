@@ -21,7 +21,7 @@ type DefaultResult = Result<Option<BindableValue>, RuntimeError>;
 impl Interpreter {
     pub fn interpret(mut self, statements: Vec<StmtType>, lox_strt_instance: &mut Lox) -> () {
         for statement in statements {
-            let execute_result = Self::execute(&mut self, statement);
+            let execute_result = self.execute(statement);
 
             if let Err(runtime_error) = execute_result {
                 lox_strt_instance.runtime_error(runtime_error);
@@ -54,7 +54,7 @@ impl Interpreter {
         }
     }
     fn visit_block_stmt(&mut self, stmt: Block) -> DefaultResult {
-        Self::execute_block(self, stmt.statements, Environment {
+        self.execute_block(stmt.statements, Environment {
             enclosing: Some(self.environment.clone().unwrap()),
             values: HashMap::new(),
         })
@@ -68,7 +68,7 @@ impl Interpreter {
             Some(BindableValue::Literal(LiteralType::Nil));
 
         for statement in statements {
-            let execute_result: DefaultResult = Self::execute(self, statement);
+            let execute_result: DefaultResult = self.execute(statement);
 
             match execute_result {
                 Ok(value) => {
@@ -84,7 +84,7 @@ impl Interpreter {
         Ok(curr_execute_result)
     }
     fn visit_expression_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
-        Self::evaluate(self, expr)
+        self.evaluate(expr)
     }
     fn visit_function_stmt(&mut self, stmt: Function) -> DefaultResult {
         let lexeme = stmt.name.lexeme.clone();
@@ -96,13 +96,13 @@ impl Interpreter {
         Ok(None)
     }
     fn visit_if_stmt(&mut self, stmt: If) -> DefaultResult {
-        let evaluate_result: Option<BindableValue> = Self::evaluate(self, *stmt.condition)?;
+        let evaluate_result: Option<BindableValue> = self.evaluate(*stmt.condition)?;
 
         if let Some(value) = evaluate_result {
             if Self::is_truthy(&value) {
-                Self::execute(self, *stmt.then_branch)
+                self.execute(*stmt.then_branch)
             } else if let Some(else_branch) = stmt.else_branch {
-                Self::execute(self, *else_branch)
+                self.execute(*else_branch)
             } else {
                 Ok(Some(BindableValue::Literal(LiteralType::Nil)))
             }
@@ -113,7 +113,7 @@ impl Interpreter {
         }
     }
     fn visit_print_stmt(&mut self, expr: ExpressionType) -> DefaultResult {
-        let value = Self::evaluate(self, expr);
+        let value = self.evaluate(expr);
         match value {
             Ok(value) => {
                 println!("{:?}", Self::stringify(&Option::expect(value, "Interpreter implementation fail - print stmt adjacent expression not evaluated to a valid value")));
@@ -130,7 +130,7 @@ impl Interpreter {
                 ));
             },
             _ => {
-                return Ok(Some(Self::evaluate(self, stmt.value)?.unwrap()));
+                return Ok(Some(self.evaluate(stmt.value)?.unwrap()));
             }
         } 
     }
@@ -138,7 +138,7 @@ impl Interpreter {
         let mut value: BindableValue = BindableValue::Literal(LiteralType::Nil);
 
         if let Some(expr_initializer) = stmt.initializer {
-            let bindable = Self::evaluate(self, expr_initializer)?;
+            let bindable = self.evaluate(expr_initializer)?;
             value = bindable.unwrap();
         }
         self.environment
@@ -151,10 +151,10 @@ impl Interpreter {
     }
     fn visit_while_stmt(&mut self, stmt: While) -> DefaultResult {
         while Self::is_truthy(&Option::expect(
-            Self::evaluate(self, stmt.condition.clone())?,
+            self.evaluate(stmt.condition.clone())?,
             "Interpreter implementation fail - while stmt condition not evaluated to a valid value",
         )) {
-            Self::execute(self, *stmt.body.clone())?;
+            self.execute(*stmt.body.clone())?;
         }
         return Ok(None);
     }
@@ -185,7 +185,7 @@ impl Interpreter {
         Ok(Some(BindableValue::Literal(literal.value)))
     }
     pub fn visit_logical_expr(&mut self, logical: Logical) -> DefaultResult {
-        let left = Self::evaluate(self, *logical.left)?;
+        let left = self.evaluate(*logical.left)?;
 
         if let TokenType::Or = logical.operator.ttype {
             if Self::is_truthy(&Option::expect(
@@ -203,13 +203,13 @@ impl Interpreter {
             }
         }
 
-        return Self::evaluate(self, *logical.right);
+        return self.evaluate(*logical.right);
     }
     pub fn visit_grouping_expr(&mut self, grouping: Grouping) -> DefaultResult {
-        Self::evaluate(self, *grouping.expression)
+        self.evaluate(*grouping.expression)
     }
     pub fn visit_unary_expr(&mut self, unary: Unary) -> DefaultResult {
-        let right_r_value = Self::evaluate(self, *unary.right);
+        let right_r_value = self.evaluate(*unary.right);
 
         if let Err(right_operand_error) = right_r_value {
             return Err(RuntimeError {
@@ -250,7 +250,7 @@ impl Interpreter {
         Ok(Some(get_result))
     }
     pub fn visit_assign_expr(&mut self, expr: Assign) -> DefaultResult {
-        let value = Self::evaluate(self, *expr.value)?;
+        let value = self.evaluate(*expr.value)?;
         let get_result = self.environment.clone().unwrap().borrow_mut().assign(
             expr.name,
             Option::expect(
@@ -263,8 +263,8 @@ impl Interpreter {
     pub fn visit_binary_expr(&mut self, binary: Binary) -> DefaultResult {
         let left = *binary.left;
         let right = *binary.right;
-        let left_r_value = Self::evaluate(self, left);
-        let right_r_value = Self::evaluate(self, right);
+        let left_r_value = self.evaluate(left);
+        let right_r_value = self.evaluate(right);
 
 
         if let Err(left_operand_error) = left_r_value {
@@ -429,12 +429,12 @@ impl Interpreter {
         }
     }
      pub fn visit_call_expr(&mut self, expr: Call) -> DefaultResult {
-         let callee = Self::evaluate(self, *expr.callee)?.unwrap();
+         let callee = self.evaluate(*expr.callee)?.unwrap();
 
          let mut arguments: Vec<BindableValue> = Vec::new();
 
          for argument in expr.arguments {
-             arguments.push(Option::expect(Self::evaluate(self, argument)?, "Bug in visit_call_expr() call"));
+             arguments.push(Option::expect(self.evaluate(argument)?, "Bug in visit_call_expr() call"));
          }
 
          match callee {

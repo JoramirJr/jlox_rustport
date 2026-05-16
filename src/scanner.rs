@@ -7,7 +7,7 @@ use crate::token_type::Token;
 use crate::token_type::TokenType;
 
 pub struct Scanner {
-    pub source: String,
+    pub source: Vec<char>,
     pub tokens: Vec<Token>,
     pub start: usize,
     pub current: usize,
@@ -16,7 +16,7 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn scan_tokens(&mut self, source_file: String) -> Vec<Token> {
-        self.source = source_file;
+        self.source = source_file.chars().collect();
 
         while !self.is_at_end() {
             self.start = self.current;
@@ -43,7 +43,7 @@ impl Scanner {
         Self::report(line, String::new(), message);
     }
     pub fn scan_token(&mut self) -> () {
-        let c: Option<char> = self.advance();
+        let c = self.advance();
 
         if c != None {
             match c.unwrap() {
@@ -57,11 +57,11 @@ impl Scanner {
                 '+' => self.add_token(TokenType::Plus, None),
                 ';' => self.add_token(TokenType::Semicolon, None),
                 '*' => self.add_token(TokenType::Star, None),
-                '!' => self.match_token_sequence('!', Some('=')),
-                '=' => self.match_token_sequence('=', Some('=')),
-                '<' => self.match_token_sequence('<', Some('=')),
-                '>' => self.match_token_sequence('>', Some('=')),
-                '/' => self.match_token_sequence('/', Some('/')),
+                '!' => self.match_token_sequence('!', '='),
+                '=' => self.match_token_sequence('=', '='),
+                '<' => self.match_token_sequence('<', '='),
+                '>' => self.match_token_sequence('>', '='),
+                '/' => self.match_token_sequence('/', '/'),
                 ' ' => {}
                 '\r' => {}
                 '\t' => {}
@@ -79,12 +79,12 @@ impl Scanner {
             }
         }
     }
-    pub fn advance(&mut self) -> Option<char> {
+    pub fn advance(&mut self) -> Option<&char> {
         self.current = self.current + 1;
-        self.source.chars().nth(self.current - 1)
+        self.source.get(self.current - 1)
     }
-    pub fn is_alpha(c: char) -> bool {
-        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+    pub fn is_alpha(c: &char) -> bool {
+        (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || *c == '_'
     }
     pub fn identifier(&mut self) {
         while Self::is_alphanumeric(self.peek()) {
@@ -115,23 +115,23 @@ impl Scanner {
 
         self.add_token(ttype, Some(LiteralType::Nil))
     }
-    pub fn is_digit(c: char) -> bool {
-        c >= '0' && c <= '9'
+    pub fn is_digit(c: &char) -> bool {
+        *c >= '0' && *c <= '9'
     }
-    pub fn is_alphanumeric(peeked_c: char) -> bool {
+    pub fn is_alphanumeric(peeked_c: &char) -> bool {
         Self::is_alpha(peeked_c) || Self::is_digit(peeked_c)
     }
-    pub fn match_token(&mut self, expected: Option<char>) -> bool {
+    pub fn match_token(&mut self, expected: char) -> bool {
         if Self::is_at_end(&self) {
             return false;
-        } else if self.source.chars().nth(self.current) != expected {
+        } else if self.source.get(self.current).unwrap() != expected {
             return false;
         } else {
             self.current += 1;
             return true;
         }
     }
-    pub fn match_token_sequence(&mut self, case: char, expected: Option<char>) {
+    pub fn match_token_sequence(&mut self, case: char, expected: char) {
         let match_sequence = self.match_token(expected);
 
         if case == '!' {
@@ -164,7 +164,7 @@ impl Scanner {
             self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == '/' {
             if match_sequence {
-                while self.peek() != '\n' && !self.is_at_end() {
+                while self.peek() != &'\n' && !self.is_at_end() {
                     let _ = self.advance();
                 }
             } else {
@@ -182,11 +182,11 @@ impl Scanner {
             });
         }
     }
-    pub fn peek(&self) -> char {
+    pub fn peek(&self) -> &char {
         if self.is_at_end() {
-            return '\0';
+            return &'\0';
         } else {
-            return self.source.chars().nth(self.current).unwrap();
+            return self.source.get(self.current).unwrap();
         }
     }
     pub fn number(&mut self) {
@@ -194,7 +194,7 @@ impl Scanner {
             self.advance();
         }
 
-        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
+        if self.peek() == &'.' && Self::is_digit(self.peek_next()) {
             self.advance();
 
             while Self::is_digit(self.peek()) {
@@ -228,11 +228,11 @@ impl Scanner {
             .to_string();
         self.add_token(TokenType::String, Some(LiteralType::String(value)))
     }
-    pub fn peek_next(&self) -> char {
+    pub fn peek_next(&self) -> &char {
         if self.current + 1 >= self.source.len() {
-            '\0'
+            &'\0'
         } else {
-            self.source.chars().nth(self.current + 1).unwrap()
+            self.source.get(self.current + 1).unwrap()
         }
     }
     pub fn is_at_end(&self) -> bool {

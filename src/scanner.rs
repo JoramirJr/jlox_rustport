@@ -7,7 +7,7 @@ use crate::token_type::Token;
 use crate::token_type::TokenType;
 
 pub struct Scanner {
-    pub source: String,
+    pub source: Vec<char>,
     pub tokens: Vec<Token>,
     pub start: usize,
     pub current: usize,
@@ -43,7 +43,7 @@ impl Scanner {
         Self::report(line, String::new(), message);
     }
     pub fn scan_token(&mut self) -> () {
-        let c = self.advance();
+        let c: Option<char> = self.advance();
 
         if c != None {
             match c.unwrap() {
@@ -68,9 +68,9 @@ impl Scanner {
                 '\n' => self.line += 1,
                 '"' => self.string(),
                 _ => {
-                    if Self::is_digit(c.unwrap()) {
+                    if Self::is_digit(&c.unwrap()) {
                         self.number();
-                    } else if Self::is_alpha(c.unwrap()) {
+                    } else if Self::is_alpha(&c.unwrap()) {
                         self.identifier();
                     } else {
                         Scanner::error(&self.line, "Unexpected character.")
@@ -81,17 +81,17 @@ impl Scanner {
     }
     pub fn advance(&mut self) -> Option<char> {
         self.current = self.current + 1;
-        self.source.chars().nth(self.current - 1)
+        self.source.get(self.current - 1).copied()
     }
-    pub fn is_alpha(c: char) -> bool {
-        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+    pub fn is_alpha(c: &char) -> bool {
+        (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || *c == '_'
     }
     pub fn identifier(&mut self) {
         while Self::is_alphanumeric(self.peek()) {
             self.advance();
         }
 
-        let text = &self.source[self.start..self.current];
+        let text = self.source[self.start..self.current].iter().collect();
 
         let ttype = match text {
             "and" => TokenType::And,
@@ -115,16 +115,16 @@ impl Scanner {
 
         self.add_token(ttype, Some(LiteralType::Nil))
     }
-    pub fn is_digit(c: char) -> bool {
-        c >= '0' && c <= '9'
+    pub fn is_digit(c: &char) -> bool {
+        *c >= '0' && *c <= '9'
     }
     pub fn is_alphanumeric(peeked_c: char) -> bool {
-        Self::is_alpha(peeked_c) || Self::is_digit(peeked_c)
+        Self::is_alpha(&peeked_c) || Self::is_digit(&peeked_c)
     }
     pub fn match_token(&mut self, expected: char) -> bool {
         if Self::is_at_end(&self) {
             return false;
-        } else if self.source.chars().nth(self.current).unwrap() != expected {
+        } else if self.source.get(self.current).copied().unwrap() != expected {
             return false;
         } else {
             self.current += 1;
@@ -164,6 +164,8 @@ impl Scanner {
             self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == '/' {
             if match_sequence {
+                return true;
+
                 while self.peek() != '\n' && !self.is_at_end() {
                     let _ = self.advance();
                 }
@@ -190,14 +192,14 @@ impl Scanner {
         }
     }
     pub fn number(&mut self) {
-        while Self::is_digit(self.peek()) {
+        while Self::is_digit(&self.peek()) {
             self.advance();
         }
 
-        if self.peek() == '.' && Self::is_digit(self.peek_next().unwrap()) {
+        if self.peek() == '.' && Self::is_digit(&self.peek_next()) {
             self.advance();
 
-            while Self::is_digit(self.peek()) {
+            while Self::is_digit(&self.peek()) {
                 self.advance();
             }
         }
@@ -231,11 +233,11 @@ impl Scanner {
         let value: String = self.source[self.start + 1..self.current - 1].to_string();
         self.add_token(TokenType::String, Some(LiteralType::String(value)))
     }
-    pub fn peek_next(&self) -> &char {
+    pub fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {
-            &'\0'
+            '\0'
         } else {
-            &self.source.chars().nth(self.current + 1).unwrap()
+            self.source.chars().nth(self.current + 1).unwrap()
         }
     }
     pub fn is_at_end(&self) -> bool {

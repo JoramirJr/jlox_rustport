@@ -6,15 +6,15 @@ use crate::token_type::LiteralType;
 use crate::token_type::Token;
 use crate::token_type::TokenType;
 
-pub struct Scanner {
-    pub source: Vec<char>,
+pub struct Scanner<'a> {
+    pub source: Vec<&'a str>,
     pub tokens: Vec<Token>,
     pub start: usize,
     pub current: usize,
     pub line: u32,
 }
 
-impl Scanner {
+impl<'a> Scanner<'a> {
     pub fn scan_tokens(&mut self, source_file: String) -> Vec<Token> {
         self.source = source_file.chars().collect();
 
@@ -91,7 +91,7 @@ impl Scanner {
             self.advance();
         }
 
-        let text = self.source[self.start..self.current].iter().collect();
+        let text = self.source[self.start..self.current].;
 
         let ttype = match text {
             "and" => TokenType::And,

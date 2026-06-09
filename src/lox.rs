@@ -33,7 +33,7 @@ impl Lox {
             fs::read_to_string(self.args[1].clone()).expect("File reading successful");
 
         let mut scanner = Scanner {
-            source: String::new(),
+            source: Vec::new(),
             tokens: Vec::new(),
             start: 0,
             current: 0,

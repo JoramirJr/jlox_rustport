@@ -50,7 +50,7 @@ pub enum TokenType {
 #[derive(Debug, Clone, PartialEq)]
 pub enum LiteralType {
     String(String),
-    F32(f32),
+    F64(f64),
     Bool(bool),
     Nil,
 }

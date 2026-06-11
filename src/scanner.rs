@@ -1,6 +1,5 @@
 use std::io;
 use std::io::Write;
-use std::str::FromStr;
 
 use crate::token_type::LiteralType;
 use crate::token_type::Token;
@@ -148,14 +147,14 @@ impl Scanner {
                 TokenType::Equal
             };
             self.add_token(ttype, Some(LiteralType::Nil))
-        } else if case == '<' {
+        } else if case == b'<' {
             let ttype = if match_sequence {
                 TokenType::LessEqual
             } else {
                 TokenType::Less
             };
             self.add_token(ttype, Some(LiteralType::Nil))
-        } else if case == '>' {
+        } else if case == b'>' {
             let ttype = if match_sequence {
                 TokenType::GreaterEqual
             } else {
@@ -164,9 +163,7 @@ impl Scanner {
             self.add_token(ttype, Some(LiteralType::Nil))
         } else if case == b'/' {
             if match_sequence {
-                return true;
-
-                while self.peek() != '\n' && !self.is_at_end() {
+                while self.peek() != b'\n' && !self.is_at_end() {
                     let _ = self.advance();
                 }
             } else {
@@ -188,7 +185,7 @@ impl Scanner {
         if self.is_at_end() {
             return b'\0';
         } else {
-            return self.source.u8s().nth(self.current).unwrap();
+            return self.source.as_bytes()[self.current];
         }
     }
     pub fn number(&mut self) {
@@ -204,18 +201,11 @@ impl Scanner {
             }
         }
 
-        let float_number: f32 = f32::from_str(
-            &self
-                .source
-                .as_bytes()
-                .skip(self.start)
-                .take(self.current - self.start)
-                .collect::<String>(),
-        )
-        .ok()
-        .unwrap();
+        let float_number = self.source[self.start..self.current]
+            .parse()
+            .expect("invalid number literal");
 
-        self.add_token(TokenType::Number, Some(LiteralType::F32(float_number)));
+        self.add_token(TokenType::Number, Some(LiteralType::F64(float_number)));
     }
     pub fn string(&mut self) {
         while self.peek() != b'"' && !self.is_at_end() {

@@ -6,7 +6,7 @@ use crate::token_type::Token;
 use crate::token_type::TokenType;
 
 pub struct Scanner {
-    pub source: String,
+    pub source: Vec<u8>,
     pub tokens: Vec<Token>,
     pub start: usize,
     pub current: usize,
@@ -15,7 +15,7 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn scan_tokens(&mut self, source_file: String) -> Vec<Token> {
-        self.source = source_file;
+        self.source = source_file.as_bytes().to_vec();
 
         while !self.is_at_end() {
             self.start = self.current;
@@ -80,7 +80,7 @@ impl Scanner {
     }
     pub fn advance(&mut self) -> u8 {
         self.current = self.current + 1;
-        self.source.as_bytes()[self.current - 1]
+        self.source[self.current - 1]
     }
     pub fn is_alpha(c: u8) -> bool {
         (c >= b'a' && c <= b'z') || (c >= b'A' && c <= b'Z') || c == b'_'
@@ -90,7 +90,7 @@ impl Scanner {
             self.advance();
         }
 
-        let text = &self.source.as_bytes()[self.start..self.current];
+        let text = &self.source[self.start..self.current];
 
         let ttype = match text {
             b"and" => TokenType::And,
@@ -123,7 +123,7 @@ impl Scanner {
     pub fn match_token(&mut self, expected: u8) -> bool {
         if Self::is_at_end(&self) {
             return false;
-        } else if self.source.as_bytes()[self.current] != expected {
+        } else if self.source[self.current] != expected {
             return false;
         } else {
             self.current += 1;

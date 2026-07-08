@@ -175,7 +175,7 @@ impl Scanner {
         if let Some(text) = self.source.get(self.start..self.current) {
             self.tokens.push(Token {
                 ttype,
-                lexeme: text.to_string(),
+                lexeme: text.to_vec(),
                 literal,
                 line: self.line,
             });
@@ -185,7 +185,7 @@ impl Scanner {
         if self.is_at_end() {
             return b'\0';
         } else {
-            return self.source.as_bytes()[self.current];
+            return self.source[self.current];
         }
     }
     pub fn number(&mut self) {
@@ -201,9 +201,10 @@ impl Scanner {
             }
         }
 
-        let float_number = self.source[self.start..self.current]
-            .parse()
-            .expect("invalid number literal");
+        let float_number = std::str::from_utf8(&self.source[self.start..self.current])
+            .unwrap()
+            .parse::<f64>()
+            .unwrap();
 
         self.add_token(TokenType::Number, Some(LiteralType::F64(float_number)));
     }
@@ -220,14 +221,16 @@ impl Scanner {
 
         self.advance();
 
-        let value: String = self.source[self.start + 1..self.current - 1].to_string();
+        let value = std::str::from_utf8(&self.source[self.start + 1..self.current - 1])
+            .unwrap()
+            .to_string();
         self.add_token(TokenType::String, Some(LiteralType::String(value)))
     }
     pub fn peek_next(&self) -> u8 {
         if self.current + 1 >= self.source.len() {
             b'\0'
         } else {
-            self.source.as_bytes()[self.current + 1]
+            self.source[self.current + 1]
         }
     }
     pub fn is_at_end(&self) -> bool {

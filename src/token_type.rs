@@ -58,7 +58,7 @@ pub enum LiteralType {
 #[derive(Debug, Clone)]
 pub struct Token {
     pub ttype: TokenType,
-    pub lexeme: String,
+    pub lexeme: Vec<u8>,
     pub literal: Option<LiteralType>,
     pub line: u32,
 }
